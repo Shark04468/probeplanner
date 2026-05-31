@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://probeplanner.local/contracts/engine-task.schema.json",
+  "title": "Planner Engine Task Status",
+  "type": "object",
+  "required": ["ok", "taskId", "status", "stage", "progress", "cancelled"],
+  "properties": {
+    "ok": { "type": "boolean" },
+    "taskId": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "running", "completed", "failed", "cancelled"]
+    },
+    "stage": { "type": "string" },
+    "progress": { "type": "number", "minimum": 0, "maximum": 1 },
+    "message": { "type": "string" },
+    "cancelled": { "type": "boolean" },
+    "result": { "type": ["object", "null"] },
+    "error": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true
+}

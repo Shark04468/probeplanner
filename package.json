@@ -1,0 +1,40 @@
+{
+  "name": "probeplanner-native-upgrade",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ui:install": "npm --prefix apps/ui install",
+    "ui:start": "npm --prefix apps/ui start",
+    "ui:build": "npm --prefix apps/ui run build",
+    "ui:test": "npm --prefix apps/ui run test:frontend -- --watchAll=false --runInBand",
+    "ui:e2e": "npm --prefix apps/ui run test:e2e",
+    "backend:start": "powershell -NoProfile -ExecutionPolicy Bypass -File apps/backend-compat/scripts/start_backend_compat.ps1",
+    "backend:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File apps/backend-compat/scripts/smoke_backend_compat.ps1",
+    "backend:test": "powershell -NoProfile -ExecutionPolicy Bypass -File apps/backend-compat/scripts/test_backend_compat.ps1",
+    "mri:qc": "python apps/backend-compat/scripts/check_mri_registration_qc.py",
+    "dev:stack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start_dev_stack.ps1",
+    "prepare:cases": "tsx apps/perf-gate/src/cli.ts prepare:cases",
+    "perf:baseline": "tsx apps/perf-gate/src/cli.ts run --mode baseline",
+    "perf:gate": "tsx apps/perf-gate/src/cli.ts run --mode gate",
+    "perf:gate:backend": "tsx apps/perf-gate/src/cli.ts run --mode gate --skip-3d --backend-warmup-runs 1",
+    "perf:gate:sdf": "tsx apps/perf-gate/src/cli.ts run --mode gate --skip-3d --case-group sdf-adversarial",
+    "perf:gate:3d": "tsx apps/perf-gate/src/cli.ts run --mode gate --require-3d --3d-runs 3 --3d-headed",
+    "rust:doctor": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check_windows_rust_prereqs.ps1",
+    "rust:check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/rust_check.ps1",
+    "engine:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_engine.ps1",
+    "desktop:check": "cargo check --manifest-path apps/desktop-tauri/src-tauri/Cargo.toml",
+    "desktop:stack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start_desktop_stack.ps1",
+    "desktop:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop_local_stack.ps1",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "quality": "npm run typecheck && npm test && npm run ui:build"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.10.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.13"
+  }
+}

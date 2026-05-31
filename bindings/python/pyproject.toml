@@ -1,0 +1,9 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "planner-engine-native"
+version = "0.1.0"
+requires-python = ">=3.10"
+description = "Native ProbePlanner hot-path kernels exposed to Python"

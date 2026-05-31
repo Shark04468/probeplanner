@@ -1,0 +1,17 @@
+node_modules/
+dist/
+reports/
+logs/
+output/
+apps/ui/build/
+apps/backend-compat/replay/
+.cache/
+*.log
+.env
+.DS_Store
+target/
+.tools/
+.cargo/
+.rustup/
+__pycache__/
+.pytest_cache/

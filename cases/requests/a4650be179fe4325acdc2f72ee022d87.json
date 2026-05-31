@@ -1,0 +1,52 @@
+{
+  "id": "a4650be179fe4325acdc2f72ee022d87",
+  "label": "golden_ca1_angle",
+  "source": "repo",
+  "requestHash": "b89de4dde3ddeec5369d8b8b76543a166dd17ded5f4ade4b0e86f23e9eef2bc8",
+  "targetKeys": [
+    "CA1"
+  ],
+  "algorithm": "greedy",
+  "request": {
+    "probeParams": {
+      "preset": "NP2.0-4shank",
+      "depth": 10,
+      "count": 1
+    },
+    "clinicalContext": {
+      "replayCase": "golden_ca1_angle"
+    },
+    "params": {
+      "candidateRefineStepUm": 50,
+      "robustSamples": 4,
+      "paretoTopK": 4,
+      "minClearance": 1000,
+      "constraintAwareSearch": true,
+      "scoreEarlyStopTopK": 20,
+      "angleStep": 10,
+      "gridSpacing": 2500,
+      "candidateCoarseStepUm": 100,
+      "objectivePreset": "safety_first",
+      "autoAvoidEnabled": true,
+      "coverageRadius": 600,
+      "algorithm": "greedy",
+      "riskThresholdTemplate": "balanced",
+      "autoRepairEnabled": true,
+      "maxAngle": 10,
+      "strictAtlasTargets": true,
+      "allowFallbackTargetCoverage": false
+    },
+    "targetKeys": [
+      "CA1"
+    ],
+    "constraintModes": {
+      "minEntrySpacing": "enforce",
+      "hemisphere": "warn",
+      "lambdaBoundary": "warn",
+      "brainBounds": "enforce",
+      "continuousRiskDistance": "warn",
+      "maxAngle": "enforce",
+      "minClearance": "enforce"
+    }
+  }
+}

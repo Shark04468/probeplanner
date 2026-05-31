@@ -1,0 +1,10 @@
+{
+  "name": "@probeplanner/backend-compat",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Flask compatibility backend for the native planner-engine migration",
+  "scripts": {
+    "start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start_backend_compat.ps1",
+    "test": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test_backend_compat.ps1"
+  }
+}

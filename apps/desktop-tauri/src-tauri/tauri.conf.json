@@ -1,0 +1,38 @@
+{
+  "build": {
+    "beforeBuildCommand": "npm --prefix ../../ui run build",
+    "beforeDevCommand": "npm --prefix ../../ui start",
+    "devPath": "http://127.0.0.1:3000",
+    "distDir": "../../ui/build"
+  },
+  "package": {
+    "productName": "ProbePlanner Native",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false,
+      "shell": {
+        "all": false,
+        "open": true
+      }
+    },
+    "bundle": {
+      "active": true,
+      "identifier": "local.probeplanner.native",
+      "targets": "all"
+    },
+    "security": {
+      "csp": null
+    },
+    "windows": [
+      {
+        "title": "ProbePlanner Native",
+        "width": 1440,
+        "height": 980,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ]
+  }
+}

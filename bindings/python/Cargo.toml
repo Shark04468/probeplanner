@@ -1,0 +1,13 @@
+[package]
+name = "planner-engine-py"
+version = "0.1.0"
+edition = "2021"
+license = "Proprietary"
+
+[lib]
+name = "planner_engine_native"
+crate-type = ["cdylib"]
+
+[dependencies]
+planner-engine = { path = "../../planner-engine" }
+pyo3 = { version = "0.22", features = ["extension-module"] }

@@ -1,0 +1,272 @@
+{
+  "version": 1,
+  "generatedAt": "2026-05-31T04:51:36.528Z",
+  "sourceProject": "..\\probe-planner",
+  "cases": [
+    {
+      "id": "2f6de98fc6b14259b50625db53a2ff3f",
+      "label": "golden_ca1_coarse",
+      "source": "repo",
+      "sourcePath": "..\\probe-planner\\replay\\2f6de98fc6b14259b50625db53a2ff3f.json",
+      "targetKeys": [
+        "CA1"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "8b83d8d249834bcba970b8e463ff6a9d",
+      "label": "golden_ca1_medium",
+      "source": "repo",
+      "sourcePath": "..\\probe-planner\\replay\\8b83d8d249834bcba970b8e463ff6a9d.json",
+      "targetKeys": [
+        "CA1"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "a4650be179fe4325acdc2f72ee022d87",
+      "label": "golden_ca1_angle",
+      "source": "repo",
+      "sourcePath": "..\\probe-planner\\replay\\a4650be179fe4325acdc2f72ee022d87.json",
+      "targetKeys": [
+        "CA1"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "d1c472882d954170a62df28a11ec3aa6",
+      "label": "golden_ca1_medium",
+      "source": "repo",
+      "sourcePath": "..\\probe-planner\\replay\\d1c472882d954170a62df28a11ec3aa6.json",
+      "targetKeys": [
+        "CA1"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "dee9b5b717b349bbb45acd8f6f56dfe1",
+      "label": "golden_ca1_coarse",
+      "source": "repo",
+      "sourcePath": "..\\probe-planner\\replay\\dee9b5b717b349bbb45acd8f6f56dfe1.json",
+      "targetKeys": [
+        "CA1"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "ea412cef1e0a47aeb70e32b8d045796f",
+      "label": "golden_ca1_angle",
+      "source": "repo",
+      "sourcePath": "..\\probe-planner\\replay\\ea412cef1e0a47aeb70e32b8d045796f.json",
+      "targetKeys": [
+        "CA1"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "325c3ba8f9de4e4d8c40d33ced16a43d",
+      "label": "LGd+VISrl+VISp+VPM+ADP-325c3ba8",
+      "source": "local",
+      "sourcePath": "..\\..\\..\\.probeplanner\\replay\\325c3ba8f9de4e4d8c40d33ced16a43d.json",
+      "targetKeys": [
+        "LGd",
+        "VISrl",
+        "VISp",
+        "VPM",
+        "ADP"
+      ],
+      "excludedTargetKeys": [
+        "PTLp"
+      ],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "5360cd81765a40f2a73a9ca11f7f66a4",
+      "label": "ACA+CA3+ACB+CA1+CP-5360cd81",
+      "source": "local",
+      "sourcePath": "..\\..\\..\\.probeplanner\\replay\\5360cd81765a40f2a73a9ca11f7f66a4.json",
+      "targetKeys": [
+        "ACA",
+        "CA3",
+        "ACB",
+        "CA1",
+        "CP"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "13a2046cc6594fb792bc3025f36393d8",
+      "label": "MOs+CA1+SSp+VISrl+VISal+VISp+VISpm-13a2046c",
+      "source": "local",
+      "sourcePath": "..\\..\\..\\.probeplanner\\replay\\13a2046cc6594fb792bc3025f36393d8.json",
+      "targetKeys": [
+        "MOs",
+        "CA1",
+        "SSp",
+        "VISrl",
+        "VISal",
+        "VISp",
+        "VISpm"
+      ],
+      "excludedTargetKeys": [
+        "PFC"
+      ],
+      "algorithm": "drcc"
+    },
+    {
+      "id": "15089cf26d0a4299971ab5e2a240e5f5",
+      "label": "LP+ACA+MOs+ACB+LGd+FRP1-15089cf2",
+      "source": "local",
+      "sourcePath": "..\\..\\..\\.probeplanner\\replay\\15089cf26d0a4299971ab5e2a240e5f5.json",
+      "targetKeys": [
+        "LP",
+        "ACA",
+        "MOs",
+        "ACB",
+        "LGd",
+        "FRP1"
+      ],
+      "excludedTargetKeys": [
+        "PFC"
+      ],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "sdf_skull_b64560b4b312",
+      "label": "sdf_skull_edge",
+      "source": "adversarial",
+      "sourcePath": "generated:sdf-adversarial:skull:reject",
+      "targetKeys": [
+        "ACA",
+        "CA3",
+        "ACB"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "sdf_skull_46b2d4fcbd89",
+      "label": "sdf_skull_pass_control",
+      "source": "adversarial",
+      "sourcePath": "generated:sdf-adversarial:skull:pass",
+      "targetKeys": [
+        "ACA",
+        "CA3",
+        "ACB"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "sdf_brain_surface_68c69a0ec350",
+      "label": "sdf_brain_surface_edge",
+      "source": "adversarial",
+      "sourcePath": "generated:sdf-adversarial:brain_surface:reject",
+      "targetKeys": [
+        "ACA",
+        "CA3",
+        "ACB"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "sdf_brain_surface_da6e93369aa1",
+      "label": "sdf_brain_surface_pass_control",
+      "source": "adversarial",
+      "sourcePath": "generated:sdf-adversarial:brain_surface:pass",
+      "targetKeys": [
+        "ACA",
+        "CA3",
+        "ACB"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "sdf_ventricle_d66dc3587b7d",
+      "label": "sdf_ventricle_edge",
+      "source": "adversarial",
+      "sourcePath": "generated:sdf-adversarial:ventricle:reject",
+      "targetKeys": [
+        "ACA",
+        "CA3",
+        "ACB"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "sdf_ventricle_c4485ea64293",
+      "label": "sdf_ventricle_pass_control",
+      "source": "adversarial",
+      "sourcePath": "generated:sdf-adversarial:ventricle:pass",
+      "targetKeys": [
+        "ACA",
+        "CA3",
+        "ACB"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "sdf_vessel_8b10b6816843",
+      "label": "sdf_vessel_edge",
+      "source": "adversarial",
+      "sourcePath": "generated:sdf-adversarial:vessel:reject",
+      "targetKeys": [
+        "ACA",
+        "CA3",
+        "ACB"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "sdf_vessel_b53f93cf981a",
+      "label": "sdf_vessel_pass_control",
+      "source": "adversarial",
+      "sourcePath": "generated:sdf-adversarial:vessel:pass",
+      "targetKeys": [
+        "ACA",
+        "CA3",
+        "ACB"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "sdf_sulcus_2f4bcfbe930d",
+      "label": "sdf_sulcus_edge",
+      "source": "adversarial",
+      "sourcePath": "generated:sdf-adversarial:sulcus:reject",
+      "targetKeys": [
+        "ACA",
+        "CA3",
+        "ACB"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    },
+    {
+      "id": "sdf_sulcus_332ad9053435",
+      "label": "sdf_sulcus_pass_control",
+      "source": "adversarial",
+      "sourcePath": "generated:sdf-adversarial:sulcus:pass",
+      "targetKeys": [
+        "ACA",
+        "CA3",
+        "ACB"
+      ],
+      "excludedTargetKeys": [],
+      "algorithm": "greedy"
+    }
+  ]
+}

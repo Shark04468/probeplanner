@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://probeplanner.local/contracts/optimize-request.schema.json",
+  "title": "ProbePlanner Optimize Request",
+  "type": "object",
+  "required": ["targetKeys", "params", "probeParams"],
+  "properties": {
+    "taskId": { "type": "string" },
+    "targetKeys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "params": { "type": "object" },
+    "probeParams": { "type": "object" },
+    "constraintModes": { "type": "object" },
+    "correctionFactors": { "type": ["object", "null"] },
+    "correctionUncertainty": { "type": ["object", "null"] },
+    "clinicalContext": { "type": ["object", "null"] }
+  },
+  "additionalProperties": true
+}

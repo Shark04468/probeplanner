@@ -1,0 +1,32 @@
+{
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "build",
+    "node_modules",
+    "**/__pycache__",
+    "**/.pytest_cache"
+  ],
+  "typeCheckingMode": "basic",
+  "reportUndefinedVariable": "error",
+  "reportUnboundVariable": "error",
+  "reportMissingImports": "warning",
+  "reportMissingModuleSource": "none",
+  "reportUnusedImport": "warning",
+  "reportUnknownMemberType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportUnknownParameterType": "none",
+  "reportUnknownLambdaType": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none",
+  "reportOptionalCall": "none",
+  "reportOptionalIterable": "none",
+  "reportArgumentType": "none",
+  "reportAssignmentType": "none",
+  "reportOperatorIssue": "none",
+  "reportCallIssue": "none",
+  "reportReturnType": "none",
+  "reportGeneralTypeIssues": "none"
+}

@@ -1,0 +1,412 @@
+﻿<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrainPlanner 3D</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+    #unity-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #000;
+    }
+    #loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 0.5s;
+    }
+    #loading-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-title {
+      color: #00d4ff;
+      font-family: 'SF Mono', monospace;
+      font-size: 16px;
+      letter-spacing: 0.15em;
+      margin-bottom: 24px;
+    }
+    .loading-bar-wrap {
+      width: 260px;
+      height: 3px;
+      background: #0a1a2a;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .loading-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #00d4ff, #34d399);
+      width: 0%;
+      transition: width 0.2s;
+      border-radius: 2px;
+    }
+    .loading-pct {
+      color: #3a6888;
+      font-family: monospace;
+      font-size: 11px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="unity-canvas" tabindex="-1"></canvas>
+
+  <div id="loading-overlay">
+    <div class="loading-title">BRAIN PLANNER 3D</div>
+    <div class="loading-bar-wrap">
+      <div class="loading-bar" id="loading-bar"></div>
+    </div>
+    <div class="loading-pct" id="loading-pct">0%</div>
+  </div>
+
+  <script>
+    var buildUrl = "Build";
+    var canvas = document.getElementById('unity-canvas');
+    var pointerDown = null;
+    var unityQuery = new URLSearchParams(window.location.search || '');
+    var requestedDpr = Number(unityQuery.get('dpr') || 1);
+    var maxDevicePixelRatio = Number.isFinite(requestedDpr) ? Math.max(0.75, Math.min(requestedDpr, 1.25)) : 1;
+    var unityDevicePixelRatio = Math.max(1, Math.min(window.devicePixelRatio || 1, maxDevicePixelRatio));
+    var bridgeCapabilities = {
+      protocolVersion: 2,
+      unityBuildVersion: "webgl-remove-sphere-20260426",
+      maxPayloadBytes: 196608,
+      supportsSlice: true,
+      supportsLighting: false,
+      supportsBulkState: true,
+      supportsBinaryBuffer: false,
+      supportsFetchPayload: false,
+      largePayloadTransport: "inline-json",
+      unsupportedMethods: [
+        "SetEnvironmentLighting",
+        "SetMriAppearance"
+      ],
+      supportedMethods: [
+        "GetCapabilities",
+        "Heartbeat",
+        "SetStateSnapshot",
+        "SetSelectedRegions",
+        "SetProbes",
+        "SetHighlightProbe",
+        "SetOpacity",
+        "SetSlice",
+        "SetSelectedOnly",
+        "SetHemisphereFilter",
+        "SetShellVisible",
+        "SetAxesVisible",
+        "SetProbeGuideVisible",
+        "SetProbeUncertaintyVisible",
+        "SetWeightedOit",
+        "SetContactProfile",
+        "SetClinicalFocus",
+        "SetPostFxPreset",
+        "SetAntiAliasingMode",
+        "SetPostFxEnabled",
+        "SetAmbientOcclusionEnabled",
+        "SetCameraAngle",
+        "SetCameraLocked",
+        "SetCameraView",
+        "SetView",
+        "SetCameraPreset",
+        "SetInteractionQuality",
+        "SetRegionHighlight",
+        "FocusRegion",
+        "RequestScreenshot",
+        "OnCanvasPointer"
+      ]
+    };
+
+    function emitToParent(eventName, data) {
+      var payload = { source: 'BrainPlannerUnity', event: eventName, data: String(data || '') };
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(payload, '*');
+        } else {
+          window.postMessage(payload, '*');
+        }
+      } catch (e) {
+        console.warn('[BrainPlanner] postMessage failed:', e);
+      }
+    }
+
+    function emitCapabilities(reason) {
+      var payload = {};
+      for (var key in bridgeCapabilities) {
+        if (Object.prototype.hasOwnProperty.call(bridgeCapabilities, key)) {
+          payload[key] = bridgeCapabilities[key];
+        }
+      }
+      payload.reason = String(reason || 'capabilities');
+      payload.ts = Date.now();
+      emitToParent('capabilities', JSON.stringify(payload));
+    }
+
+    function isBenignUnityRuntimeNoise(value) {
+      var text = String(value || '');
+      return (
+        /RuntimeError:\s*table index is out of bounds/i.test(text) &&
+        /(focusEventHandlerFunc|jsEventHandler|wasm-function)/i.test(text)
+      ) || (
+        /SendMessage failed for SetSlice/i.test(text) &&
+        /Maximum call stack size exceeded/i.test(text)
+      );
+    }
+
+    function isBenignUnityBridgeFailure(method, value) {
+      var name = String(method || '');
+      var text = String(value || '');
+      return (
+        name === 'SetSlice' &&
+        /Maximum call stack size exceeded/i.test(text)
+      ) || (
+        name === 'SetEnvironmentLighting' &&
+        /table index is out of bounds/i.test(text)
+      );
+    }
+
+    function formatErrorEvent(e) {
+      var detail = String(e && (e.message || e.error || e.reason) || 'window error');
+      var stack = e && e.error && e.error.stack ? String(e.error.stack) : '';
+      return stack && stack.indexOf(detail) === -1 ? detail + '\n' + stack : detail;
+    }
+
+    window.addEventListener('error', function (e) {
+      var text = formatErrorEvent(e);
+      if (isBenignUnityRuntimeNoise(text)) {
+        if (e && e.preventDefault) e.preventDefault();
+        console.warn('[BrainPlanner] Suppressed Unity focus-event runtime noise:', text);
+        return;
+      }
+      emitToParent('error', text);
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      var reason = e && e.reason;
+      var text = String((reason && (reason.message || reason)) || 'unhandled rejection');
+      if (reason && reason.stack && text.indexOf(reason.stack) === -1) text += '\n' + reason.stack;
+      if (isBenignUnityRuntimeNoise(text)) {
+        if (e && e.preventDefault) e.preventDefault();
+        console.warn('[BrainPlanner] Suppressed Unity rejection noise:', text);
+        return;
+      }
+      emitToParent('error', text);
+    });
+    (function () {
+      window.alert = function (msg) {
+        var text = String(msg || 'alert');
+        if (isBenignUnityRuntimeNoise(text)) {
+          console.warn('[BrainPlanner] Suppressed Unity runtime alert:', text);
+          return;
+        }
+        console.error('[BrainPlanner] Unity alert suppressed:', text);
+        emitToParent('error', text);
+      };
+    })();
+
+    var loaderUrl = buildUrl + "/WebGL-Build-RemoveSphere.loader.js";
+    var config = {
+      dataUrl: buildUrl + "/WebGL-Build-RemoveSphere.data.unityweb",
+      frameworkUrl: buildUrl + "/WebGL-Build-RemoveSphere.framework.js.unityweb",
+      codeUrl: buildUrl + "/WebGL-Build-RemoveSphere.wasm.unityweb",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "BCILab",
+      productName: "BrainPlanner",
+      productVersion: "1.0",
+      devicePixelRatio: unityDevicePixelRatio,
+      webglContextAttributes: {
+        alpha: false,
+        antialias: false,
+        depth: true,
+        stencil: false,
+        preserveDrawingBuffer: false,
+        desynchronized: true,
+        powerPreference: "high-performance"
+      },
+      errorHandler: function(msg) {
+        var text = String(msg || 'Unity runtime error');
+        if (isBenignUnityRuntimeNoise(text)) {
+          console.warn('[BrainPlanner] Suppressed Unity runtime noise:', text);
+          return true;
+        }
+        console.error('[Unity]', text);
+        emitToParent('error', text);
+        return true;
+      },
+      showBanner: function(msg, type) {
+        if (type !== 'error') return;
+        console.error('[Unity]', msg);
+        emitToParent('error', String(msg || 'Unity runtime error'));
+      }
+    };
+
+    var script = document.createElement('script');
+    script.src = loaderUrl;
+    script.async = true;
+    script.onerror = function() {
+      emitToParent('error', 'Failed to load Unity loader at ' + loaderUrl);
+    };
+    script.onload = function() {
+      createUnityInstance(
+        document.querySelector('#unity-canvas'),
+        config,
+        function onProgress(progress) {
+          var pct = Math.round(progress * 100);
+          document.getElementById('loading-bar').style.width = pct + '%';
+          document.getElementById('loading-pct').textContent = pct + '%';
+        }
+      ).then(function(unityInstance) {
+        window.unityInstance = unityInstance;
+
+        var overlay = document.getElementById('loading-overlay');
+        overlay.classList.add('hidden');
+        setTimeout(function() { overlay.style.display = 'none'; }, 600);
+
+        emitCapabilities('instance_ready');
+        emitToParent('instanceReady', '');
+      }).catch(function(msg) {
+        var text = String(msg || 'createUnityInstance failed');
+        console.error('[BrainPlanner] Unity load failed:', text);
+        emitToParent('error', text);
+      });
+    };
+    document.body.appendChild(script);
+
+    function emitStateAck(method, stateVersion, extras) {
+      var payload = {
+        method: String(method || ''),
+        stateVersion: Number.isFinite(Number(stateVersion)) ? Number(stateVersion) : 0,
+        ts: Date.now()
+      };
+      if (extras && typeof extras === 'object') {
+        for (var k in extras) {
+          if (Object.prototype.hasOwnProperty.call(extras, k)) payload[k] = extras[k];
+        }
+      }
+      emitToParent('stateAck', JSON.stringify(payload));
+    }
+
+    function isUnsupportedBridgeMethod(method) {
+      var name = String(method || '');
+      return bridgeCapabilities.unsupportedMethods.indexOf(name) >= 0;
+    }
+
+    window.addEventListener('message', function(e) {
+      if (!e.data || e.data.target !== 'BrainPlannerUnity') return;
+      if (!window.unityInstance) return;
+
+      var cmd = e.data;
+      var method = cmd && cmd.method ? String(cmd.method) : '';
+      var param = cmd && cmd.param !== undefined ? String(cmd.param) : '';
+      var stateVersion = cmd && cmd.stateVersion !== undefined ? Number(cmd.stateVersion) : 0;
+      if (!method) return;
+
+      if (method === 'GetCapabilities') {
+        emitCapabilities('request');
+        emitStateAck(method, stateVersion);
+        return;
+      }
+
+      // Frontend heartbeat should never depend on Unity C# frame timing.
+      if (method === 'Heartbeat') {
+        emitToParent('heartbeatAck', JSON.stringify({ ts: Date.now(), stateVersion: stateVersion }));
+        emitStateAck('Heartbeat', stateVersion, { sentAt: cmd.sentAt || 0, payloadBytes: Number(cmd.payloadBytes || 0) });
+        return;
+      }
+
+      if (isUnsupportedBridgeMethod(method)) {
+        console.warn('[BrainPlanner] Ignored unsupported Unity bridge method:', method);
+        emitStateAck(method, stateVersion, {
+          unsupported: true,
+          sentAt: cmd.sentAt || 0,
+          payloadBytes: Number(cmd.payloadBytes || 0)
+        });
+        return;
+      }
+
+      // Alias for compatibility with older bridge methods.
+      var dispatchMethod = method === 'SetView' ? 'SetCameraView' : method;
+      try {
+        window.unityInstance.SendMessage('BrainController', dispatchMethod, param);
+        if (method === 'SetStateSnapshot') {
+          emitToParent('snapshotApplied', JSON.stringify({ stateVersion: stateVersion }));
+        }
+        emitStateAck(method, stateVersion, {
+          dispatchedAs: dispatchMethod !== method ? dispatchMethod : undefined,
+          sentAt: cmd.sentAt || 0,
+          payloadBytes: Number(cmd.payloadBytes || 0),
+          largePayload: Boolean(cmd.largePayload)
+        });
+      } catch (err) {
+        var errorText = String((err && err.message) || err || 'unknown');
+        if (isBenignUnityBridgeFailure(method, errorText)) {
+          console.warn('[BrainPlanner] Suppressed optional Unity bridge failure for ' + method + ':', errorText);
+          emitStateAck(method, stateVersion, {
+            suppressed: true,
+            sentAt: cmd.sentAt || 0,
+            payloadBytes: Number(cmd.payloadBytes || 0)
+          });
+          return;
+        }
+        emitToParent('error', 'SendMessage failed for ' + method + ': ' + errorText);
+      }
+    });
+
+    function onResize() {
+      if (canvas) {
+        canvas.width = Math.round(window.innerWidth * unityDevicePixelRatio);
+        canvas.height = Math.round(window.innerHeight * unityDevicePixelRatio);
+      }
+    }
+
+    canvas.addEventListener('pointerdown', function (e) {
+      pointerDown = {
+        x: e.clientX,
+        y: e.clientY,
+        ts: performance.now(),
+      };
+    });
+
+    canvas.addEventListener('pointerup', function (e) {
+      if (!window.unityInstance) return;
+      if (!pointerDown) return;
+
+      var dist = Math.hypot(e.clientX - pointerDown.x, e.clientY - pointerDown.y);
+      var dt = performance.now() - pointerDown.ts;
+      var isClick = dist <= 6 && dt <= 500;
+      pointerDown = null;
+      if (!isClick) return;
+
+      var rect = canvas.getBoundingClientRect();
+      var payload = {
+        type: 'click',
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        width: rect.width,
+        height: rect.height
+      };
+      try {
+        window.unityInstance.SendMessage('BrainController', 'OnCanvasPointer', JSON.stringify(payload));
+      } catch (err) {
+        emitToParent('error', 'SendMessage failed for OnCanvasPointer: ' + String((err && err.message) || err || 'unknown'));
+      }
+    });
+
+    window.addEventListener('resize', onResize);
+    onResize();
+  </script>
+</body>
+</html>
+
