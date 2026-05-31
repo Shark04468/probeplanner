@@ -59,6 +59,7 @@ jobs:
     timeout-minutes: 90
     env:
       PROBEPLANNER_ARTIFACT_ROOT: ${{ vars.PROBEPLANNER_ARTIFACT_ROOT }}
+      PROBEPLANNER_MRI_CCF_PROFILE_NAME: ${{ vars.PROBEPLANNER_MRI_CCF_PROFILE_NAME || 'ambmc_true_outer_full' }}
       PERF_BASELINE_SUMMARY: ${{ vars.PERF_BASELINE_SUMMARY || 'reports/baseline-legacy-10/summary.json' }}
     steps:
       - uses: actions/checkout@v4
@@ -97,7 +98,12 @@ jobs:
         run: npm run sdf:boundary
         shell: pwsh
       - name: Run MRI registration QC gate
-        run: npm run mri:qc
+        run: |
+          $manifest = Join-Path $env:PROBEPLANNER_ARTIFACT_ROOT "artifact_manifest.json"
+          if (-not (Test-Path $manifest)) {
+            $manifest = Join-Path (Join-Path $env:PROBEPLANNER_ARTIFACT_ROOT $env:PROBEPLANNER_MRI_CCF_PROFILE_NAME) "artifact_manifest.json"
+          }
+          npm run mri:qc -- --manifest "$manifest"
         shell: pwsh
       - uses: actions/upload-artifact@v4
         if: always()
@@ -115,6 +121,7 @@ jobs:
     timeout-minutes: 90
     env:
       PROBEPLANNER_ARTIFACT_ROOT: ${{ vars.PROBEPLANNER_ARTIFACT_ROOT }}
+      PROBEPLANNER_MRI_CCF_PROFILE_NAME: ${{ vars.PROBEPLANNER_MRI_CCF_PROFILE_NAME || 'ambmc_true_outer_full' }}
       BROWSER3D_BASELINE_SUMMARY: ${{ vars.BROWSER3D_BASELINE_SUMMARY || 'reports/browser3d-profile-current-dpr1-v3/summary.json' }}
     steps:
       - uses: actions/checkout@v4

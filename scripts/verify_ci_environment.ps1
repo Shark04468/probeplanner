@@ -1,5 +1,6 @@
 param(
     [string]$ArtifactRoot = $env:PROBEPLANNER_ARTIFACT_ROOT,
+    [string]$ProfileName = $env:PROBEPLANNER_MRI_CCF_PROFILE_NAME,
     [string]$BackendBaselineSummary = $env:PERF_BASELINE_SUMMARY,
     [string]$Browser3dBaselineSummary = $env:BROWSER3D_BASELINE_SUMMARY,
     [switch]$RequireBackendBaseline,
@@ -24,6 +25,12 @@ function Require-Path {
 }
 
 $resolvedArtifactRoot = Require-Path "PROBEPLANNER_ARTIFACT_ROOT" $ArtifactRoot
+if (-not (Test-Path (Join-Path $resolvedArtifactRoot "annotation.npy")) -and -not [string]::IsNullOrWhiteSpace($ProfileName)) {
+    $profileCandidate = Join-Path $resolvedArtifactRoot $ProfileName
+    if (Test-Path $profileCandidate) {
+        $resolvedArtifactRoot = (Resolve-Path $profileCandidate).Path
+    }
+}
 $regionMapV2 = Join-Path $resolvedArtifactRoot "region_map_v2.json"
 $regionMapLegacy = Join-Path $resolvedArtifactRoot "region_map.json"
 if (-not (Test-Path (Join-Path $resolvedArtifactRoot "annotation.npy"))) {
