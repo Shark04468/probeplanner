@@ -5,8 +5,9 @@ Last verified: 2026-05-28
 ## Implemented
 
 - `planner-engine` now has an active Rust optimization pipeline instead of a service shell.
-- `planner-engine` loads resident `annotation.npy` through mmap, `region_map_v2.json`,
-  and mmap `signed_sdf_mm.npy` SDF from `.cache/native-artifacts` when available.
+- `planner-engine` loads resident `annotation.npy` through mmap, prefers
+  `region_map_v2.json`, accepts legacy `region_map.json`, and uses mmap
+  `signed_sdf_mm.npy` SDF from `.cache/native-artifacts` when available.
 - Candidate generation runs in Rust from request parameters and atlas-backed target centroids.
 - Trajectory sampling uses native arrays at atlas voxel resolution for atlas overlap.
 - Atlas overlap scoring uses target-index counters instead of per-voxel string/map updates.

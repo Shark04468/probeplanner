@@ -469,6 +469,11 @@ function ExplainSummary({ results, tr }) {
   const prefProfiles = results.preferenceProfiles || {};
   const stratCal = results.stratifiedCalibration || {};
   const stratGlobal = stratCal.global || {};
+  const nativeEngineActive = Boolean(
+    results.nativeEngineService?.enabled ||
+    results.candidateStageBreakdown?.engineService ||
+    results.computeProfile?.solverRuntimePolicy?.supportedNativeDrccSolvers
+  );
   return (
     <div style={styles.summaryBox}>
       <div style={styles.summaryTitle}>
@@ -522,7 +527,7 @@ function ExplainSummary({ results, tr }) {
           {tr('drccSummaryLabel')}: eps={fmt(drcc.epsilon, 3)} | W={fmt(drcc.wassersteinRadius, 3)} | eval={drcc.evaluatedCandidates ?? '--'} | profile={drcc.profile || '--'} | solver={drcc.solverSelected || drcc.solver || '--'}
         </div>
       )}
-      {results.drccEnabled && drcc?.misocp && (
+      {results.drccEnabled && drcc?.misocp && !nativeEngineActive && (
         <div style={styles.summaryLine}>
           {tr('drccSolverMisocpLabel')} ({tr('drccSolverLegacyOnlyLabel')}): {drcc.misocp.solverUsed || '--'} | status={drcc.misocp.status || '--'} | obj={fmt(drcc.misocp.objective, 3)} | soc={fmt(drcc.misocp.socNormValue, 3)}
         </div>

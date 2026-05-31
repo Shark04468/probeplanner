@@ -3606,7 +3606,7 @@ def _initialize_risk_model(
             if isinstance(extra_source_meta, dict):
                 source_meta[source_key_norm] = deepcopy(extra_source_meta.get(source_key_norm, {}))
             source_class = classify_risk_source(source_key_norm)
-            if source_class in RISK_CLASS_CODE:
+            if source_class in RISK_CLASS_CODE and not source_key_norm.startswith("atlas_keywords:"):
                 structured_sources.add(source_key_norm)
 
     if not source_masks and not DISABLE_ATLAS_KEYWORD_RISK:
@@ -6774,29 +6774,37 @@ def _load_label_driven_atlas_mode(active_mode):
     layered_sdf_bundle = {}
     extra_meta = {}
     if active_mode == "mri_ccf_hybrid":
-        extra_masks = _load_mri_hybrid_structured_masks()
-        layered_sdf_bundle = _load_layered_sdf_bundle(payload.get("layeredSdfPath"))
-        precomputed_sdf = (
-            np.asarray(layered_sdf_bundle.get("signed_sdf_mm"), dtype=np.float32)
-            if isinstance(layered_sdf_bundle, dict) and layered_sdf_bundle.get("signed_sdf_mm") is not None
-            else None
-        )
-        for sk, mk in extra_masks.items():
-            extra_meta[sk] = {
-                "kind": "mri_structured",
-                "voxels": int(np.count_nonzero(mk)),
-                "path": payload.get("skullMaskPath" if sk == "skull" else "outerTissueMaskPath"),
-            }
-        layered_masks, layered_meta = _derive_masks_from_layered_sdf_bundle(
-            layered_sdf_bundle,
-            threshold_mm=MRI_CCF_LAYERED_MASK_THRESHOLD_MM,
-        )
-        for sk, mk in layered_masks.items():
-            if sk not in extra_masks:
-                extra_masks[sk] = mk
-            meta_row = dict(layered_meta.get(sk, {}))
-            meta_row.setdefault("kind", "layered_sdf_channel")
-            extra_meta.setdefault(sk, meta_row)
+        disable_mri_structured_risk = str(
+            os.getenv("PROBEPLANNER_DISABLE_MRI_STRUCTURED_RISK", "false")
+        ).strip().lower() in {"1", "true", "yes", "on"}
+        if not disable_mri_structured_risk:
+            extra_masks = _load_mri_hybrid_structured_masks()
+            layered_sdf_bundle = _load_layered_sdf_bundle(payload.get("layeredSdfPath"))
+            precomputed_sdf = (
+                np.asarray(layered_sdf_bundle.get("signed_sdf_mm"), dtype=np.float32)
+                if isinstance(layered_sdf_bundle, dict) and layered_sdf_bundle.get("signed_sdf_mm") is not None
+                else None
+            )
+            for sk, mk in extra_masks.items():
+                extra_meta[sk] = {
+                    "kind": "mri_structured",
+                    "voxels": int(np.count_nonzero(mk)),
+                    "path": payload.get("skullMaskPath" if sk == "skull" else "outerTissueMaskPath"),
+                }
+            layered_masks, layered_meta = _derive_masks_from_layered_sdf_bundle(
+                layered_sdf_bundle,
+                threshold_mm=MRI_CCF_LAYERED_MASK_THRESHOLD_MM,
+            )
+            for sk, mk in layered_masks.items():
+                if sk not in extra_masks:
+                    extra_masks[sk] = mk
+                meta_row = dict(layered_meta.get(sk, {}))
+                meta_row.setdefault("kind", "layered_sdf_channel")
+                extra_meta.setdefault(sk, meta_row)
+        else:
+            log.warning(
+                "MRI structured risk masks disabled by PROBEPLANNER_DISABLE_MRI_STRUCTURED_RISK=1"
+            )
         # If Allen ontology is unavailable for hybrid mode, fallback to lightweight
         # keyword masks derived from the label-driven structure map so risk model
         # remains available instead of hard-disabled.
@@ -21080,6 +21088,20 @@ def api_optimize():
                 code="schema_validation_error",
             )
         if _native_engine_service_enabled():
+            params = body.get("params") if isinstance(body.get("params"), dict) else {}
+            if (
+                str(params.get("algorithm") or "").strip().lower() == "drcc"
+                and str(params.get("drccSolver") or "").strip().lower() == "misocp"
+            ):
+                raise ContractError(
+                    "Native planner-engine does not implement legacy Python MISOCP/CVX semantics",
+                    details=[
+                        "Use exact_pool, hybrid, heuristic, or cvar_relax for native DRCC.",
+                        "Run with the legacy Python backend only when a historical MISOCP comparison is explicitly required.",
+                    ],
+                    status_code=400,
+                    code="unsupported_native_drcc_solver",
+                )
             response_payload = _run_native_engine_service_pipeline(body, task_id=task_id)
         else:
             response_payload = _run_optimize_pipeline(body, task_id=task_id)

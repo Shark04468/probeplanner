@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     env,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{Arc, Mutex},
     time::Instant,
 };
@@ -168,30 +168,15 @@ impl SolverPlan {
                         native_drcc_approximation: false,
                     },
                     "misocp" => {
-                        let allow_approx = bool_param(
-                            &request.params,
-                            "allowNativeDrccApproximation",
-                            bool_param(&request.params, "drccAllowNativeApproximation", false),
-                        );
-                        if !allow_approx {
-                            return Err(UnsupportedSolver {
-                                requested_solver,
-                                message: "Native engine does not implement the legacy Python MISOCP/CVX solver; request exact_pool, hybrid, heuristic, cvar_relax, or set allowNativeDrccApproximation=true explicitly.".to_string(),
-                            });
-                        }
-                        Self {
-                            kind: SolverKind::DrccExactPool,
-                            pool_size,
-                            effective_algorithm: "drcc_misocp_approx_exact_pool_bitset",
-                            requested_drcc_solver: Some(requested_solver),
-                            effective_drcc_solver: Some("exact_pool"),
-                            native_drcc_approximation: true,
-                        }
+                        return Err(UnsupportedSolver {
+                            requested_solver,
+                            message: "Native engine does not implement the legacy Python MISOCP/CVX solver; request exact_pool, hybrid, heuristic, or cvar_relax. MISOCP is available only through the legacy Python backend for historical comparison.".to_string(),
+                        });
                     }
                     _ => {
                         return Err(UnsupportedSolver {
                             requested_solver,
-                            message: "Unsupported native DRCC solver. Supported native values: exact_pool, hybrid, heuristic, cvar_relax. MISOCP is fail-closed unless explicit approximation is enabled.".to_string(),
+                            message: "Unsupported native DRCC solver. Supported native values: exact_pool, hybrid, heuristic, cvar_relax. MISOCP is legacy Python only and fails closed in the native engine.".to_string(),
                         });
                     }
                 };
@@ -644,7 +629,7 @@ impl PlannerEngineConfig {
             .ok()
             .filter(|value| !value.trim().is_empty())
             .unwrap_or_default();
-        let artifact_root = Path::new(&artifact_root);
+        let artifact_root = resolve_artifact_profile_root(Path::new(&artifact_root));
 
         fn env_or_existing(name: &str, default_path: impl AsRef<Path>) -> Option<String> {
             env::var(name)
@@ -655,6 +640,18 @@ impl PlannerEngineConfig {
                     default_path
                         .exists()
                         .then(|| default_path.to_string_lossy().to_string())
+                })
+        }
+
+        fn env_or_existing_any(name: &str, default_paths: &[PathBuf]) -> Option<String> {
+            env::var(name)
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+                .or_else(|| {
+                    default_paths
+                        .iter()
+                        .find(|path| path.exists())
+                        .map(|path| path.to_string_lossy().to_string())
                 })
         }
 
@@ -706,12 +703,47 @@ impl PlannerEngineConfig {
                 .filter(|value| !value.trim().is_empty())
                 .or_else(|| Some("signed_sdf_mm".to_string())),
             layered_sdf_npy_paths,
-            region_index_path: env_or_existing(
+            region_index_path: env_or_existing_any(
                 "PROBEPLANNER_REGION_MAP_JSON",
-                artifact_root.join("region_map_v2.json"),
+                &[
+                    artifact_root.join("region_map_v2.json"),
+                    artifact_root.join("region_map.json"),
+                ],
             ),
         }
     }
+}
+
+fn resolve_artifact_profile_root(base: &Path) -> PathBuf {
+    for env_name in [
+        "PROBEPLANNER_MRI_CCF_ACTIVE_PROFILE_PATH",
+        "PROBEPLANNER_MRI_CCF_DEFAULT_PROFILE_DIR",
+    ] {
+        if let Ok(value) = env::var(env_name) {
+            let candidate = PathBuf::from(value.trim());
+            if has_native_atlas_artifacts(&candidate) {
+                return candidate;
+            }
+        }
+    }
+
+    if has_native_atlas_artifacts(base) {
+        return base.to_path_buf();
+    }
+
+    if let Ok(profile_name) = env::var("PROBEPLANNER_MRI_CCF_PROFILE_NAME") {
+        let candidate = base.join(profile_name.trim());
+        if has_native_atlas_artifacts(&candidate) {
+            return candidate;
+        }
+    }
+
+    base.to_path_buf()
+}
+
+fn has_native_atlas_artifacts(path: &Path) -> bool {
+    path.join("annotation.npy").exists()
+        && (path.join("region_map_v2.json").exists() || path.join("region_map.json").exists())
 }
 
 impl NativeAtlas {
@@ -2431,7 +2463,7 @@ mod tests {
     }
 
     #[test]
-    fn native_drcc_misocp_fails_closed_without_explicit_approximation() {
+    fn native_drcc_misocp_fails_closed() {
         let request = OptimizeRequest {
             task_id: None,
             target_keys: vec!["CA1".to_string()],

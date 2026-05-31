@@ -1,0 +1,27 @@
+{
+  "title": "ProbePlanner: an auditable software workflow for MRI-CCF probe trajectory planning in mouse electrophysiology",
+  "upload_type": "software",
+  "description": "Source-code release for ProbePlanner, an auditable workflow for MRI-CCF probe trajectory planning in mouse electrophysiology. The release includes the React interface, Flask compatibility API, Rust native planning engine, replay/performance tooling, installation instructions, minimal examples, replay commands, and expected outputs.",
+  "creators": [
+    {
+      "name": "Sha, Yijun"
+    }
+  ],
+  "license": "MIT",
+  "keywords": [
+    "mouse brain atlas",
+    "Allen CCF",
+    "MRI registration",
+    "Neuropixels",
+    "probe trajectory planning",
+    "neuroinformatics software",
+    "reproducible workflow"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/Shark04467/probeplanner",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    }
+  ]
+}

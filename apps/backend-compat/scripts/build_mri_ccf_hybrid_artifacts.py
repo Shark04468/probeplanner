@@ -321,6 +321,7 @@ def _write_manifest(
     jacobian_resolved = (
         jacobian_path.expanduser().resolve() if isinstance(jacobian_path, Path) else (out_dir / "jacobian.npy").resolve()
     )
+    region_map_v2_path = region_map_path.with_name("region_map_v2.json")
     manifest = {
         "schemaVersion": "probeplanner.mri_ccf.artifact_manifest.v1",
         "generatedAt": _utc_now_iso(),
@@ -330,9 +331,10 @@ def _write_manifest(
         "artifacts": {
             "annotation": _path_meta(annotation_path, "volume", True, annotation_shape),
             "region_map": _path_meta(region_map_path, "json", True, None),
+            "region_map_v2": _path_meta(region_map_v2_path, "json", False, None),
             "stats": _path_meta(stats_path, "json", True, None),
             "registration_summary": _path_meta(reg_summary_resolved, "json", True, None),
-            "warped_mri": _path_meta(reg_summary_resolved.parent / "ambmc_in_ccf.nii.gz", "image", True, annotation_shape),
+            "warped_mri": _path_meta(reg_summary_resolved.parent / "ambmc_in_ccf.nii.gz", "image", False, annotation_shape),
             "skull_mask": _path_meta(skull_mask_path, "mask", True, annotation_shape),
             "outer_tissue_mask": _path_meta(outer_tissue_mask_path, "mask", True, annotation_shape),
             "layered_sdf": _path_meta(layered_sdf_path, "sdf", True, annotation_shape),

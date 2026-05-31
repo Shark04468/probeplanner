@@ -7,6 +7,19 @@ param(
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
+
+function Test-NativeArtifactProfile {
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
+    return (
+        (Test-Path (Join-Path $Path "annotation.npy")) -and
+        (
+            (Test-Path (Join-Path $Path "region_map_v2.json")) -or
+            (Test-Path (Join-Path $Path "region_map.json"))
+        )
+    )
+}
+
 if ([string]::IsNullOrWhiteSpace($ArtifactRoot)) {
     $candidates = @(
         (Join-Path $Root ".probeplanner\mri_ccf_hybrid_seed"),
@@ -14,17 +27,34 @@ if ([string]::IsNullOrWhiteSpace($ArtifactRoot)) {
         (Join-Path $Root ".cache\native-artifacts")
     )
     foreach ($candidate in $candidates) {
-        if ((Test-Path (Join-Path $candidate "annotation.npy")) -and (Test-Path (Join-Path $candidate "region_map_v2.json"))) {
+        if (Test-NativeArtifactProfile $candidate) {
             $ArtifactRoot = $candidate
             break
         }
     }
 }
 if ([string]::IsNullOrWhiteSpace($ArtifactRoot)) {
-    throw "PROBEPLANNER_ARTIFACT_ROOT is required. Pass -ArtifactRoot or create a local artifact root with annotation.npy and region_map_v2.json."
+    throw "PROBEPLANNER_ARTIFACT_ROOT is required. Pass -ArtifactRoot or create a local artifact root with annotation.npy and region_map_v2.json or region_map.json."
 }
 if (-not (Test-Path $ArtifactRoot)) {
     throw "Artifact root does not exist: $ArtifactRoot"
+}
+$ProfileName = $env:PROBEPLANNER_MRI_CCF_PROFILE_NAME
+if (-not [string]::IsNullOrWhiteSpace($env:PROBEPLANNER_MRI_CCF_ACTIVE_PROFILE_PATH)) {
+    $activeProfile = $env:PROBEPLANNER_MRI_CCF_ACTIVE_PROFILE_PATH
+    if (Test-NativeArtifactProfile $activeProfile) {
+        $ArtifactRoot = (Resolve-Path $activeProfile).Path
+    }
+} elseif (-not [string]::IsNullOrWhiteSpace($env:PROBEPLANNER_MRI_CCF_DEFAULT_PROFILE_DIR)) {
+    $activeProfile = $env:PROBEPLANNER_MRI_CCF_DEFAULT_PROFILE_DIR
+    if (Test-NativeArtifactProfile $activeProfile) {
+        $ArtifactRoot = (Resolve-Path $activeProfile).Path
+    }
+} elseif (-not [string]::IsNullOrWhiteSpace($ProfileName)) {
+    $profileRoot = Join-Path $ArtifactRoot $ProfileName
+    if (Test-NativeArtifactProfile $profileRoot) {
+        $ArtifactRoot = (Resolve-Path $profileRoot).Path
+    }
 }
 $env:PROBEPLANNER_ARTIFACT_ROOT = $ArtifactRoot
 $env:PROBEPLANNER_ENGINE_HOST = $HostName
@@ -43,8 +73,13 @@ if (-not $env:PROBEPLANNER_ATLAS_NPY) {
     if (Test-Path $AtlasPath) { $env:PROBEPLANNER_ATLAS_NPY = $AtlasPath }
 }
 if (-not $env:PROBEPLANNER_REGION_MAP_JSON) {
-    $RegionPath = Join-Path $ArtifactRoot "region_map_v2.json"
-    if (Test-Path $RegionPath) { $env:PROBEPLANNER_REGION_MAP_JSON = $RegionPath }
+    $RegionPathV2 = Join-Path $ArtifactRoot "region_map_v2.json"
+    $RegionPathLegacy = Join-Path $ArtifactRoot "region_map.json"
+    if (Test-Path $RegionPathV2) {
+        $env:PROBEPLANNER_REGION_MAP_JSON = $RegionPathV2
+    } elseif (Test-Path $RegionPathLegacy) {
+        $env:PROBEPLANNER_REGION_MAP_JSON = $RegionPathLegacy
+    }
 }
 if (-not $env:PROBEPLANNER_SDF_NPZ) {
     $SdfPath = Join-Path $ArtifactRoot "layered_sdf.npz"

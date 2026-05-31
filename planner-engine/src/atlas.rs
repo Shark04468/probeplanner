@@ -1,6 +1,7 @@
 use crate::EngineError;
 use memmap2::{Mmap, MmapOptions};
 use serde::Deserialize;
+use serde_json::Value;
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
@@ -61,8 +62,27 @@ struct RegionMapEntryFile {
 impl RegionLookup {
     pub fn from_json(path: impl AsRef<Path>) -> Result<Self, EngineError> {
         let text = std::fs::read_to_string(path).map_err(|_| EngineError::OutOfBounds)?;
-        let parsed: RegionMapFile =
-            serde_json::from_str(&text).map_err(|_| EngineError::InvalidGrid)?;
+        let value: Value = serde_json::from_str(&text).map_err(|_| EngineError::InvalidGrid)?;
+        let parsed = if value.get("entries").and_then(Value::as_array).is_some() {
+            serde_json::from_value::<RegionMapFile>(value).map_err(|_| EngineError::InvalidGrid)?
+        } else if let Some(map) = value.as_object() {
+            let entries = map
+                .iter()
+                .filter_map(|(key, value)| {
+                    value.as_u64().map(|id| RegionMapEntryFile {
+                        canonical_acronym: key.clone(),
+                        aliases: vec![key.clone()],
+                        id: id as u32,
+                    })
+                })
+                .collect::<Vec<_>>();
+            if entries.is_empty() {
+                return Err(EngineError::InvalidGrid);
+            }
+            RegionMapFile { entries }
+        } else {
+            return Err(EngineError::InvalidGrid);
+        };
         let mut alias_to_id = HashMap::new();
         let entries = parsed
             .entries
@@ -418,5 +438,18 @@ mod tests {
         assert_eq!(parsed.scalar_type, VolumeScalarType::U32);
         assert_eq!(parsed.dims, vec![2, 3, 4]);
         assert!(!parsed.fortran_order);
+    }
+
+    #[test]
+    fn loads_legacy_region_map_json() {
+        let path = std::env::temp_dir().join(format!(
+            "probeplanner-region-map-{}.json",
+            std::process::id()
+        ));
+        std::fs::write(&path, r#"{"CA1":382,"VISp":385}"#).unwrap();
+        let lookup = RegionLookup::from_json(&path).unwrap();
+        let _ = std::fs::remove_file(&path);
+        assert_eq!(lookup.descendant_ids_for("CA1"), vec![382]);
+        assert_eq!(lookup.descendant_ids_for("visp"), vec![385]);
     }
 }

@@ -108,6 +108,7 @@ def main() -> int:
     paths = {
         "annotation": profile_dir / "annotation.npy",
         "region_map": profile_dir / "region_map.json",
+        "region_map_v2": profile_dir / "region_map_v2.json",
         "stats": profile_dir / "stats.json",
         "registration_summary": profile_dir / "registration" / "registration_summary.json",
         "warped_mri": profile_dir / "registration" / "ambmc_in_ccf.nii.gz",
@@ -120,9 +121,10 @@ def main() -> int:
     artifacts = {
         "annotation": _meta(paths["annotation"], kind="volume", required=True, shape=shape, old=old, key="annotation", hash_large=args.hash_large),
         "region_map": _meta(paths["region_map"], kind="json", required=True, shape=None, old=old, key="region_map", hash_large=True),
+        "region_map_v2": _meta(paths["region_map_v2"], kind="json", required=False, shape=None, old=old, key="region_map_v2", hash_large=True),
         "stats": _meta(paths["stats"], kind="json", required=True, shape=None, old=old, key="stats", hash_large=True),
         "registration_summary": _meta(paths["registration_summary"], kind="json", required=True, shape=None, old=old, key="registration_summary", hash_large=True),
-        "warped_mri": _meta(paths["warped_mri"], kind="image", required=True, shape=expected_shape, old=old, key="warped_mri", hash_large=args.hash_large),
+        "warped_mri": _meta(paths["warped_mri"], kind="image", required=False, shape=expected_shape, old=old, key="warped_mri", hash_large=args.hash_large),
         "skull_mask": _meta(paths["skull_mask"], kind="mask", required=True, shape=_array_shape(paths["skull_mask"], expected_shape), old=old, key="skull_mask", hash_large=args.hash_large),
         "outer_tissue_mask": _meta(paths["outer_tissue_mask"], kind="mask", required=True, shape=_array_shape(paths["outer_tissue_mask"], expected_shape), old=old, key="outer_tissue_mask", hash_large=args.hash_large),
         "layered_sdf": _meta(paths["layered_sdf"], kind="sdf", required=True, shape=expected_shape, old=old, key="layered_sdf", hash_large=args.hash_large),

@@ -68,12 +68,9 @@ jobs:
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
       - run: npm ci
-      - name: Require artifact root
+      - name: Verify self-hosted backend gate environment
         shell: pwsh
-        run: |
-          if (-not $env:PROBEPLANNER_ARTIFACT_ROOT) { throw "Set repository variable PROBEPLANNER_ARTIFACT_ROOT for self-hosted gate runners." }
-          if (-not (Test-Path $env:PROBEPLANNER_ARTIFACT_ROOT)) { throw "Artifact root not found: $env:PROBEPLANNER_ARTIFACT_ROOT" }
-          if (-not (Test-Path $env:PERF_BASELINE_SUMMARY)) { throw "Backend baseline summary not found: $env:PERF_BASELINE_SUMMARY" }
+        run: ./scripts/verify_ci_environment.ps1 -RequireBackendBaseline
       - name: Start native engine
         shell: pwsh
         run: |
@@ -95,6 +92,9 @@ jobs:
         shell: pwsh
       - name: Run SDF adversarial gate
         run: npm run perf:gate:sdf -- --baseline "$env:PERF_BASELINE_SUMMARY" --out reports/ci-sdf-adversarial --runs 1
+        shell: pwsh
+      - name: Run real SDF boundary layer gate
+        run: npm run sdf:boundary
         shell: pwsh
       - name: Run MRI registration QC gate
         run: npm run mri:qc
@@ -129,12 +129,12 @@ jobs:
       - run: npm ci
       - run: npm --prefix apps/ui ci
       - run: npm run ui:build
+      - name: Verify self-hosted 3D gate environment
+        shell: pwsh
+        run: ./scripts/verify_ci_environment.ps1 -RequireBrowser3dBaseline -RequireGpu
       - name: Start app stack
         shell: pwsh
         run: |
-          if (-not $env:PROBEPLANNER_ARTIFACT_ROOT) { throw "Set repository variable PROBEPLANNER_ARTIFACT_ROOT for self-hosted gate runners." }
-          if (-not (Test-Path $env:PROBEPLANNER_ARTIFACT_ROOT)) { throw "Artifact root not found: $env:PROBEPLANNER_ARTIFACT_ROOT" }
-          if (-not (Test-Path $env:BROWSER3D_BASELINE_SUMMARY)) { throw "3D baseline summary not found: $env:BROWSER3D_BASELINE_SUMMARY" }
           Start-Process -FilePath powershell -WindowStyle Hidden -ArgumentList @(
             "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/run_engine.ps1",
             "-ArtifactRoot", $env:PROBEPLANNER_ARTIFACT_ROOT, "-KillExisting"

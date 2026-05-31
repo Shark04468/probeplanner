@@ -78,9 +78,10 @@ describe("evaluateGates", () => {
     expect(report.checks.some((item) => !item.passed && item.name.includes("median"))).toBe(true);
   });
 
-  test("allows strong absolute 3d performance despite refresh-rate relative fps drift", () => {
+  test("fails 3d refresh-rate relative fps drift even when absolute fps is strong", () => {
     const report = evaluateGates(summary(600, 13_000, 120), summary(120_000, 10_000, 240));
-    expect(report.passed).toBe(true);
+    expect(report.passed).toBe(false);
+    expect(report.checks.some((item) => !item.passed && item.name === "3d fps not worse")).toBe(true);
   });
 
   test("fails drcc downgrade to greedy", () => {
@@ -131,6 +132,19 @@ describe("evaluateGates", () => {
     const report = evaluateGates(current, summary(120_000, 40_000, 55));
     expect(report.passed).toBe(false);
     expect(report.checks.some((item) => !item.passed && item.name.includes("drcc solver honored"))).toBe(true);
+  });
+
+  test("fails native misocp approximation claims", () => {
+    const current = summary(600, 20_000, 55);
+    current.cases[0]!.algorithm = "drcc";
+    current.cases[0]!.requestedAlgorithms = ["drcc"];
+    current.cases[0]!.effectiveAlgorithms = ["drcc_misocp_approx_exact_pool_bitset"];
+    current.cases[0]!.requestedDrccSolvers = ["misocp"];
+    current.cases[0]!.effectiveDrccSolvers = ["exact_pool"];
+    current.cases[0]!.nativeDrccApproximation = true;
+    const report = evaluateGates(current, summary(120_000, 40_000, 55));
+    expect(report.passed).toBe(false);
+    expect(report.checks.some((item) => !item.passed && item.name.includes("no native misocp claim"))).toBe(true);
   });
 
   test("fails multi-shank payload downgrade", () => {

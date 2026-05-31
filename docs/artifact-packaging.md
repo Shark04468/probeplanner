@@ -11,16 +11,17 @@ Set `PROBEPLANNER_ARTIFACT_ROOT` to a directory with this minimum layout:
 artifact-root/
   artifact_manifest.json
   annotation.npy
-  region_map_v2.json
+  region_map_v2.json  # preferred
+  region_map.json     # compatibility fallback when v2 is unavailable
   stats.json
   layered_sdf.npz
   registration/
     registration_summary.json
 ```
 
-`region_map.json` is accepted as a compatibility fallback when
-`region_map_v2.json` is not available, but new artifact packages should include
-`region_map_v2.json`.
+`region_map_v2.json` is preferred because it preserves aliases and canonical
+labels. `region_map.json` is accepted by the launcher and native engine as a
+compatibility fallback. New packages should include both files when possible.
 
 `layered_sdf.npz` must contain `signed_sdf_mm` and any available risk channels
 used by the hard constraints:
@@ -72,15 +73,29 @@ pushes. It fails if required artifact or baseline paths are missing. MRI
 registration QC is a separate gate and fails when `/api/mri/registration/qc`
 reports `qualityGate.passed != true`.
 
+The self-hosted jobs run `scripts/verify_ci_environment.ps1` before starting
+services. The script fails closed when artifact roots, baseline summaries, or
+the headed GPU/display environment are not configured.
+
 ## Acceptance Commands
 
 ```powershell
 npm run prepare:cases
 npm run perf:gate:backend -- --baseline reports/baseline-legacy-10/summary.json --out reports/native-backend --case-group replay10 --case-limit 10 --runs 3
 npm run perf:gate:sdf -- --baseline reports/baseline-legacy-10/summary.json --out reports/sdf-adversarial --runs 1
+npm run sdf:boundary
 npm run perf:gate:3d -- --baseline reports/browser3d-profile-current-dpr1-v3/summary.json --out reports/browser3d --frontend-url http://127.0.0.1:3100 --backend-url http://127.0.0.1:5000 --runs 0
 npm run mri:qc
 ```
+
+The 3D gate is strict by default: it must satisfy absolute FPS/frame/load
+thresholds and must not regress beyond the configured relative baseline limits.
+High absolute FPS does not override a relative regression.
+
+`npm run sdf:boundary` directly samples the real layered SDF channels and
+requires each safety layer to have finite samples immediately below and above
+its configured threshold. This complements replay-based reject/pass controls and
+guards against a gate that only proves the class name was wired through.
 
 The default validated profile is `ambmc_true_outer_full`. The older
 `mri_allen_ants_shape_head_baseline` profile remains a legacy build artifact and
@@ -104,3 +119,11 @@ For demo-only behavior, a request may set both:
 ```
 
 Do not use this mode for medical planning acceptance.
+
+## DRCC Solver Semantics
+
+Native DRCC supports `exact_pool`, `hybrid`, `heuristic`, and `cvar_relax`.
+Legacy Python MISOCP/CVX semantics are not claimed as native equivalent. When
+the native engine service is enabled, `drccSolver=misocp` fails closed with
+`unsupported_native_drcc_solver`; use the legacy Python backend only for
+historical MISOCP comparison runs.

@@ -1,4 +1,5 @@
 ﻿import { t } from '../constants/i18n.js';
+import { useEffect } from 'react';
 import { COLORS, sectionStyle, titleStyle, labelStyle, valStyle } from '../constants/theme.js';
 
 const C = COLORS;
@@ -44,6 +45,11 @@ export default function ParameterPanel({ params, setParams, lang, mode = 'expert
   const robustEnabled = Boolean(params.robustOptimization);
   const paretoEnabled = Boolean(params.paretoEnabled);
   const drccEnabled = params.algorithm === 'drcc' || Boolean(params.drccEnabled);
+  useEffect(() => {
+    if (params.drccSolver === 'misocp') {
+      setParams((p) => ({ ...p, drccSolver: 'exact_pool' }));
+    }
+  }, [params.drccSolver, setParams]);
   const objectivePreset = params.objectivePreset || 'balanced';
   const targetingMode = params.targetingMode || 'single_hemisphere';
   const riskThresholdTemplate = String(params.riskThresholdTemplate || 'balanced').toLowerCase();
@@ -556,7 +562,7 @@ export default function ParameterPanel({ params, setParams, lang, mode = 'expert
           <div style={{ marginTop: 2 }}>
             <div style={labelStyle}>
               <span>{tr('drccSolverLabel')}</span>
-              <span style={valStyle}>{String(params.drccSolver ?? 'exact_pool')}</span>
+              <span style={valStyle}>{String(params.drccSolver === 'misocp' ? 'exact_pool' : (params.drccSolver ?? 'exact_pool'))}</span>
             </div>
             <select
               style={{
@@ -570,12 +576,11 @@ export default function ParameterPanel({ params, setParams, lang, mode = 'expert
                 outline: 'none',
                 cursor: 'pointer',
               }}
-              value={params.drccSolver ?? 'exact_pool'}
+              value={params.drccSolver === 'misocp' ? 'exact_pool' : (params.drccSolver ?? 'exact_pool')}
               onChange={(e) => setParams((p) => ({ ...p, drccSolver: e.target.value }))}
             >
               <option value="exact_pool">{tr('drccSolverExactPoolLabel')}</option>
               <option value="cvar_relax">{tr('drccSolverCvarRelaxLabel')}</option>
-              <option value="misocp" disabled>{tr('drccSolverMisocpLabel')} ({tr('drccSolverLegacyOnlyLabel')})</option>
               <option value="hybrid">{tr('drccSolverHybridLabel')}</option>
               <option value="heuristic">{tr('drccSolverHeuristicLabel')}</option>
             </select>
@@ -600,40 +605,6 @@ export default function ParameterPanel({ params, setParams, lang, mode = 'expert
             color="#93c5fd"
             onChange={(value) => setParams((p) => ({ ...p, drccExactTimeLimitS: value }))}
           />
-          {params.drccSolver === 'misocp' && (
-            <>
-              <RangeField
-                label={tr('drccMisocpMaxCandidatesLabel')}
-                value={params.drccMisocpMaxCandidates ?? 56}
-                display={`${params.drccMisocpMaxCandidates ?? 56}`}
-                min={8}
-                max={200}
-                step={2}
-                color="#34d399"
-                onChange={(value) => setParams((p) => ({ ...p, drccMisocpMaxCandidates: value }))}
-              />
-              <RangeField
-                label={tr('drccMisocpTimeLimitLabel')}
-                value={params.drccMisocpTimeLimitS ?? 45}
-                display={`${Number(params.drccMisocpTimeLimitS ?? 45).toFixed(1)}s`}
-                min={2}
-                max={300}
-                step={1}
-                color="#34d399"
-                onChange={(value) => setParams((p) => ({ ...p, drccMisocpTimeLimitS: value }))}
-              />
-              <RangeField
-                label={tr('drccMisocpSocWeightLabel')}
-                value={params.drccMisocpSocWeight ?? 0.15}
-                display={`${Number(params.drccMisocpSocWeight ?? 0.15).toFixed(2)}`}
-                min={0}
-                max={2}
-                step={0.01}
-                color="#34d399"
-                onChange={(value) => setParams((p) => ({ ...p, drccMisocpSocWeight: value }))}
-              />
-            </>
-          )}
           <RangeField
             label={tr('sdfRiskIntegralWeightLabel')}
             value={params.sdfRiskIntegralWeight ?? 1.0}

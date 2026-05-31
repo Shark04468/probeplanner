@@ -125,11 +125,15 @@ export function evaluateGates(current: PerfSummary, baseline: PerfSummary): Gate
           effectiveAlgorithms.join(", ") || "n/a",
         ));
         checks.push(check(
+          `case ${item.caseId.slice(0, 8)} no native misocp claim`,
+          !requestedDrccSolvers.includes("misocp") && item.nativeDrccApproximation !== true,
+          "native gate must not request or pass legacy-only MISOCP approximation",
+          `requested=${requestedDrccSolvers.join(",") || "default"} approx=${item.nativeDrccApproximation}`,
+        ));
+        checks.push(check(
           `case ${item.caseId.slice(0, 8)} drcc solver honored`,
-          requestedDrccSolvers.includes("misocp")
-            ? item.nativeDrccApproximation === true
-            : requestedDrccSolvers.every((solver) => effectiveDrccSolvers.includes(solver === "cvar" ? "cvar_relax" : solver)),
-          "native DRCC solver mode must be honored or MISOCP must be explicitly approximated",
+          requestedDrccSolvers.every((solver) => effectiveDrccSolvers.includes(solver === "cvar" ? "cvar_relax" : solver)),
+          "native DRCC solver mode must be honored; MISOCP is legacy-only and must fail closed",
           `requested=${requestedDrccSolvers.join(",") || "default"} effective=${effectiveDrccSolvers.join(",") || "n/a"} approx=${item.nativeDrccApproximation}`,
         ));
       }
@@ -239,16 +243,14 @@ export function evaluateGates(current: PerfSummary, baseline: PerfSummary): Gate
   ));
   checks.push(check(
     "3d interactive load stable",
-    (loadChange !== null && loadChange <= cfg.browserMaxLoadRegressionRatio)
-      || Number(cur3dLoad) <= cfg.browserInteractiveReadyStableMs,
-    `not slower by > ${fmtPct(cfg.browserMaxLoadRegressionRatio)} or <= ${formatMs(cfg.browserInteractiveReadyStableMs)}`,
+    loadChange !== null && loadChange <= cfg.browserMaxLoadRegressionRatio,
+    `not slower by > ${fmtPct(cfg.browserMaxLoadRegressionRatio)}`,
     `${fmtPct(loadChange)} (${formatMs(base3dLoad)} -> ${formatMs(cur3dLoad)})`,
   ));
   checks.push(check(
     "3d fps not worse",
-    (fpsChange !== null && fpsChange >= -cfg.browserMaxFpsRegressionRatio)
-      || Number(curFps) >= cfg.browserFpsMedianStrongMin,
-    `not lower by > ${fmtPct(cfg.browserMaxFpsRegressionRatio)} or >= ${cfg.browserFpsMedianStrongMin}fps`,
+    fpsChange !== null && fpsChange >= -cfg.browserMaxFpsRegressionRatio,
+    `not lower by > ${fmtPct(cfg.browserMaxFpsRegressionRatio)}`,
     `${fmtPct(fpsChange)} (${baseFps ?? "n/a"} -> ${curFps ?? "n/a"})`,
   ));
 

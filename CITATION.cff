@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use ProbePlanner, please cite the archived software release and the associated manuscript."
+title: "ProbePlanner: an auditable software workflow for MRI-CCF probe trajectory planning in mouse electrophysiology"
+type: software
+authors:
+  - family-names: Sha
+    given-names: Yijun
+repository-code: "https://github.com/Shark04467/probeplanner"
+url: "https://github.com/Shark04467/probeplanner"
+license: MIT
+version: "0.1.0-frontiers"
+date-released: "2026-05-31"
+keywords:
+  - mouse brain atlas
+  - Allen CCF
+  - MRI registration
+  - Neuropixels
+  - probe trajectory planning
+  - neuroinformatics software

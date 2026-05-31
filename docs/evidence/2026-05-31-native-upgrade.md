@@ -35,20 +35,24 @@ Latest report: `reports/native-sdf-p1p2-fix/report.md`
 - Rust unit coverage includes strict near-threshold behavior at the SDF class
   threshold boundary.
 
+A real SDF boundary-layer gate has been added after this report. Final SDF
+acceptance should include `npm run sdf:boundary` on the locked artifact profile.
+
 ## 3D Gate
 
 Latest report: `reports/browser3d-p1p2-fix-v2/report.md`
 
-- Status: PASS
+- Status under the old absolute-strong override: PASS
 - Runs: 3 headed production WebGL runs
 - Interactive median: 13402 ms
 - FPS median: 119.0
 - Frame p95 median: 22 ms
 - Failures: 0 / 3
 
-The gate uses hard absolute limits for interactive load, FPS, and frame p95.
-Relative load/FPS drift is still reported, but it no longer fails a run when
-absolute performance remains comfortably above the acceptance floor.
+The gate now uses strict relative stability: absolute load/FPS/frame limits must
+pass and relative load/FPS drift must stay within the configured baseline
+limits. The old report above must be rerun under the strict gate before it can
+be used as final 3D acceptance evidence.
 
 ## MRI QC
 

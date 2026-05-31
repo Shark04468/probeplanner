@@ -1,7 +1,12 @@
 {
   "name": "probeplanner-native-upgrade",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Shark04467/probeplanner.git"
+  },
   "type": "module",
   "scripts": {
     "ui:install": "npm --prefix apps/ui install",
@@ -13,6 +18,7 @@
     "backend:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File apps/backend-compat/scripts/smoke_backend_compat.ps1",
     "backend:test": "powershell -NoProfile -ExecutionPolicy Bypass -File apps/backend-compat/scripts/test_backend_compat.ps1",
     "mri:qc": "python apps/backend-compat/scripts/check_mri_registration_qc.py",
+    "sdf:boundary": "python apps/backend-compat/scripts/check_sdf_boundary_layers.py",
     "dev:stack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start_dev_stack.ps1",
     "prepare:cases": "tsx apps/perf-gate/src/cli.ts prepare:cases",
     "perf:baseline": "tsx apps/perf-gate/src/cli.ts run --mode baseline",
@@ -21,8 +27,11 @@
     "perf:gate:sdf": "tsx apps/perf-gate/src/cli.ts run --mode gate --skip-3d --case-group sdf-adversarial",
     "perf:gate:3d": "tsx apps/perf-gate/src/cli.ts run --mode gate --require-3d --3d-runs 3 --3d-headed",
     "rust:doctor": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check_windows_rust_prereqs.ps1",
+    "ci:doctor": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify_ci_environment.ps1",
     "rust:check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/rust_check.ps1",
     "engine:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_engine.ps1",
+    "example:minimal": "node scripts/run_minimal_example.mjs",
+    "replay:native": "node scripts/run_native_replay.mjs",
     "desktop:check": "cargo check --manifest-path apps/desktop-tauri/src-tauri/Cargo.toml",
     "desktop:stack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start_desktop_stack.ps1",
     "desktop:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop_local_stack.ps1",
