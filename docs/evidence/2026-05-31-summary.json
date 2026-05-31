@@ -1,0 +1,64 @@
+{
+  "date": "2026-05-31",
+  "status": "local_acceptance_passed_ci_remote_proof_pending",
+  "backendNativeGate": {
+    "report": "reports/native-backend-p1p2-fix",
+    "passed": true,
+    "cases": 10,
+    "runs": 30,
+    "failures": 0,
+    "backendMedianMs": 572,
+    "backendP95Ms": 617,
+    "generationP95Ms": 1,
+    "scoringP95Ms": 116,
+    "solverP95Ms": 6,
+    "runtimeFallbackTargets": 0,
+    "multiShankPayloadChecked": true
+  },
+  "sdfGate": {
+    "report": "reports/native-sdf-p1p2-fix",
+    "passed": true,
+    "classes": ["skull", "brain_surface", "ventricle", "vessel", "sulcus"],
+    "runs": 10,
+    "failures": 0,
+    "backendMedianMs": 577,
+    "backendP95Ms": 602,
+    "scoringP95Ms": 76,
+    "solverP95Ms": 4,
+    "realBoundaryLayerGatePassed": true
+  },
+  "browser3dGate": {
+    "report": "reports/browser3d-strict-v3",
+    "passed": true,
+    "runs": 3,
+    "failures": 0,
+    "interactiveMedianMs": 10841,
+    "totalLoadMedianMs": 20926,
+    "fpsMedian": 238.1,
+    "frameP95MedianMs": 8,
+    "relativeLoadDrift": "5%",
+    "relativeFpsDrift": "0%"
+  },
+  "mriQc": {
+    "profile": "ambmc_true_outer_full",
+    "passed": true,
+    "dice": 0.841848,
+    "hd95": 0.365718,
+    "tre": 0.267084
+  },
+  "nativeReplay": {
+    "report": "reports/native-mri-profile-replay-frontiers",
+    "caseCount": 20,
+    "okCount": 20,
+    "strictAtlasLookupFailureCount": 0,
+    "selectedCaseCount": 15
+  },
+  "solverScope": {
+    "nativeDrccSolvers": ["exact_pool", "hybrid", "heuristic", "cvar_relax"],
+    "nativeMisocpEquivalent": false,
+    "misocpBehavior": "fail_closed"
+  },
+  "releaseBlockers": [
+    "Run the native-upgrade GitHub Actions workflow on a configured self-hosted Windows runner and archive the passing run URL."
+  ]
+}

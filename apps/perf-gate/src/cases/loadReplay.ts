@@ -76,6 +76,11 @@ function labelOf(id: string, request: JsonObject): string {
   return `${targetKeysOf(request).join("+") || "case"}-${id.slice(0, 8)}`;
 }
 
+function manifestSourcePath(item: ReplayCase): string {
+  if (item.source === "adversarial") return item.sourcePath;
+  return `${item.source}-replay:${item.id}`;
+}
+
 async function loadReplayCase(id: string, source: "repo" | "local", sourcePath: string): Promise<ReplayCase> {
   const text = await readFile(sourcePath, "utf8");
   const parsed = JSON.parse(text) as JsonObject;
@@ -242,14 +247,12 @@ export async function prepareCases(options: {
   const manifest: CaseManifest = {
     version: 1,
     generatedAt: new Date().toISOString(),
-    sourceProject: path.relative(options.rootDir, path.resolve(options.sourceProject)) || ".",
+    sourceProject: "cases/requests",
     cases: cases.map((item) => ({
       id: item.id,
       label: item.label,
       source: item.source,
-      sourcePath: item.source === "adversarial"
-        ? item.sourcePath
-        : path.relative(options.rootDir, item.sourcePath),
+      sourcePath: manifestSourcePath(item),
       targetKeys: item.targetKeys,
       excludedTargetKeys: item.excludedTargetKeys ?? [],
       algorithm: item.algorithm,

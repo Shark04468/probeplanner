@@ -1,13 +1,13 @@
 {
   "version": 1,
   "generatedAt": "2026-05-31T04:51:36.528Z",
-  "sourceProject": "..\\probe-planner",
+  "sourceProject": "cases/requests",
   "cases": [
     {
       "id": "2f6de98fc6b14259b50625db53a2ff3f",
       "label": "golden_ca1_coarse",
       "source": "repo",
-      "sourcePath": "..\\probe-planner\\replay\\2f6de98fc6b14259b50625db53a2ff3f.json",
+      "sourcePath": "repo-replay:2f6de98fc6b14259b50625db53a2ff3f",
       "targetKeys": [
         "CA1"
       ],
@@ -18,7 +18,7 @@
       "id": "8b83d8d249834bcba970b8e463ff6a9d",
       "label": "golden_ca1_medium",
       "source": "repo",
-      "sourcePath": "..\\probe-planner\\replay\\8b83d8d249834bcba970b8e463ff6a9d.json",
+      "sourcePath": "repo-replay:8b83d8d249834bcba970b8e463ff6a9d",
       "targetKeys": [
         "CA1"
       ],
@@ -29,7 +29,7 @@
       "id": "a4650be179fe4325acdc2f72ee022d87",
       "label": "golden_ca1_angle",
       "source": "repo",
-      "sourcePath": "..\\probe-planner\\replay\\a4650be179fe4325acdc2f72ee022d87.json",
+      "sourcePath": "repo-replay:a4650be179fe4325acdc2f72ee022d87",
       "targetKeys": [
         "CA1"
       ],
@@ -40,7 +40,7 @@
       "id": "d1c472882d954170a62df28a11ec3aa6",
       "label": "golden_ca1_medium",
       "source": "repo",
-      "sourcePath": "..\\probe-planner\\replay\\d1c472882d954170a62df28a11ec3aa6.json",
+      "sourcePath": "repo-replay:d1c472882d954170a62df28a11ec3aa6",
       "targetKeys": [
         "CA1"
       ],
@@ -51,7 +51,7 @@
       "id": "dee9b5b717b349bbb45acd8f6f56dfe1",
       "label": "golden_ca1_coarse",
       "source": "repo",
-      "sourcePath": "..\\probe-planner\\replay\\dee9b5b717b349bbb45acd8f6f56dfe1.json",
+      "sourcePath": "repo-replay:dee9b5b717b349bbb45acd8f6f56dfe1",
       "targetKeys": [
         "CA1"
       ],
@@ -62,7 +62,7 @@
       "id": "ea412cef1e0a47aeb70e32b8d045796f",
       "label": "golden_ca1_angle",
       "source": "repo",
-      "sourcePath": "..\\probe-planner\\replay\\ea412cef1e0a47aeb70e32b8d045796f.json",
+      "sourcePath": "repo-replay:ea412cef1e0a47aeb70e32b8d045796f",
       "targetKeys": [
         "CA1"
       ],
@@ -73,7 +73,7 @@
       "id": "325c3ba8f9de4e4d8c40d33ced16a43d",
       "label": "LGd+VISrl+VISp+VPM+ADP-325c3ba8",
       "source": "local",
-      "sourcePath": "..\\..\\..\\.probeplanner\\replay\\325c3ba8f9de4e4d8c40d33ced16a43d.json",
+      "sourcePath": "local-replay:325c3ba8f9de4e4d8c40d33ced16a43d",
       "targetKeys": [
         "LGd",
         "VISrl",
@@ -90,7 +90,7 @@
       "id": "5360cd81765a40f2a73a9ca11f7f66a4",
       "label": "ACA+CA3+ACB+CA1+CP-5360cd81",
       "source": "local",
-      "sourcePath": "..\\..\\..\\.probeplanner\\replay\\5360cd81765a40f2a73a9ca11f7f66a4.json",
+      "sourcePath": "local-replay:5360cd81765a40f2a73a9ca11f7f66a4",
       "targetKeys": [
         "ACA",
         "CA3",
@@ -105,7 +105,7 @@
       "id": "13a2046cc6594fb792bc3025f36393d8",
       "label": "MOs+CA1+SSp+VISrl+VISal+VISp+VISpm-13a2046c",
       "source": "local",
-      "sourcePath": "..\\..\\..\\.probeplanner\\replay\\13a2046cc6594fb792bc3025f36393d8.json",
+      "sourcePath": "local-replay:13a2046cc6594fb792bc3025f36393d8",
       "targetKeys": [
         "MOs",
         "CA1",
@@ -124,7 +124,7 @@
       "id": "15089cf26d0a4299971ab5e2a240e5f5",
       "label": "LP+ACA+MOs+ACB+LGd+FRP1-15089cf2",
       "source": "local",
-      "sourcePath": "..\\..\\..\\.probeplanner\\replay\\15089cf26d0a4299971ab5e2a240e5f5.json",
+      "sourcePath": "local-replay:15089cf26d0a4299971ab5e2a240e5f5",
       "targetKeys": [
         "LP",
         "ACA",
