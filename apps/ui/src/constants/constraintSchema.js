@@ -4,6 +4,7 @@ export const CONSTRAINT_KEYS = [
   "minClearance",
   "lambdaBoundary",
   "brainBounds",
+  "continuousRiskDistance",
   "hemisphere",
 ];
 
@@ -15,6 +16,7 @@ export const DEFAULT_CONSTRAINTS = {
   minClearance: "enforce",
   lambdaBoundary: "enforce",
   brainBounds: "enforce",
+  continuousRiskDistance: "enforce",
   hemisphere: "warn",
 };
 
@@ -48,4 +50,3 @@ export function validateConstraintModes(input = {}) {
   }
   return errors;
 }
-

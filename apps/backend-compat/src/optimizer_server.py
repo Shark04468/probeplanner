@@ -4697,10 +4697,9 @@ def _compute_probe_risk_diagnostics(
 
 def _continuous_risk_policy(constraint_modes):
     explicit_mode = isinstance(constraint_modes, dict) and "continuousRiskDistance" in constraint_modes
-    # continuousRiskDistance is an optional, high-sensitivity model constraint.
-    # The UI does not expose it as a normal constraint toggle, so an omitted
-    # value must not silently hard-reject every candidate on MRI boundary/SDF
-    # artifacts. Explicit API requests can still enforce it.
+    # continuousRiskDistance is a high-sensitivity model constraint. Omitted
+    # values stay warn-compatible for older clients; explicit enforce from the
+    # UI/API must fail closed when the risk model cannot produce measurements.
     requested = constraint_modes.get("continuousRiskDistance", "warn")
     if requested not in CONSTRAINT_MODES:
         requested = "enforce"
@@ -4751,7 +4750,9 @@ def _continuous_risk_policy(constraint_modes):
         effective = requested
         reason = "risk_model_disabled_explicit_mode"
     else:
-        source_limited = bool(keyword_only and not ALLOW_KEYWORD_ONLY_RISK_ENFORCE)
+        source_limited = bool(
+            keyword_only and not explicit_mode and not ALLOW_KEYWORD_ONLY_RISK_ENFORCE
+        )
         downgraded = bool(
             requested == "enforce"
             and source_limited
@@ -4761,7 +4762,7 @@ def _continuous_risk_policy(constraint_modes):
             "atlas_keywords_only"
             if source_limited
             else "strict_override"
-            if requested == "enforce" and keyword_only and ALLOW_KEYWORD_ONLY_RISK_ENFORCE
+            if requested == "enforce" and keyword_only and (explicit_mode or ALLOW_KEYWORD_ONLY_RISK_ENFORCE)
             else "default"
         )
     return {
@@ -4771,7 +4772,7 @@ def _continuous_risk_policy(constraint_modes):
         "downgraded": downgraded,
         "explicitMode": bool(explicit_mode),
         "reason": reason,
-        "sourceLimited": bool(keyword_only and not ALLOW_KEYWORD_ONLY_RISK_ENFORCE),
+        "sourceLimited": bool(keyword_only and not explicit_mode and not ALLOW_KEYWORD_ONLY_RISK_ENFORCE),
         "riskModelEnabled": risk_enabled,
         "riskModelSources": sorted(sources),
         "externalRiskSources": external_sources,
@@ -16718,6 +16719,36 @@ def _collect_safety_issues(
                     else min(float(evaluated_min_risk), float(signed_min_risk))
                 )
             continuous_risk_mode = continuous_risk_policy["effectiveMode"]
+            if continuous_risk_mode == "enforce" and evaluated_min_risk is None:
+                issues.append({
+                    "probeIdx": idx,
+                    "constraint": "continuousRiskDistance",
+                    "mode": continuous_risk_mode,
+                    "requestedMode": continuous_risk_policy["requestedMode"],
+                    "modeAdjusted": bool(
+                        continuous_risk_policy["downgraded"]
+                        or continuous_risk_policy.get("sourceLimited")
+                    ),
+                    "modeReason": continuous_risk_policy["reason"],
+                    "failureCard": {
+                        "probeIdx": idx,
+                        "constraint": "continuousRiskDistance",
+                        "hitStructureClass": None,
+                        "hitSource": "risk_model_unavailable",
+                        "minDistanceMm": None,
+                        "evaluatedMinDistanceMm": None,
+                        "thresholdMm": float(effective_threshold_mm),
+                        "thresholdByClassMm": risk_thresholds,
+                        "thresholdSource": _threshold_source_label(risk_thresholds, nearest_risk_class),
+                        "riskModelEnabled": bool(continuous_risk_policy.get("riskModelEnabled")),
+                        "modeReason": continuous_risk_policy["reason"],
+                    },
+                    "msgEn": (
+                        "Continuous risk distance is enforced, but no SDF/risk distance "
+                        "diagnostic was available for this trajectory"
+                    ),
+                    "msgCn": "连续风险距离已设为强制，但该轨迹没有可用的 SDF/风险距离诊断",
+                })
             if (
                 continuous_risk_mode != "off"
                 and evaluated_min_risk is not None

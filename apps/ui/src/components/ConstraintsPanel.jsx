@@ -20,6 +20,7 @@ const CONSTRAINT_DEFS = [
   { key: 'minClearance', icon: 'CLR', labelKey: 'constraintMinClearanceLabel', descKey: 'constraintMinClearanceDesc' },
   { key: 'lambdaBoundary', icon: 'LAM', labelKey: 'constraintLambdaLabel', descKey: 'constraintLambdaDesc' },
   { key: 'brainBounds', icon: 'B', labelKey: 'constraintBrainBoundsLabel', descKey: 'constraintBrainBoundsDesc' },
+  { key: 'continuousRiskDistance', icon: 'SDF', labelKey: 'constraintContinuousRiskLabel', descKey: 'constraintContinuousRiskDesc' },
   { key: 'hemisphere', icon: 'L/R', labelKey: 'constraintHemisphereLabel', descKey: 'constraintHemisphereDesc' },
 ];
 
@@ -48,7 +49,7 @@ export default function ConstraintsPanel({ constraints = {}, onChange, lang = 'c
         {[
           { val: enfCount, label: tr('constraintEnforce'), color: C.danger },
           { val: warnCount, label: tr('constraintWarn'), color: C.warn },
-          { val: 6 - enfCount - warnCount, label: tr('constraintOff'), color: C.off },
+          { val: CONSTRAINT_DEFS.length - enfCount - warnCount, label: tr('constraintOff'), color: C.off },
         ].map(({ val, label, color }) => (
           <div
             key={label}

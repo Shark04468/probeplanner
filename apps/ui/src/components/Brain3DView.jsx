@@ -7,7 +7,7 @@ import {
   DISPLAY_LAYER_ORDER,
   classifyRegionDisplay,
 } from '../constants/atlasDisplayPolicy';
-import { PROBE_PRESETS } from '../constants/anatomy';
+import { BREGMA_UM, PROBE_PRESETS } from '../constants/anatomy';
 import MriSurfaceOverlay from './MriSurfaceOverlay';
 import unityBridge from './brain3d/unityBridge';
 
@@ -384,12 +384,48 @@ function buildRiskSegmentsForUnity(probe, depthMm) {
     .slice(0, 3);
 }
 
+function finiteTriplet(value) {
+  if (!Array.isArray(value) || value.length < 3) return null;
+  const triplet = value.slice(0, 3).map(Number);
+  return triplet.every(Number.isFinite) ? triplet : null;
+}
+
+function deriveNativeEndpointGeometry(probe) {
+  const entry = finiteTriplet(probe?.entry_xyz) ?? finiteTriplet(probe?.entry);
+  const tip = finiteTriplet(probe?.tip_xyz) ?? finiteTriplet(probe?.tip);
+  if (!entry || !tip) return null;
+
+  const delta = [tip[0] - entry[0], tip[1] - entry[1], tip[2] - entry[2]];
+  const depthUm = Math.hypot(delta[0], delta[1], delta[2]);
+  if (!Number.isFinite(depthUm) || depthUm <= 1e-6) return null;
+
+  const dir = delta.map((v) => v / depthUm);
+  const thetaDeg = (Math.acos(clamp(dir[1], -1, 1)) * 180) / Math.PI;
+  const phiDeg = (Math.atan2(dir[2], dir[0]) * 180) / Math.PI;
+
+  return {
+    ap_mm: (BREGMA_UM[0] - entry[0]) / 1000,
+    ml_mm: (entry[2] - BREGMA_UM[2]) / 1000,
+    theta_deg: thetaDeg,
+    phi_deg: phiDeg,
+    depthUm,
+    entryDvCorr_mm: (entry[1] - BREGMA_UM[1]) / 1000,
+    entry_xyz: entry,
+    tip_xyz: tip,
+    entry,
+    tip,
+    dir,
+  };
+}
+
 function toUnityProbe(probe, probePreset, probeSpec) {
-  const thetaDeg =
+  const endpointGeometry = deriveNativeEndpointGeometry(probe);
+  const thetaDeg = endpointGeometry?.theta_deg ??
     probe.theta_deg ??
     (typeof probe.elevation === 'number' ? 90 - probe.elevation : 0);
 
   const depthUm =
+    endpointGeometry?.depthUm ??
     probe.depthUm ??
     (typeof probe.depth === 'number' ? probe.depth * 1000 : (probeSpec?.depth || 4) * 1000);
   const depthMm = Math.max(0, Number(depthUm) / 1000);
@@ -410,12 +446,18 @@ function toUnityProbe(probe, probePreset, probeSpec) {
   const radiusUm = Number(probe.radiusUm ?? probe.probeRadiusUm ?? probeSpec?.radiusUm ?? Math.max(5, shankWidthUm / 2));
 
   return {
-    ap_mm: probe.ap ?? probe.ap_mm ?? 0,
-    ml_mm: probe.ml ?? probe.ml_mm ?? 0,
+    ap_mm: endpointGeometry?.ap_mm ?? probe.ap ?? probe.ap_mm ?? 0,
+    ml_mm: endpointGeometry?.ml_mm ?? probe.ml ?? probe.ml_mm ?? 0,
     theta_deg: thetaDeg,
-    phi_deg: probe.phi_deg ?? probe.azimuth ?? 0,
+    phi_deg: endpointGeometry?.phi_deg ?? probe.phi_deg ?? probe.azimuth ?? 0,
     depthUm,
-    entryDvCorr_mm: probe.entryDvCorr_mm ?? probe.dvEntry ?? 0,
+    entryDvCorr_mm: endpointGeometry?.entryDvCorr_mm ?? probe.entryDvCorr_mm ?? probe.dvEntry ?? 0,
+    nativeEndpointGeometry: Boolean(endpointGeometry),
+    entry_xyz: endpointGeometry?.entry_xyz ?? finiteTriplet(probe?.entry_xyz) ?? null,
+    tip_xyz: endpointGeometry?.tip_xyz ?? finiteTriplet(probe?.tip_xyz) ?? null,
+    entry: endpointGeometry?.entry ?? finiteTriplet(probe?.entry) ?? finiteTriplet(probe?.entry_xyz) ?? null,
+    tip: endpointGeometry?.tip ?? finiteTriplet(probe?.tip) ?? finiteTriplet(probe?.tip_xyz) ?? null,
+    dir: endpointGeometry?.dir ?? finiteTriplet(probe?.dir) ?? null,
     probeType: probe.probeType ?? probePreset,
     shanks: Number.isFinite(shanks) ? Math.max(1, Math.round(shanks)) : 1,
     shankCount: Number.isFinite(shanks) ? Math.max(1, Math.round(shanks)) : 1,
@@ -465,6 +507,9 @@ function validateProbes(probes) {
       Number.isFinite(p.entryDvCorr_mm);
     if (!finite) {
       return { ok: false, reason: `probe[${i}] contains non-finite numbers` };
+    }
+    if (p.nativeEndpointGeometry && (!finiteTriplet(p.entry_xyz) || !finiteTriplet(p.tip_xyz))) {
+      return { ok: false, reason: `probe[${i}] native endpoints are invalid` };
     }
     if (p.depthUm <= 0 || p.depthUm > 15000) {
       return { ok: false, reason: `probe[${i}] depthUm out of range` };

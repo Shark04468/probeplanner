@@ -13,6 +13,7 @@ const CONSTRAINTS = {
   minClearance: 'enforce',
   lambdaBoundary: 'enforce',
   brainBounds: 'enforce',
+  continuousRiskDistance: 'enforce',
   hemisphere: 'warn',
 };
 
@@ -106,6 +107,7 @@ test('useOptimizer canonicalizes side-suffixed target keys before request', asyn
   await waitFor(() => expect(flaskFetch).toHaveBeenCalledTimes(1));
   const payload = flaskFetch.mock.calls[0][2];
   expect(payload.targetKeys).toEqual(['CA1']);
+  expect(payload.constraintModes.continuousRiskDistance).toBe('enforce');
 });
 
 test('useOptimizer does not pre-block unknown target and lets backend auto-provision attempt', async () => {

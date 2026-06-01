@@ -219,7 +219,7 @@ impl SolverPlan {
 const TRAJECTORY_BITSET_BINS: usize = 16_384;
 const SDF_SCORING_STRIDE: usize = 4;
 const RISK_SDF_TRILINEAR_STEP_UM: f32 = 150.0;
-const ENTRY_CORRIDOR_RISK_SAMPLE_STRIDE: usize = 8;
+const ENTRY_CORRIDOR_RISK_SAMPLE_STRIDE: usize = 1;
 const VOXEL_SIZE_UM: f32 = 25.0;
 const MULTI_SHANK_PROFILE_STEP_UM: f32 = 75.0;
 const BREGMA_UM: [f32; 3] = [5400.0, 440.0, 5700.0];
@@ -1692,6 +1692,9 @@ fn score_candidate(
         }
     }
     if constraints.enforce_continuous_risk() {
+        if risk_distances_mm.is_empty() && min_sdf_distance_mm.is_none() {
+            return Err("risk_model_unavailable".to_string());
+        }
         if let Some(reason) = boundary_risk_rejection(&risk_distances_mm, constraints, true) {
             return Err(reason);
         }
@@ -2593,6 +2596,34 @@ mod tests {
             assert_eq!(boundary_risk_rejection(&exactly, &policy, true), None);
             assert_eq!(boundary_risk_rejection(&above, &policy, true), None);
         }
+    }
+
+    #[test]
+    fn native_continuous_risk_enforce_requires_risk_measurements() {
+        let request = OptimizeRequest {
+            task_id: None,
+            target_keys: vec!["CA1".to_string()],
+            params: BTreeMap::from([
+                ("algorithm".to_string(), json!("greedy")),
+                ("coverageRadius".to_string(), json!(600)),
+                ("allowFallbackTargetCoverage".to_string(), json!(true)),
+            ]),
+            probe_params: BTreeMap::from([("count".to_string(), json!(1))]),
+            constraint_modes: BTreeMap::from([(
+                "continuousRiskDistance".to_string(),
+                json!("enforce"),
+            )]),
+            clinical_context: None,
+        };
+        let response = PlannerCore::new(PlannerEngineConfig::default()).optimize(request);
+        assert!(response.ok);
+        assert_eq!(response.candidate_count, 0);
+        assert!(response
+            .candidate_stage_breakdown
+            .get("nativeRejectReasons")
+            .and_then(Value::as_object)
+            .and_then(|reasons| reasons.get("risk_model_unavailable"))
+            .is_some());
     }
 
     #[test]

@@ -1064,7 +1064,7 @@ def test_optimize_emits_statistical_contract_fields(server, monkeypatch):
     assert "batch" in dims
 
 
-def test_optimize_downgrades_continuous_risk_for_keyword_only_model(server, monkeypatch):
+def test_optimize_honors_explicit_continuous_risk_for_keyword_only_model(server, monkeypatch):
     client = server.app.test_client()
     candidate = _fake_candidate()
 
@@ -1106,19 +1106,19 @@ def test_optimize_downgrades_continuous_risk_for_keyword_only_model(server, monk
     payload["constraintModes"]["continuousRiskDistance"] = "enforce"
     payload["params"]["minRiskDistanceMm"] = 0.35
     resp = client.post("/api/optimize", json=payload)
-    assert resp.status_code == 200
+    assert resp.status_code == 422
     body = resp.get_json()
     issues = [i for i in body.get("safetyIssues", []) if i.get("constraint") == "continuousRiskDistance"]
     assert issues
-    assert issues[0]["mode"] == "warn"
-    assert issues[0]["modeAdjusted"] is True
+    assert issues[0]["mode"] == "enforce"
+    assert issues[0]["modeAdjusted"] is False
     assert "failureCard" in issues[0]
     assert "segmentDepthMm" in issues[0]["failureCard"]
     assert issues[0]["failureCard"]["minDistanceMm"] == pytest.approx(0.0)
     assert isinstance(issues[0]["failureCard"].get("counterfactualPassIf"), list)
     assert issues[0]["failureCard"]["counterfactualPassIf"]
-    assert body["riskConstraintPolicy"]["effectiveMode"] == "warn"
-    assert body["riskConstraintPolicy"]["reason"] == "atlas_keywords_only"
+    assert body["riskConstraintPolicy"]["effectiveMode"] == "enforce"
+    assert body["riskConstraintPolicy"]["reason"] == "strict_override"
     assert body["failureCards"]
 
 
