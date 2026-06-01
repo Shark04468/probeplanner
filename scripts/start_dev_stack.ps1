@@ -4,12 +4,18 @@ param(
     [string]$EngineHost = $(if ($env:PROBEPLANNER_ENGINE_HOST) { $env:PROBEPLANNER_ENGINE_HOST } else { "127.0.0.1" }),
     [int]$EnginePort = $(if ($env:PROBEPLANNER_ENGINE_PORT) { [int]$env:PROBEPLANNER_ENGINE_PORT } else { 7878 }),
     [switch]$UseEngineService,
-    [switch]$LegacyPythonBackend
+    [switch]$LegacyPythonBackend,
+    [switch]$NoStopExisting
 )
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $EnableEngineService = $UseEngineService -or (-not $LegacyPythonBackend)
+
+if (-not $NoStopExisting) {
+  $portsToStop = @($EnginePort, 7878, 7879, 5000, 3000, 3100) | Select-Object -Unique
+  & (Join-Path $Root "scripts\stop_local_stack.ps1") -Ports $portsToStop
+}
 
 if ($EnableEngineService) {
   $engineArgs = @(
@@ -31,7 +37,7 @@ if ($EnableEngineService) {
   for ($attempt = 0; $attempt -lt 90; $attempt++) {
     try {
       $health = Invoke-RestMethod -Uri "$engineUrl/healthz" -TimeoutSec 2
-      if ($health.ok -and $health.atlasLoaded -and $health.regionIndexLoaded) {
+      if ($health.ok -and $health.atlasLoaded -and $health.regionIndexLoaded -and $health.sdfLoaded) {
         $healthy = $true
         break
       }
@@ -39,7 +45,7 @@ if ($EnableEngineService) {
     Start-Sleep -Seconds 1
   }
   if (-not $healthy) {
-    throw "Native planner-engine did not become healthy at $engineUrl. Start with -LegacyPythonBackend only for explicit legacy debugging."
+    throw "Native planner-engine did not become healthy with atlas+SDF at $engineUrl. Start with -LegacyPythonBackend only for explicit legacy debugging."
   }
 }
 

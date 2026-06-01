@@ -492,6 +492,7 @@ impl ConstraintPolicy {
                 }
             }
         }
+        enforce_boundary_risk_threshold_floors(&mut risk_thresholds_mm);
         let shank_count = probe_shank_count(&request.probe_params);
         let shank_spacing_um = probe_shank_spacing_um(&request.probe_params, shank_count);
         let shank_offsets_um = shank_offsets_um(shank_count, shank_spacing_um);
@@ -2281,10 +2282,21 @@ fn balanced_risk_thresholds() -> BTreeMap<String, f32> {
         ("ventricle".to_string(), 0.35),
         ("sulcus".to_string(), 0.40),
         ("skull".to_string(), 0.45),
-        ("cortex_outside".to_string(), 0.0),
-        ("brain_surface".to_string(), 0.0),
-        ("drilling_surface".to_string(), 0.0),
+        ("cortex_outside".to_string(), 0.05),
+        ("brain_surface".to_string(), 0.05),
+        ("drilling_surface".to_string(), 0.05),
     ])
+}
+
+fn enforce_boundary_risk_threshold_floors(thresholds: &mut BTreeMap<String, f32>) {
+    for (key, floor) in [
+        ("cortex_outside", 0.05_f32),
+        ("brain_surface", 0.05_f32),
+        ("drilling_surface", 0.05_f32),
+    ] {
+        let current = thresholds.get(key).copied().unwrap_or(0.0);
+        thresholds.insert(key.to_string(), current.max(floor));
+    }
 }
 
 fn constraint_mode(map: &BTreeMap<String, Value>, key: &str, default: &str) -> String {
@@ -2596,6 +2608,34 @@ mod tests {
             assert_eq!(boundary_risk_rejection(&exactly, &policy, true), None);
             assert_eq!(boundary_risk_rejection(&above, &policy, true), None);
         }
+    }
+
+    #[test]
+    fn native_risk_thresholds_floor_boundary_surface_classes() {
+        let request = OptimizeRequest {
+            task_id: None,
+            target_keys: vec!["CA1".to_string()],
+            params: BTreeMap::from([(
+                "riskThresholdsMm".to_string(),
+                json!({
+                    "cortex_outside": 0.0,
+                    "brain_surface": 0.0,
+                    "drilling_surface": 0.0,
+                    "skull": 0.01
+                }),
+            )]),
+            probe_params: BTreeMap::new(),
+            constraint_modes: BTreeMap::from([(
+                "continuousRiskDistance".to_string(),
+                json!("enforce"),
+            )]),
+            clinical_context: None,
+        };
+        let policy = ConstraintPolicy::from_request(&request);
+        assert_eq!(policy.risk_threshold_for("cortex_outside"), 0.05);
+        assert_eq!(policy.risk_threshold_for("brain_surface"), 0.05);
+        assert_eq!(policy.risk_threshold_for("drilling_surface"), 0.05);
+        assert_eq!(policy.risk_threshold_for("skull"), 0.01);
     }
 
     #[test]

@@ -66,6 +66,24 @@ if (-not [string]::IsNullOrWhiteSpace($ArtifactRoot)) {
 }
 if ($EnableEngineService) {
   $env:PROBEPLANNER_USE_ENGINE_SERVICE = "1"
+  $engineHealthy = $false
+  $lastEngineError = ""
+  for ($attempt = 0; $attempt -lt 45; $attempt++) {
+    try {
+      $health = Invoke-RestMethod -Uri "$EngineUrl/healthz" -TimeoutSec 2
+      if ($health.ok -and $health.atlasLoaded -and $health.regionIndexLoaded -and $health.sdfLoaded) {
+        $engineHealthy = $true
+        break
+      }
+      $lastEngineError = "health ok=$($health.ok) atlas=$($health.atlasLoaded) region=$($health.regionIndexLoaded) sdf=$($health.sdfLoaded)"
+    } catch {
+      $lastEngineError = $_.Exception.Message
+    }
+    Start-Sleep -Seconds 1
+  }
+  if (-not $engineHealthy) {
+    throw "PROBEPLANNER_USE_ENGINE_SERVICE requires a healthy native planner-engine with atlas+SDF at $EngineUrl. Last health: $lastEngineError"
+  }
 } else {
   Remove-Item Env:\PROBEPLANNER_USE_ENGINE_SERVICE -ErrorAction SilentlyContinue
 }

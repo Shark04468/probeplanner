@@ -2492,7 +2492,7 @@ def test_calibration_profile_overrides_defaults_when_not_explicit(server, tmp_pa
     assert params["minRiskDistanceMm"] == pytest.approx(0.53, abs=1e-6)
     assert params["riskThresholdsMmBase"]["ventricle"] == pytest.approx(0.37, abs=1e-6)
     assert params["riskThresholdsMm"]["ventricle"] == pytest.approx(0.59, abs=1e-6)
-    assert params["riskThresholdsMm"]["brain_surface"] == pytest.approx(0.0, abs=1e-6)
+    assert params["riskThresholdsMm"]["brain_surface"] == pytest.approx(0.05, abs=1e-6)
 
 
 def test_risk_margin_tre_inflates_only_regular_risk_thresholds(server):
@@ -2521,5 +2521,23 @@ def test_risk_margin_tre_inflates_only_regular_risk_thresholds(server):
     assert params["riskThresholdsMm"]["default"] == pytest.approx(0.53, abs=1e-6)
     assert params["riskThresholdsMm"]["ventricle"] == pytest.approx(0.58, abs=1e-6)
     assert params["riskThresholdsMm"]["skull"] == pytest.approx(0.63, abs=1e-6)
-    assert params["riskThresholdsMm"]["brain_surface"] == pytest.approx(0.0, abs=1e-6)
-    assert params["riskThresholdsMm"]["drilling_surface"] == pytest.approx(0.0, abs=1e-6)
+    assert params["riskThresholdsMm"]["brain_surface"] == pytest.approx(0.05, abs=1e-6)
+    assert params["riskThresholdsMm"]["drilling_surface"] == pytest.approx(0.05, abs=1e-6)
+
+
+def test_risk_thresholds_floor_boundary_surface_classes(server):
+    payload = _base_opt_payload(_full_constraints())
+    payload["params"]["riskThresholdsMm"] = {
+        "cortex_outside": 0.0,
+        "brain_surface": 0.0,
+        "drilling_surface": 0.0,
+        "skull": 0.01,
+    }
+
+    normalized = server._normalize_optimize_payload(payload)
+    thresholds = normalized["params"]["riskThresholdsMm"]
+
+    assert thresholds["cortex_outside"] == pytest.approx(0.05, abs=1e-6)
+    assert thresholds["brain_surface"] == pytest.approx(0.05, abs=1e-6)
+    assert thresholds["drilling_surface"] == pytest.approx(0.05, abs=1e-6)
+    assert thresholds["skull"] == pytest.approx(0.01, abs=1e-6)

@@ -66,6 +66,17 @@ if ($KillExisting) {
     foreach ($connection in $connections) {
         Stop-Process -Id $connection.OwningProcess -Force -ErrorAction SilentlyContinue
     }
+    $rootPrefix = (Resolve-Path $Root).Path
+    Get-CimInstance Win32_Process -Filter "Name='planner-engine-http.exe'" -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.ProcessId -ne $PID -and
+            $_.ExecutablePath -and
+            $_.ExecutablePath.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)
+        } |
+        ForEach-Object {
+            Write-Host "Stopping stale planner-engine-http PID $($_.ProcessId) at $($_.ExecutablePath)"
+            Stop-Process -Id ([int]$_.ProcessId) -Force -ErrorAction SilentlyContinue
+        }
 }
 
 if (-not $env:PROBEPLANNER_ATLAS_NPY) {

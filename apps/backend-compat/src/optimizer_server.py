@@ -1253,6 +1253,17 @@ def _risk_threshold_template_payload(active_template):
     }
 
 
+def _enforce_boundary_risk_threshold_floors(thresholds):
+    out = dict(thresholds if isinstance(thresholds, dict) else {})
+    for key, floor in BOUNDARY_RISK_THRESHOLD_FLOORS_MM.items():
+        try:
+            current = float(out.get(key, 0.0))
+        except Exception:
+            current = 0.0
+        out[key] = max(current, float(floor))
+    return out
+
+
 def _resolve_risk_thresholds_with_template(params_in):
     if not isinstance(params_in, dict):
         params_in = {}
@@ -1265,7 +1276,7 @@ def _resolve_risk_thresholds_with_template(params_in):
     user_clean = sanitize_risk_thresholds(user_raw, default_mm=min_risk_distance_mm)
     merged.update(user_clean)
     sanitized = sanitize_risk_thresholds(merged, default_mm=min_risk_distance_mm)
-    return requested_template, sanitized
+    return requested_template, _enforce_boundary_risk_threshold_floors(sanitized)
 
 
 def _load_planner_calibration_profile(path_override=None):
@@ -2083,7 +2094,7 @@ RISK_THRESHOLD_TEMPLATES = {
         "skull": 0.58,
         "cortex_outside": 0.05,
         "brain_surface": 0.05,
-        "drilling_surface": 0.0,
+        "drilling_surface": 0.05,
     },
     "balanced": {
         "default": 0.35,
@@ -2091,9 +2102,9 @@ RISK_THRESHOLD_TEMPLATES = {
         "ventricle": 0.35,
         "sulcus": 0.40,
         "skull": 0.45,
-        "cortex_outside": 0.0,
-        "brain_surface": 0.0,
-        "drilling_surface": 0.0,
+        "cortex_outside": 0.05,
+        "brain_surface": 0.05,
+        "drilling_surface": 0.05,
     },
     "aggressive": {
         "default": 0.24,
@@ -2101,12 +2112,17 @@ RISK_THRESHOLD_TEMPLATES = {
         "ventricle": 0.24,
         "sulcus": 0.20,
         "skull": 0.30,
-        "cortex_outside": 0.0,
-        "brain_surface": 0.0,
-        "drilling_surface": 0.0,
+        "cortex_outside": 0.02,
+        "brain_surface": 0.02,
+        "drilling_surface": 0.02,
     },
 }
 RISK_THRESHOLD_TEMPLATE_DEFAULT = "balanced"
+BOUNDARY_RISK_THRESHOLD_FLOORS_MM = {
+    "cortex_outside": 0.05,
+    "brain_surface": 0.05,
+    "drilling_surface": 0.05,
+}
 ENTRY_CORRIDOR_RISK_CLASSES = {"cortex_outside", "brain_surface", "drilling_surface"}
 ENTRY_CORRIDOR_ALLOWANCE_MM = float(os.getenv("PROBEPLANNER_ENTRY_CORRIDOR_ALLOWANCE_MM", "0.90"))
 AUTO_AVOID_ENABLED_DEFAULT = True
@@ -14732,7 +14748,7 @@ def _normalize_optimize_payload(raw_body):
             {**risk_thresholds_mm, **planner_calib_thresholds},
             default_mm=base_default,
         )
-        risk_thresholds_mm = merged
+        risk_thresholds_mm = _enforce_boundary_risk_threshold_floors(merged)
 
     params = {
         "algorithm": algorithm,
@@ -15207,6 +15223,7 @@ def _normalize_optimize_payload(raw_body):
             base_risk_thresholds_mm,
             risk_margin_tre_mm,
         )
+        params["riskThresholdsMm"] = _enforce_boundary_risk_threshold_floors(params["riskThresholdsMm"])
     params["riskMarginTreMm"] = risk_margin_tre_mm
     params["riskMarginInflation"] = {
         "source": "public_atlas_landmark_tre",
