@@ -4,9 +4,9 @@ This checklist is the paper-facing release package for the ProbePlanner native-e
 
 ## Release Identity
 
-- Proposed release tag: `v0.1.0-frontiers`
+- Release tag: `v0.2.0-paper`
 - Package name: `probeplanner-native-upgrade`
-- Repository: `https://github.com/Shark04467/probeplanner`
+- Repository: `https://github.com/Shark04468/probeplanner`
 - License: MIT
 - Citation metadata: `CITATION.cff`
 - Zenodo metadata: `.zenodo.json`
@@ -65,11 +65,11 @@ npm run perf:paper:repro
 - [x] Summary JSON reports generated for main experiments.
 - [x] OS/language/restriction information documented.
 - [ ] Create a clean commit containing release files and reports.
-- [ ] Create local tag `v0.1.0-frontiers` on the clean release commit.
+- [ ] Create local tag `v0.2.0-paper` on the clean release commit.
 - [ ] Push tag to GitHub.
 - [ ] Create GitHub release from tag.
 - [ ] Archive release with Zenodo and replace `DOI: pending archive` with the assigned DOI.
 
 ## Manuscript Code Availability Wording
 
-The source code is available at `https://github.com/Shark04467/probeplanner` under the MIT license. The manuscript release is intended to be archived as `v0.1.0-frontiers`; the Zenodo DOI should be inserted after the GitHub release is archived. Large MRI/CCF artifacts are not stored in git and must be provided through the documented artifact package layout.
+The source code is available at `https://github.com/Shark04468/probeplanner` under the MIT license. The manuscript release is archived as `v0.2.0-paper`; the Zenodo DOI must resolve to that exact tagged commit. Large MRI/CCF artifacts are not stored in git and must be provided through the documented artifact package layout.

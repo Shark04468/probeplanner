@@ -133,7 +133,7 @@ async function main(): Promise<void> {
   const partialMainTargets = supportedRows.filter((row) => row.status === "partial").map((row) => row.target).sort();
   const pack = {
     generatedAt: new Date().toISOString(),
-    repository: "https://github.com/Shark04467/probeplanner.git",
+    repository: "https://github.com/Shark04468/probeplanner.git",
     license: existsSync(path.resolve(root, "LICENSE")) ? "MIT" : "missing LICENSE file",
     runtime: {
       node: process.version,

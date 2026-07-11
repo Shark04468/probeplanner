@@ -6,7 +6,7 @@ This repository is the source-code release used for the Frontiers in Neuroinform
 
 ## Repository
 
-- Project link: https://github.com/Shark04467/probeplanner
+- Project link: https://github.com/Shark04468/probeplanner
 - License: MIT
 - Release tag used for the manuscript: `v0.2.0-paper`
 - Primary tested operating system: Windows 11 with PowerShell 7/Windows PowerShell 5.1

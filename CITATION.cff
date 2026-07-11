@@ -5,8 +5,8 @@ type: software
 authors:
   - family-names: Sha
     given-names: Yijun
-repository-code: "https://github.com/Shark04467/probeplanner"
-url: "https://github.com/Shark04467/probeplanner"
+repository-code: "https://github.com/Shark04468/probeplanner"
+url: "https://github.com/Shark04468/probeplanner"
 license: MIT
 version: "0.2.0-paper"
 date-released: "2026-07-11"
