@@ -27,7 +27,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.10.20"
       - run: npm ci
       - run: npm --prefix apps/ui ci
       - run: npm audit --audit-level=moderate
@@ -64,8 +64,8 @@ jobs:
           cargo audit --no-fetch --stale
           exit $LASTEXITCODE
       - name: Install backend compatibility test dependencies
-        run: python -m pip install -r apps/backend-compat/requirements.txt -r apps/backend-compat/requirements-legacy.txt pip-audit
-      - run: python -m pip_audit -r apps/backend-compat/requirements.txt -r apps/backend-compat/requirements-legacy.txt
+        run: python -m pip install -r apps/backend-compat/requirements-lock-py310.txt pip-audit
+      - run: python -m pip_audit -r apps/backend-compat/requirements-lock-py310.txt
       - run: npm run backend:test
       - name: Python compileall for backend scripts
         run: python -m compileall apps/backend-compat/src apps/backend-compat/tests apps/backend-compat/scripts scripts
