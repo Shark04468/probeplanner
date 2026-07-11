@@ -1,6 +1,8 @@
-# Exact Python environment used for the paper-facing MRI/CCF experiments.
+# Exact historical Python environment used for the paper-facing MRI/CCF experiments.
 # Platform tested: Windows 11, CPython 3.10.20. Generated from a clean,
 # internally consistent environment; `python -m pip check` must pass.
+# This lock preserves the published computation and is not approved for a
+# network-facing service. Use requirements.txt for the maintained runtime.
 aiohappyeyeballs==2.6.1
 aiohttp==3.13.5
 aiosignal==1.4.0
