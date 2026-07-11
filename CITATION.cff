@@ -10,6 +10,7 @@ url: "https://github.com/Shark04468/probeplanner"
 license: MIT
 version: "0.2.0-paper"
 date-released: "2026-07-11"
+doi: "10.5281/zenodo.21307547"
 keywords:
   - mouse brain atlas
   - Allen CCF

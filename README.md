@@ -1,5 +1,7 @@
 # ProbePlanner
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21307547.svg)](https://doi.org/10.5281/zenodo.21307547)
+
 ProbePlanner is an auditable planning workflow for mouse electrophysiology probe trajectories. It combines an Allen CCF/MRI-derived artifact profile, a React planning interface, a Flask compatibility API, a Rust native planning engine, replay/performance tooling, and paper-facing evidence exports.
 
 This repository is the source-code release used for the Frontiers in Neuroinformatics Technology & Code manuscript draft.
@@ -9,6 +11,9 @@ This repository is the source-code release used for the Frontiers in Neuroinform
 - Project link: https://github.com/Shark04468/probeplanner
 - License: MIT
 - Release tag used for the manuscript: `v0.2.0-paper`
+- Archived release commit: `0d5748e05c05e54d1330d05009747bcb4fa915a5`
+- Version DOI: `10.5281/zenodo.21307547`
+- Concept DOI: `10.5281/zenodo.21307546`
 - Primary tested operating system: Windows 11 with PowerShell 7/Windows PowerShell 5.1
 - Experimental support: Linux/macOS for TypeScript and Rust checks; MRI artifact scripts and launcher commands are Windows-first
 

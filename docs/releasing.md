@@ -30,3 +30,12 @@ gh release view v0.2.0-paper --json tagName,targetCommitish,url
 ```
 
 Zenodo gives `.zenodo.json` precedence when both `.zenodo.json` and `CITATION.cff` are present, so both files must remain semantically consistent.
+
+## Published paper release
+
+- Tag: `v0.2.0-paper`
+- Commit: `0d5748e05c05e54d1330d05009747bcb4fa915a5`
+- GitHub Release: `https://github.com/Shark04468/probeplanner/releases/tag/v0.2.0-paper`
+- Zenodo version DOI: `10.5281/zenodo.21307547`
+- Zenodo concept DOI: `10.5281/zenodo.21307546`
+- Machine-readable lock: `docs/release/doi-lock.json`

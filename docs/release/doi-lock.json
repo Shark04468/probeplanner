@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "releaseTag": "v0.2.0-paper",
+  "releaseCommit": "0d5748e05c05e54d1330d05009747bcb4fa915a5",
+  "annotatedTagObject": "1a5e557401da7bbeb0eabbcfcd498cc8de87bef5",
+  "githubRepository": "https://github.com/Shark04468/probeplanner",
+  "githubRelease": "https://github.com/Shark04468/probeplanner/releases/tag/v0.2.0-paper",
+  "githubSupplementaryAsset": {
+    "name": "ProbePlanner-supplementary-v0.2.0-paper.zip",
+    "bytes": 9735863,
+    "sha256": "fcd60fe225308c67026fc566cf1be28d99db9c51a61dcd7ea5f42fb94b612d94"
+  },
+  "zenodo": {
+    "recordId": 21307547,
+    "recordUrl": "https://zenodo.org/records/21307547",
+    "versionDoi": "10.5281/zenodo.21307547",
+    "conceptDoi": "10.5281/zenodo.21307546",
+    "version": "0.2.0-paper",
+    "archiveName": "Shark04468/probeplanner-v0.2.0-paper.zip",
+    "archiveRoot": "Shark04468-probeplanner-1a5e557",
+    "archiveBytes": 19321505,
+    "archiveMd5": "f1e5f49d8984f72f4cd07d364184dff4"
+  },
+  "verification": {
+    "tagCommitMatchesReleaseCommit": true,
+    "githubAssetSourceCommitMatchesReleaseCommit": true,
+    "zenodoArchiveFileCount": 1154,
+    "tagArchiveFileCount": 1154,
+    "missingFiles": 0,
+    "extraFiles": 0,
+    "zenodoArchiveTagObjectPrefixMatches": true,
+    "supplementaryReleaseVerificationPassed": true
+  }
+}
