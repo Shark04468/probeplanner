@@ -1,0 +1,14 @@
+* text=auto
+
+*.png -text
+*.pdf -text
+*.zip -text
+*.npy -text
+*.npz -text
+
+supplementary-data/**/*.json text eol=lf
+supplementary-data/**/*.csv text eol=lf
+supplementary-data/**/*.md text eol=lf
+supplementary-data/**/*.svg text eol=lf
+supplementary-data/**/*.txt text eol=lf
+supplementary-data/SHA256SUMS text eol=lf

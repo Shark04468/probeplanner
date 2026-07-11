@@ -51,13 +51,18 @@ def sanitize_json(value: Any) -> Any:
     return value
 
 
+def write_text_lf(path: Path, value: str, *, encoding: str = "utf-8") -> None:
+    with path.open("w", encoding=encoding, newline="\n") as stream:
+        stream.write(value)
+
+
 def copy_public_file(source: Path, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     if source.suffix.lower() == ".json":
         payload = sanitize_json(json.loads(source.read_text(encoding="utf-8-sig")))
-        destination.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        write_text_lf(destination, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
     elif source.suffix.lower() in TEXT_SUFFIXES:
-        destination.write_text(sanitize_text(source.read_text(encoding="utf-8-sig")), encoding="utf-8")
+        write_text_lf(destination, sanitize_text(source.read_text(encoding="utf-8-sig")))
     else:
         shutil.copy2(source, destination)
 
@@ -145,7 +150,7 @@ Absolute workstation paths were replaced with environment placeholders. Raw Alle
 
 These files support computational reproducibility and atlas-defined trajectory audits. They do not constitute prospective surgical or histological validation. Internal vessel, ventricle, sulcus, or user-exclusion safety claims are unavailable where the corresponding masks were absent.
 """
-    (output / "README.md").write_text(readme, encoding="utf-8")
+    write_text_lf(output / "README.md", readme)
 
     files = []
     for path in sorted(output.rglob("*")):
@@ -163,11 +168,11 @@ These files support computational reproducibility and atlas-defined trajectory a
         "files": files,
     }
     manifest_path = output / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_text_lf(manifest_path, json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
 
     checksum_paths = [path for path in sorted(output.rglob("*")) if path.is_file() and path.name != "SHA256SUMS"]
     sums = "".join(f"{sha256(path)}  {path.relative_to(output).as_posix()}\n" for path in checksum_paths)
-    (output / "SHA256SUMS").write_text(sums, encoding="ascii")
+    write_text_lf(output / "SHA256SUMS", sums, encoding="ascii")
     print(f"Built {len(checksum_paths)} supplementary files in {output}")
     return 0
 
