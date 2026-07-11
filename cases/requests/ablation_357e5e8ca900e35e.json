@@ -1,0 +1,71 @@
+{
+  "id": "ablation_357e5e8ca900e35e",
+  "label": "ablation_4_drcc_cvar_relax_TH_MOs_LGd",
+  "source": "ablation",
+  "requestHash": "357e5e8ca900e35e440654b750b519c1681d49f56842d12fe9036534ece15e19",
+  "targetKeys": [
+    "TH",
+    "MOs",
+    "LGd"
+  ],
+  "excludedTargetKeys": [],
+  "algorithm": "drcc",
+  "request": {
+    "probeParams": {
+      "preset": "NP2.0-4shank",
+      "depth": 10,
+      "count": 1,
+      "shankCount": 1,
+      "shanks": 1,
+      "entrySpacingUm": 3500,
+      "shankPitchUm": 250,
+      "shankWidthUm": 70
+    },
+    "clinicalContext": {
+      "replayCase": "ablation_4_drcc_cvar_relax_TH_MOs_LGd",
+      "nativeExcludedFallbackTargetKeys": [],
+      "paperEvidenceCase": true
+    },
+    "params": {
+      "candidateRefineStepUm": 50,
+      "robustSamples": 4,
+      "paretoTopK": 4,
+      "minClearance": 1000,
+      "constraintAwareSearch": true,
+      "scoreEarlyStopTopK": 20,
+      "angleStep": 10,
+      "gridSpacing": 2000,
+      "candidateCoarseStepUm": 150,
+      "objectivePreset": "safety_first",
+      "autoAvoidEnabled": true,
+      "coverageRadius": 600,
+      "algorithm": "drcc",
+      "riskThresholdTemplate": "balanced",
+      "autoRepairEnabled": true,
+      "maxAngle": 15,
+      "strictAtlasTargets": true,
+      "allowFallbackTargetCoverage": false,
+      "drccSolver": "cvar_relax",
+      "drccEnabled": true,
+      "nativeCandidateLimit": 4096,
+      "exactMaxCandidates": 36,
+      "drccExactMaxCandidates": 36,
+      "drccPerTargetKeep": 6,
+      "depthUm": 10000
+    },
+    "targetKeys": [
+      "TH",
+      "MOs",
+      "LGd"
+    ],
+    "constraintModes": {
+      "minEntrySpacing": "enforce",
+      "hemisphere": "warn",
+      "lambdaBoundary": "enforce",
+      "brainBounds": "enforce",
+      "continuousRiskDistance": "enforce",
+      "maxAngle": "enforce",
+      "minClearance": "enforce"
+    }
+  }
+}

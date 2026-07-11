@@ -185,11 +185,13 @@ function buildDiagnosticErrorResult(payload, msg, targetKeys, startMs) {
     elapsedMs: Date.now() - (startMs ?? Date.now()),
     algorithm: "error",
     backendError: msg,
+    requestedTargets: [...(targetKeys || [])],
     safetyIssues: backendIssues,
     candidateCount: raw.candidateCount ?? null,
     candidateUniverseCount: raw.candidateUniverseCount ?? null,
     failureCards: [...backendFailureCards, ...derivedBrainBoundsCards],
     candidateStageBreakdown: raw.candidateStageBreakdown ?? null,
+    candidateFunnelDiagnostics: raw.candidateFunnelDiagnostics ?? null,
     fallbackTargetKeys: raw.fallbackTargetKeys ?? raw.computeProfile?.fallbackTargetKeys ?? [],
     fallbackUncovered: raw.fallbackUncovered ?? [],
     atlasBackedUncovered: raw.atlasBackedUncovered ?? [],
@@ -281,6 +283,16 @@ export function useOptimizer() {
           pSafetyGtThreshold: t.pSafetyGtThreshold ?? null,
           pSafetyGtThresholdCi95: t.pSafetyGtThresholdCi95 ?? null,
           coveredRegionSides: t.coveredRegionSides ?? null,
+          brainContainmentPassed: t.brainContainmentPassed ?? null,
+          tipInTarget: t.tipInTarget ?? null,
+          distalOvershootMm: t.distalOvershootMm ?? null,
+          internalRiskViolationCount: t.internalRiskViolationCount ?? null,
+          minimumInternalRiskMarginMm: t.minimumInternalRiskMarginMm ?? null,
+          entrySurfaceCrossingStatus: t.entrySurfaceCrossingStatus ?? null,
+          brainContainmentAudit: t.brainContainmentAudit ?? null,
+          targetEndpointAudit: t.targetEndpointAudit ?? null,
+          internalRiskAudit: t.internalRiskAudit ?? null,
+          entrySurfaceAudit: t.entrySurfaceAudit ?? null,
         };
       });
 
@@ -316,6 +328,7 @@ export function useOptimizer() {
       elapsedMs: Date.now() - (startMs ?? Date.now()),
       algorithm: algorithmLabel,
       selected: probes,
+      requestedTargets: [...(targetKeys || [])],
       uncovered: raw.uncovered ?? [],
       fallbackTargetKeys,
       fallbackUncovered: Array.isArray(raw.fallbackUncovered) ? raw.fallbackUncovered : [],
@@ -368,11 +381,16 @@ export function useOptimizer() {
         computeProfile: raw.computeProfile ?? null,
         candidateCache: raw.candidateCache ?? null,
         candidateStageBreakdown: raw.candidateStageBreakdown ?? null,
+        candidateFunnelDiagnostics: raw.candidateFunnelDiagnostics ?? null,
         plannerCalibrationProfile: raw.plannerCalibrationProfile ?? null,
         uncertaintyCalibration: raw.uncertaintyCalibration ?? null,
         clinicalContract: raw.clinicalContract ?? null,
         clinicalContext: raw.clinicalContext ?? null,
         primaryEndpointSummary: raw.primaryEndpointSummary ?? null,
+        objectiveRiskConfig: raw.objectiveRiskConfig ?? null,
+        stabilitySummary: raw.stabilitySummary ?? null,
+        plannerExecutionBackend: raw.plannerExecutionBackend ?? null,
+        nativeEngineBypassReason: raw.nativeEngineBypassReason ?? null,
         reproducibility: {
           requestId: raw.requestId ?? null,
           engineVersion: raw.engineVersion ?? null,
@@ -589,7 +607,16 @@ export function useOptimizer() {
               stopTaskPolling();
               setRunProgress(100);
               setRunMsg("task.completed");
-              finalise(taskResult, targetKeys, startMs);
+              finalise({
+                ...taskResult,
+                stabilitySummary: {
+                  enabled: Boolean(params.stabilityTieBreakerEnabled),
+                  referenceProbeCount: Array.isArray(params.stabilityReferenceTrajectories)
+                    ? params.stabilityReferenceTrajectories.length
+                    : 0,
+                  referenceWeight: Number(params.stabilityReferenceWeight ?? 0.1),
+                },
+              }, targetKeys, startMs);
               return;
             }
             if (taskResult && taskResult.ok === false) {
@@ -748,12 +775,23 @@ export function useOptimizer() {
             atlasBackedUncovered: data.atlasBackedUncovered ?? [],
             atlasBackedUncoveredCount: data.atlasBackedUncoveredCount ?? null,
             candidateStageBreakdown: data.candidateStageBreakdown ?? null,
+            candidateFunnelDiagnostics: data.candidateFunnelDiagnostics ?? null,
             plannerCalibrationProfile: data.plannerCalibrationProfile ?? null,
             candidateCache: data.candidateCache ?? null,
             uncertaintyCalibration: data.uncertaintyCalibration ?? null,
             clinicalContract: data.clinicalContract ?? null,
             clinicalContext: data.clinicalContext ?? null,
             primaryEndpointSummary: data.primaryEndpointSummary ?? null,
+            objectiveRiskConfig: data.objectiveRiskConfig ?? null,
+            stabilitySummary: {
+              enabled: Boolean(params.stabilityTieBreakerEnabled),
+              referenceProbeCount: Array.isArray(params.stabilityReferenceTrajectories)
+                ? params.stabilityReferenceTrajectories.length
+                : 0,
+              referenceWeight: Number(params.stabilityReferenceWeight ?? 0.1),
+            },
+            plannerExecutionBackend: data.plannerExecutionBackend ?? null,
+            nativeEngineBypassReason: data.nativeEngineBypassReason ?? null,
           };
           finalise(raw, targetKeys, startMs);
         })

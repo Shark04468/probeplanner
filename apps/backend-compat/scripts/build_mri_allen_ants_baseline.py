@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 """Build a strict AMBMC MRI -> Allen CCF ANTs baseline profile.
 
 This is the reproducible replacement for the earlier mixed-artifact MRI/CCF

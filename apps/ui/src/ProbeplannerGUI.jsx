@@ -1,8 +1,12 @@
 ﻿/**
- * ProbeplannerGUI.jsx  鈥? 涓荤晫闈?v5
+ * ProbeplannerGUI.jsx - main UI shell.
  *
- * 淇锛? *  1. 瑕嗙洊鐜?0% 闂 鈫?浣跨敤 computeCoverage() 鍑犱綍鍥為€€
- *  2. 绠楁硶璁℃椂宸紓 鈫?鍦ㄥ墠绔褰曟瘡绉嶇畻娉曠殑鐪熷疄鑰楁椂骞跺睍绀? *  3. 璁剧疆闈㈡澘鍦ㄥ彸渚? *  4. RegionSelector 鏂扮増锛堝甫鑴戝尯鎻忚堪锛? */
+ * Notes:
+ *  1. Coverage uses computeCoverage() geometry fallback.
+ *  2. Algorithm timing is recorded in the frontend and displayed by solver.
+ *  3. Settings panel lives on the right.
+ *  4. RegionSelector includes region descriptions.
+ */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 
@@ -31,7 +35,7 @@ import PinpointIO            from './components/PinpointIO';
 import BenchmarkPanel        from './components/BenchmarkPanel';
 import RegistrationQcPanel   from './components/RegistrationQcPanel';
 
-// 鈹€鈹€ 棰滆壊 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// Colors
 const C = {
   bg:        '#060e1c',
   panel:     '#08121f',
@@ -90,9 +94,16 @@ const DEFAULT_PARAMS = {
   selectiveConformalAlpha: 0.1,
   selectiveReviewProbThreshold: 0.8,
   selectiveRejectProbThreshold: 0.35,
+  targetEndpointPolicy: 'tip_in_target',
+  depthOptimizationEnabled: true,
+  stabilityTieBreakerEnabled: true,
+  stabilityReferenceWeight: 0.1,
+  stabilityEntryWeight: 1.0,
+  stabilityTipWeight: 1.0,
+  stabilityAngleWeight: 1.0,
 };
 
-// 鈹€鈹€ 绠楁硶鎻忚堪 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// Algorithm descriptions
 const ALGO_INFO = {
   greedy: {
     labelKey: 'algoGreedyLabel',
@@ -147,6 +158,32 @@ function getNoticeAction(notice, lang = 'cn') {
   const isCn = String(lang || '').toLowerCase().startsWith('cn');
   if (isCn) return String(notice.actionCn || notice.action || notice.actionEn || '').trim();
   return String(notice.actionEn || notice.action || notice.actionCn || '').trim();
+}
+
+function buildStabilityReferences(previousResults, selectedRegions) {
+  if (!previousResults || !Array.isArray(previousResults.probes)) return [];
+  const requested = Array.isArray(previousResults.requestedTargets)
+    ? previousResults.requestedTargets.map(String).sort()
+    : [];
+  const current = [...selectedRegions].map(String).sort();
+  if (requested.length !== current.length || requested.some((key, index) => key !== current[index])) {
+    return [];
+  }
+  return previousResults.probes
+    .map((probe) => {
+      const entry = probe.entry_xyz ?? probe.entry;
+      const tip = probe.tip_xyz ?? probe.tip;
+      if (!Array.isArray(entry) || entry.length !== 3 || !Array.isArray(tip) || tip.length !== 3) {
+        return null;
+      }
+      if (![...entry, ...tip].every((value) => Number.isFinite(Number(value)))) return null;
+      return {
+        entryCcfUm: entry.map(Number),
+        tipCcfUm: tip.map(Number),
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 16);
 }
 
 function getNoticeReason(notice, lang = 'cn') {
@@ -441,8 +478,9 @@ export default function ProbeplannerGUI() {
   const [constraints,  setConstraints]  = useState(defaultConstraints);
   const [correction,   setCorrection]   = useState(null);
 
-  // 璁℃椂杩借釜
+  // Timing tracking
   const runStartRef  = useRef(null);
+  const autoOpenedResultRef = useRef(null);
   const [lastRunMs,  setLastRunMs]  = useState(null);
   const [lastAlgo,   setLastAlgo]   = useState(null);
 
@@ -552,9 +590,18 @@ export default function ProbeplannerGUI() {
     const full   = { ...preset, ...mergedProbeParams };
     runStartRef.current = performance.now();
     setLastAlgo(mergedParams.algorithm);
+    const stabilityReferences = mergedParams.stabilityTieBreakerEnabled
+      ? buildStabilityReferences(optimizer.results, selectedRegions)
+      : [];
+    const requestParams = {
+      ...mergedParams,
+      depthUm: full.depthUm,
+      stabilityReferenceTrajectories: stabilityReferences,
+      stabilityReferenceProbeCount: stabilityReferences.length,
+    };
     optimizer.run({
       selectedRegions,
-      params: { ...mergedParams, depthUm: full.depthUm },
+      params: requestParams,
       probeParams: full, probePreset,
       constraintModes: constraints,
       backendStatus,
@@ -1158,6 +1205,14 @@ export default function ProbeplannerGUI() {
   }, [runError]);
 
   useEffect(() => {
+    if (!results || results.backendError || !Array.isArray(results.probes)) return;
+    const identity = results.requestId || results.responseHash || results;
+    if (autoOpenedResultRef.current === identity) return;
+    autoOpenedResultRef.current = identity;
+    setActiveTab('results');
+  }, [results]);
+
+  useEffect(() => {
     const onFocusBackendPanel = () => {
       setOpenCards((prev) => ({ ...prev, backend: true, preflight: true }));
       setEventCenterOpen(true);
@@ -1166,17 +1221,18 @@ export default function ProbeplannerGUI() {
     return () => window.removeEventListener('probeplanner:focus-backend-panel', onFocusBackendPanel);
   }, []);
 
-  // 缁撴灉瀹屾垚鏃惰褰曡€楁椂
+  // Record elapsed time when results complete.
   const prevResultsRef = useRef(null);
-  if (results && results !== prevResultsRef.current) {
+  useEffect(() => {
+    if (!results || results === prevResultsRef.current) return;
     prevResultsRef.current = results;
     if (runStartRef.current) {
       setLastRunMs(Math.round(performance.now() - runStartRef.current));
       runStartRef.current = null;
     }
-  }
+  }, [results]);
 
-  // 鈹€鈹€ 缁撴灉瑙勮寖鍖?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // Result normalization
   // useOptimizer.finalise() already builds the correct shape; we only need to
   // re-localise warnings when the UI language changes.
   const resultsForPanel = useMemo(() => {
@@ -1192,7 +1248,7 @@ export default function ProbeplannerGUI() {
     };
   }, [results, optimizer.safetyIssues, lang]);
 
-  // 3D 瑙嗗浘鐢ㄧ殑 probes 鈥斺€?resultsForPanel 宸插寘鍚鑼冨寲鏁版嵁锛岀洿鎺ョ敤 selected 淇濈暀鍘熷杞ㄨ抗瀛楁
+  // 3D probes use selected payloads so native entry/tip trajectory fields are preserved.
   const probesFor3D = useMemo(() => {
     return results?.selected || [];
   }, [results]);
@@ -1241,21 +1297,21 @@ export default function ProbeplannerGUI() {
     if (snap.constraints) setConstraints(sanitizeConstraintModes(snap.constraints));
   }, []);
 
-  // 褰撳墠绠楁硶淇℃伅
+  // Current algorithm metadata.
   const algoInfo = ALGO_INFO[params.algorithm] || ALGO_INFO.greedy;
   const algoLabel = useCallback((algoKey) => {
     const info = ALGO_INFO[algoKey];
     return info ? tr(info.labelKey) : algoKey;
   }, [tr]);
 
-  // 鈹€鈹€ 娓叉煋 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // Render
   return (
     <>
       <style>{GLOBAL_CSS + EXTRA_CSS}</style>
-      <div style={S.root}>
+      <div style={S.root} className="pp-root">
 
-        {/* 鈺愨晲 椤舵爮 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 */}
-        <header style={S.topbar}>
+        {/* Top bar */}
+        <header style={S.topbar} className="pp-topbar">
           <div style={S.topLeft}>
             <span style={S.logoMark}>BP</span>
             <div>
@@ -1268,7 +1324,7 @@ export default function ProbeplannerGUI() {
             <Chip active={showUncovered}  onClick={() => setShowUncovered(v=>!v)}  label={tr('showUncovered')} />
             <Chip active={showAllRegions} onClick={() => setShowAllRegions(v=>!v)} label={tr('showAllRegions')} />
 
-            {/* 绠楁硶閫夋嫨鍣紙椤舵爮蹇€熷垏鎹級 */}
+            {/* Algorithm selector */}
             <div style={S.algoRow}>
               {Object.entries(ALGO_INFO).map(([k, info]) => (
                 <button key={k}
@@ -1322,7 +1378,7 @@ export default function ProbeplannerGUI() {
 
             <StatusBadge status={backendStatus} tr={tr} />
 
-            {/* 鑰楁椂灞曠ず */}
+            {/* Timing display */}
             {lastRunMs !== null && !isRunning && (
               <div style={{
                 fontSize:10, color: lastRunMs > 5000 ? C.warn : C.success,
@@ -1460,7 +1516,7 @@ export default function ProbeplannerGUI() {
             </div>
           </div>
         </header>
-        <div data-testid="global-stage-bar" style={S.globalStageBar}>
+        <div data-testid="global-stage-bar" style={S.globalStageBar} className="pp-global-stage">
           {globalStages.map((stage) => {
             const color =
               stage.level === 'error'
@@ -1485,11 +1541,12 @@ export default function ProbeplannerGUI() {
           })}
         </div>
 
-        {/* 鈺愨晲 涓讳綋涓夊垪 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 */}
-        <div style={S.main}>
+        {/* Main three-column layout */}
+        <div style={S.main} className="pp-main">
 
-          {/* 宸︽爮锛氳剳鍖洪€夋嫨 */}
+          {/* Left sidebar: region selector */}
           <ResizableSidebar defaultWidth={225} minWidth={160} maxWidth={360} side="left"
+            className="pp-sidebar pp-sidebar-left"
             style={{ background:C.panel, borderRight:`1px solid ${C.border}`,
               display:'flex', flexDirection:'column', minHeight:0 }}>
             <SideHdr icon="R" title={tr('selectRegions')}>
@@ -1527,8 +1584,8 @@ export default function ProbeplannerGUI() {
             </div>
           </ResizableSidebar>
 
-          {/* 涓爮锛氳鍥?鍐呭 */}
-          <div style={S.colMid}>
+          {/* Center column: views */}
+          <div style={S.colMid} className="pp-center">
 
             <nav style={S.tabBar}>
               {[
@@ -1549,7 +1606,7 @@ export default function ProbeplannerGUI() {
                 </button>
               ))}
 
-              {/* 瑕嗙洊鐜囧揩閫熸憳瑕?*/}
+              {/* Coverage summary */}
               {resultsForPanel && (
                 <div style={{
                   marginLeft:'auto', padding:'0 14px',
@@ -1563,10 +1620,10 @@ export default function ProbeplannerGUI() {
               )}
             </nav>
 
-            {/* 瑙嗗浘鏍囩椤?*/}
+            {/* View tabs */}
             {activeTab === 'views' && (
               <div style={S.viewsArea}>
-                <div style={S.viewGrid}>
+                <div style={S.viewGrid} className="pp-view-grid">
                   <div style={S.viewPane}>
                     <PaneHdr icon="T" label={tr('topView')} />
                     <div style={S.paneBody}>
@@ -1590,7 +1647,7 @@ export default function ProbeplannerGUI() {
                   </div>
                 </div>
 
-                {/* 3D 瑙嗗浘 */}
+                {/* 3D view */}
                 <div style={S.d3Wrap}>
                   <button
                     style={S.d3Toggle}
@@ -1705,8 +1762,9 @@ export default function ProbeplannerGUI() {
             )}
           </div>
 
-          {/* 鍙虫爮锛氳鍒掕缃?*/}
+          {/* Right sidebar: planning settings */}
           <ResizableSidebar defaultWidth={270} minWidth={210} maxWidth={420} side="right"
+            className="pp-sidebar pp-sidebar-right"
             style={{ background:C.bg, borderLeft:`1px solid ${C.border}`,
               display:'flex', flexDirection:'column' }}>
             <SideHdr icon="A" title={tr('advancedSettings')} />
@@ -1739,7 +1797,7 @@ export default function ProbeplannerGUI() {
                 </div>
               </ACard>
 
-              {/* 绠楁硶璇存槑鍗?*/}
+              {/* Algorithm explanation card */}
               <div style={{
                 marginBottom:6, padding:'8px 10px',
                 background:C.accent+'0c', border:`1px solid ${C.accent}30`,
@@ -1826,7 +1884,7 @@ export default function ProbeplannerGUI() {
   );
 }
 
-// 鈹€鈹€ 瀛愮粍浠?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// Child components
 function StatusBadge({ status, tr }) {
   const M = {
     idle:       { c:C.textMuted, dot:'*', l:tr('backendIdle') },
@@ -1950,6 +2008,25 @@ function Empty({ icon, msg }) {
 const EXTRA_CSS = `
   * { box-sizing: border-box; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  :focus-visible { outline: 2px solid #00d4ff; outline-offset: 2px; }
+  @media (max-width: 1100px) {
+    .pp-root { height: 100vh !important; min-height: 0; overflow-x: hidden !important; overflow-y: auto !important; }
+    .pp-topbar { align-items: flex-start !important; padding: 8px 10px !important; }
+    .pp-topbar > div { max-width: 100%; }
+    .pp-topbar > div:nth-child(3) { width: 100%; justify-content: center !important; }
+    .pp-global-stage { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .pp-main { flex-direction: column !important; overflow: visible !important; }
+    .pp-sidebar { width: 100% !important; min-height: 300px !important; max-height: 46vh; }
+    .pp-sidebar > div:last-child { display: none !important; }
+    .pp-center { min-height: 720px; flex: none !important; }
+    .pp-view-grid { grid-template-columns: 1fr !important; overflow-y: auto; }
+    .pp-view-grid > div { min-height: 320px; }
+  }
+  @media (max-width: 640px) {
+    .pp-global-stage { grid-template-columns: 1fr !important; }
+    .pp-sidebar { min-height: 340px !important; max-height: 55vh; }
+    .pp-center { min-height: 760px; }
+  }
 `;
 
 const S = {
@@ -2419,7 +2496,9 @@ const S = {
     borderBottom:`1px solid ${C.border}`, flexShrink:0,
     overflowX:'auto', overflowY:'hidden', alignItems:'center' },
   tabBtn: { display:'flex', alignItems:'center', gap:5,
-    background:'none', border:'none', borderBottom:'2px solid transparent',
+    background:'none', borderWidth:0, borderStyle:'solid',
+    borderTopColor:'transparent', borderRightColor:'transparent',
+    borderBottomColor:'transparent', borderLeftColor:'transparent', borderBottomWidth:2,
     color:C.textMuted, fontSize:12, padding:'11px 14px',
     cursor:'pointer', fontWeight:500, whiteSpace:'nowrap' },
   tabActive: { color:C.text, borderBottomColor:C.accent, fontWeight:700 },

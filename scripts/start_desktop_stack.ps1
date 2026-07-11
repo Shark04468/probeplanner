@@ -22,13 +22,13 @@ Start-Process -FilePath powershell -WindowStyle Hidden -ArgumentList @(
     "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $PSScriptRoot "run_engine.ps1"),
     "-ArtifactRoot", $ArtifactRoot, "-Port", $EnginePort, "-KillExisting"
 )
-& (Join-Path $PSScriptRoot "wait_http.ps1") -Url "http://127.0.0.1:$EnginePort/healthz" -TimeoutSeconds 180
+& (Join-Path $PSScriptRoot "wait_http.ps1") -Url "http://127.0.0.1:$EnginePort/healthz" -TimeoutSeconds 180 -RequireJsonTruthy ok,atlasLoaded,sdfLoaded,riskSdfReady,regionIndexLoaded
 
 Start-Process -FilePath powershell -WindowStyle Hidden -ArgumentList @(
     "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $Root "apps/backend-compat/scripts/start_backend_compat.ps1"),
     "-ArtifactRoot", $ArtifactRoot, "-Port", $BackendPort, "-EngineUrl", "http://127.0.0.1:$EnginePort", "-UseEngineService"
 )
-& (Join-Path $PSScriptRoot "wait_http.ps1") -Url "http://127.0.0.1:$BackendPort/api/status" -TimeoutSeconds 240
+& (Join-Path $PSScriptRoot "wait_http.ps1") -Url "http://127.0.0.1:$BackendPort/api/status" -TimeoutSeconds 240 -RequireJsonTruthy ok,nativeEngineReady
 
 if (-not $NoUiServer) {
     Start-Process -FilePath python -WindowStyle Hidden -ArgumentList @(

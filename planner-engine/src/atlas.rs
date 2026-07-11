@@ -132,6 +132,10 @@ impl RegionLookup {
     pub fn len(&self) -> usize {
         self.entries.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
 }
 
 impl MmapVolume {
@@ -139,6 +143,9 @@ impl MmapVolume {
         let expected = voxel_count(spec.dims)?;
         let bytes_per_voxel = bytes_per_voxel(spec.scalar_type);
         let file = File::open(path).map_err(|_| EngineError::OutOfBounds)?;
+        // SAFETY: The mapping is read-only, all later reads are bounds-checked
+        // against the validated expected byte length, and artifact files are
+        // treated as immutable for the lifetime of the engine process.
         let mmap = unsafe {
             MmapOptions::new()
                 .map(&file)
@@ -432,7 +439,7 @@ mod tests {
         let header_len = header.len() + padding + 1;
         bytes.extend_from_slice(&(header_len as u16).to_le_bytes());
         bytes.extend_from_slice(header.as_bytes());
-        bytes.extend(std::iter::repeat(b' ').take(padding));
+        bytes.extend(std::iter::repeat_n(b' ', padding));
         bytes.push(b'\n');
         let parsed = parse_npy_header_from_reader(&mut std::io::Cursor::new(bytes)).unwrap();
         assert_eq!(parsed.scalar_type, VolumeScalarType::U32);

@@ -18,8 +18,9 @@ pub use profile::{compute_trajectory_profile, RegionMaskIndex, TrajectoryProfile
 pub use risk::{risk_distance_diagnostics, RiskDistanceDiagnostics};
 pub use sdf::{SdfGrid, SdfSample};
 pub use solver::{
-    build_conflict_matrix, exact_branch_and_bound, greedy_select, CandidateKernel, CandidateStore,
-    ConflictPolicy,
+    build_conflict_matrix, build_conflict_matrix_with_cancel, exact_branch_and_bound,
+    exact_branch_and_bound_with_cancel, greedy_select, greedy_select_with_cancel, CandidateKernel,
+    CandidateStore, ConflictPolicy, SolveCancelled,
 };
 
 #[derive(Debug, thiserror::Error)]

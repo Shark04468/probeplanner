@@ -25,6 +25,22 @@ export default function ResizableSidebar({
     document.body.style.userSelect = 'none';
   }, [width]);
 
+  const onKeyDown = useCallback((event) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === 'Home') {
+      setWidth(minWidth);
+      return;
+    }
+    if (event.key === 'End') {
+      setWidth(maxWidth);
+      return;
+    }
+    const visualDelta = event.key === 'ArrowRight' ? 16 : -16;
+    const widthDelta = side === 'left' ? visualDelta : -visualDelta;
+    setWidth((current) => Math.max(minWidth, Math.min(maxWidth, current + widthDelta)));
+  }, [maxWidth, minWidth, side]);
+
   useEffect(() => {
     const onMove = (e) => {
       if (!dragging.current) return;
@@ -79,7 +95,13 @@ export default function ResizableSidebar({
       <div
         style={handleStyle}
         onMouseDown={onMouseDown}
-        title="Drag to resize"
+        onKeyDown={onKeyDown}
+        role="separator"
+        aria-orientation="vertical"
+        aria-valuemin={minWidth}
+        aria-valuemax={maxWidth}
+        aria-valuenow={width}
+        tabIndex={0}
       >
         <DragHandle />
       </div>

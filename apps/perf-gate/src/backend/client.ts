@@ -144,6 +144,24 @@ function nativeRejectReasonKeys(response: JsonObject): string[] {
   return Object.keys(reasons as JsonObject).sort();
 }
 
+function stringField(container: unknown, key: string): string | null {
+  if (!container || typeof container !== "object") return null;
+  const value = (container as JsonObject)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function isStructuredExpectedReject(response: JsonObject, expectedRiskClass: string | null, expectedOutcome: string | null, rejectReasonKeys: string[]): boolean {
+  if (expectedOutcome !== "reject" || !expectedRiskClass) return false;
+  if (!rejectReasonKeys.includes(`risk_${expectedRiskClass}`)) return false;
+  if (arrayLen(response.selected) !== 0) return false;
+  const nativeEngineStatus = stringField(response.candidateStageBreakdown, "nativeEngineStatus");
+  const nativeKernelStatus = stringField(response.computeProfile, "nativeKernelStatus");
+  const code = stringField(response, "code");
+  return nativeEngineStatus === "native_no_feasible_candidates"
+    || nativeKernelStatus === "blocked"
+    || code === "native_engine_constraint_violation";
+}
+
 function expectedShankCount(request: JsonObject): number | null {
   const probeParams = request.probeParams && typeof request.probeParams === "object"
     ? request.probeParams as JsonObject
@@ -256,6 +274,14 @@ export async function runBackendCase(options: {
     const fallbackKeySet = new Set(fallbackKeys);
     const fallbackUncoveredCount = uncovered.filter((key) => fallbackKeySet.has(key)).length;
     const expectedRiskClass = expectedSdfRiskClass(request);
+    const expectedOutcome = expectedSdfOutcome(request);
+    const rejectReasonKeys = nativeRejectReasonKeys(response);
+    const structuredExpectedReject = isStructuredExpectedReject(
+      response,
+      expectedRiskClass,
+      expectedOutcome,
+      rejectReasonKeys,
+    );
     const expectedShanks = expectedShankCount(request);
     const requestAlgorithm = typeof (request.params as JsonObject | undefined)?.algorithm === "string"
       ? String((request.params as JsonObject).algorithm)
@@ -268,7 +294,7 @@ export async function runBackendCase(options: {
     return {
       caseId: options.replayCase.id,
       runIndex: options.runIndex,
-      ok: response.ok !== false,
+      ok: response.ok !== false || structuredExpectedReject,
       backendTotalMs,
       responseTimeMs: numberOrNull(response.timeMs),
       generationMs: phaseMs(response, stages, ["candidate_generating"], ["candidate_generated", "candidate_prefiltered"], "generationMs"),
@@ -297,9 +323,9 @@ export async function runBackendCase(options: {
         : null,
       nativeDrccApproximation: runtimePolicyObj.nativeDrccApproximation === true,
       expectedSdfRiskClass: expectedRiskClass,
-      expectedSdfOutcome: expectedSdfOutcome(request),
+      expectedSdfOutcome: expectedOutcome,
       observedSdfRiskClasses: observedSdfRiskClasses(response),
-      nativeRejectReasonKeys: nativeRejectReasonKeys(response),
+      nativeRejectReasonKeys: rejectReasonKeys,
       expectedShankCount: expectedShanks,
       effectiveShankCount: numberOrNull(runtimePolicyObj.shankCount),
       selectedShankCounts: selectedShankCounts(response),

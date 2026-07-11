@@ -3,7 +3,7 @@ export type JsonObject = Record<string, unknown>;
 export interface ReplayCase {
   id: string;
   label: string;
-  source: "repo" | "local" | "adversarial";
+  source: "repo" | "local" | "adversarial" | "paper_replay" | "stress" | "ablation";
   sourcePath: string;
   targetKeys: string[];
   excludedTargetKeys?: string[];

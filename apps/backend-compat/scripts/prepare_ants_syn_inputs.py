@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 """Prepare ANTs/SyN-ready MRI and CCF inputs.
 
 This script exists to avoid the common registration pitfalls in this project:

@@ -1,13 +1,16 @@
 {
   "id": "325c3ba8f9de4e4d8c40d33ced16a43d",
-  "label": "LGd+VISrl+VISp+VPM+ADP-325c3ba8",
+  "label": "LGd+VISrl+VISp+VPM-325c3ba8",
   "source": "local",
-  "requestHash": "c392e8872c65e25c2330ce076fb2420e2258d291034c095b269ed7c65ce66939",
+  "requestHash": "19ea8572d650b9cfd9bd4cd79f33431cd2559cf28d3d56216ab33d2888f799e8",
   "targetKeys": [
     "LGd",
     "VISrl",
     "VISp",
-    "VPM",
+    "VPM"
+  ],
+  "excludedTargetKeys": [
+    "PTLp",
     "ADP"
   ],
   "algorithm": "greedy",
@@ -16,8 +19,7 @@
       "LGd",
       "VISrl",
       "VISp",
-      "VPM",
-      "ADP"
+      "VPM"
     ],
     "params": {
       "algorithm": "greedy",
@@ -86,7 +88,8 @@
       "minClearance": "enforce",
       "lambdaBoundary": "enforce",
       "brainBounds": "enforce",
-      "hemisphere": "warn"
+      "hemisphere": "warn",
+      "continuousRiskDistance": "enforce"
     },
     "correctionFactors": null,
     "correctionUncertainty": null,
@@ -94,9 +97,11 @@
       "species": "mouse",
       "intendedUse": "automatic_decision",
       "nativeExcludedFallbackTargetKeys": [
-        "PTLp"
+        "PTLp",
+        "ADP"
       ],
-      "nativeExcludedFallbackTargetReason": "not atlas-backed in native region index; excluded from real coverage gate"
+      "nativeExcludedFallbackTargetReason": "not atlas-backed in native region index; excluded from real coverage gate",
+      "nativeTargetLookupSource": "artifact://region-map"
     }
   }
 }

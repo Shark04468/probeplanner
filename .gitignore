@@ -2,7 +2,7 @@ node_modules/
 dist/
 reports/
 logs/
-output/
+/output/
 apps/ui/build/
 apps/backend-compat/replay/
 .cache/
@@ -15,3 +15,18 @@ target/
 .rustup/
 __pycache__/
 .pytest_cache/
+.playwright-cli/
+.probeplanner/
+.venv/
+/release/
+artifacts/
+paper_drafts/
+paper_upload_*/
+paper_upload_*.zip
+docs/evidence/**/*.log
+docs/evidence/**/*checkpoint*.json
+docs/evidence/2026-*/
+docs/evidence/2026-*.*
+docs/evidence/*.zip
+docs/evidence/figures/
+cases/requests/*.generated.json

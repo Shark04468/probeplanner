@@ -2,10 +2,11 @@
   "id": "ea412cef1e0a47aeb70e32b8d045796f",
   "label": "golden_ca1_angle",
   "source": "repo",
-  "requestHash": "b89de4dde3ddeec5369d8b8b76543a166dd17ded5f4ade4b0e86f23e9eef2bc8",
+  "requestHash": "2ae32dfdbe4479f487692c3d779f5f80912ed07409b941a8bdc7b04a5aa821b8",
   "targetKeys": [
     "CA1"
   ],
+  "excludedTargetKeys": [],
   "algorithm": "greedy",
   "request": {
     "probeParams": {
@@ -42,9 +43,9 @@
     "constraintModes": {
       "minEntrySpacing": "enforce",
       "hemisphere": "warn",
-      "lambdaBoundary": "warn",
+      "lambdaBoundary": "enforce",
       "brainBounds": "enforce",
-      "continuousRiskDistance": "warn",
+      "continuousRiskDistance": "enforce",
       "maxAngle": "enforce",
       "minClearance": "enforce"
     }

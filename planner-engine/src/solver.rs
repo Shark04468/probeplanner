@@ -36,6 +36,9 @@ pub struct CandidateKernel {
     pub shank_offsets_um: Vec<f32>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SolveCancelled;
+
 #[derive(Clone, Debug, Default)]
 pub struct CandidateStore {
     pub ids: Vec<u32>,
@@ -109,9 +112,24 @@ pub fn build_conflict_matrix(
     candidates: &[CandidateKernel],
     policy: &ConflictPolicy,
 ) -> Vec<BitSet> {
+    build_conflict_matrix_with_cancel(candidates, policy, &|| false)
+        .expect("non-cancellable conflict matrix build cannot be cancelled")
+}
+
+pub fn build_conflict_matrix_with_cancel<F>(
+    candidates: &[CandidateKernel],
+    policy: &ConflictPolicy,
+    should_cancel: &F,
+) -> Result<Vec<BitSet>, SolveCancelled>
+where
+    F: Fn() -> bool,
+{
     let n = candidates.len();
     let mut rows = vec![BitSet::new(n); n];
     for i in 0..n {
+        if should_cancel() {
+            return Err(SolveCancelled);
+        }
         for j in (i + 1)..n {
             if trajectories_conflict(&candidates[i], &candidates[j], policy) {
                 rows[i].set(j);
@@ -119,7 +137,7 @@ pub fn build_conflict_matrix(
             }
         }
     }
-    rows
+    Ok(rows)
 }
 
 pub fn greedy_select(
@@ -127,8 +145,24 @@ pub fn greedy_select(
     max_count: usize,
     policy: &ConflictPolicy,
 ) -> Vec<u32> {
+    greedy_select_with_cancel(candidates, max_count, policy, &|| false)
+        .expect("non-cancellable greedy solve cannot be cancelled")
+}
+
+pub fn greedy_select_with_cancel<F>(
+    candidates: &[CandidateKernel],
+    max_count: usize,
+    policy: &ConflictPolicy,
+    should_cancel: &F,
+) -> Result<Vec<u32>, SolveCancelled>
+where
+    F: Fn() -> bool,
+{
     if candidates.is_empty() || max_count == 0 {
-        return Vec::new();
+        return Ok(Vec::new());
+    }
+    if should_cancel() {
+        return Err(SolveCancelled);
     }
     let coverage_len = candidates[0].coverage.len_bits();
     let required_coverage = coverable_target_count(candidates, coverage_len);
@@ -144,7 +178,11 @@ pub fn greedy_select(
 
     let mut best: Vec<usize> = Vec::new();
     for weights in &profiles {
-        let selected = greedy_weighted_pass(candidates, max_count, policy, weights, None);
+        if should_cancel() {
+            return Err(SolveCancelled);
+        }
+        let selected =
+            greedy_weighted_pass(candidates, max_count, policy, weights, None, should_cancel)?;
         if selection_better(candidates, &selected, &best) {
             best = selected;
         }
@@ -154,6 +192,9 @@ pub fn greedy_select(
     }
     if selection_value(candidates, &best).0 < required_coverage {
         for target_idx in 0..coverage_len {
+            if should_cancel() {
+                return Err(SolveCancelled);
+            }
             if let Some(seed_idx) = best_seed_for_target(candidates, target_idx) {
                 let selected = greedy_weighted_pass(
                     candidates,
@@ -161,7 +202,8 @@ pub fn greedy_select(
                     policy,
                     &profiles[0],
                     Some(seed_idx),
-                );
+                    should_cancel,
+                )?;
                 if selection_better(candidates, &selected, &best) {
                     best = selected;
                 }
@@ -178,12 +220,13 @@ pub fn greedy_select(
             policy,
             COVERAGE_REPAIR_BEAM_WIDTH,
             COVERAGE_REPAIR_PER_MASK_LIMIT,
-        );
+            should_cancel,
+        )?;
         if selection_better(candidates, &selected, &best) {
             best = selected;
         }
     }
-    best.into_iter().map(|idx| candidates[idx].id).collect()
+    Ok(best.into_iter().map(|idx| candidates[idx].id).collect())
 }
 
 fn coverable_target_count(candidates: &[CandidateKernel], coverage_len: usize) -> u32 {
@@ -235,7 +278,8 @@ fn greedy_weighted_pass(
     policy: &ConflictPolicy,
     weights: &[f32],
     seed_idx: Option<usize>,
-) -> Vec<usize> {
+    should_cancel: &dyn Fn() -> bool,
+) -> Result<Vec<usize>, SolveCancelled> {
     let mut selected = Vec::new();
     let mut selected_mask = vec![false; candidates.len()];
     let mut covered = BitSet::new(candidates[0].coverage.len_bits());
@@ -250,9 +294,15 @@ fn greedy_weighted_pass(
     }
 
     while selected.len() < max_count {
+        if should_cancel() {
+            return Err(SolveCancelled);
+        }
         let mut best_idx = None;
         let mut best_value = f32::NEG_INFINITY;
         for idx in 0..candidates.len() {
+            if idx % 256 == 0 && should_cancel() {
+                return Err(SolveCancelled);
+            }
             if selected_mask[idx] {
                 continue;
             }
@@ -279,7 +329,7 @@ fn greedy_weighted_pass(
         selected.push(idx);
         selected_mask[idx] = true;
     }
-    selected
+    Ok(selected)
 }
 
 fn weighted_gain(covered: &BitSet, candidate: &BitSet, weights: &[f32]) -> f32 {
@@ -330,7 +380,8 @@ fn beam_repair_select(
     policy: &ConflictPolicy,
     beam_width: usize,
     per_mask_limit: usize,
-) -> Vec<usize> {
+    should_cancel: &dyn Fn() -> bool,
+) -> Result<Vec<usize>, SolveCancelled> {
     let coverage_len = candidates[0].coverage.len_bits();
     let masks: Vec<u64> = candidates
         .iter()
@@ -356,9 +407,15 @@ fn beam_repair_select(
     }];
     let mut best = states[0].clone();
     for _ in 0..max_count {
+        if should_cancel() {
+            return Err(SolveCancelled);
+        }
         let mut expanded = states.clone();
         for state in &states {
             for &idx in &order {
+                if idx % 256 == 0 && should_cancel() {
+                    return Err(SolveCancelled);
+                }
                 let add_mask = masks[idx] & !state.covered_mask;
                 if add_mask == 0 || state.selected.contains(&idx) {
                     continue;
@@ -387,7 +444,7 @@ fn beam_repair_select(
             break;
         }
     }
-    best.selected
+    Ok(best.selected)
 }
 
 fn coverage_mask(coverage: &BitSet, coverage_len: usize) -> u64 {
@@ -588,7 +645,23 @@ pub fn exact_branch_and_bound(
     max_count: usize,
     policy: &ConflictPolicy,
 ) -> Vec<u32> {
-    let conflicts = build_conflict_matrix(candidates, policy);
+    exact_branch_and_bound_with_cancel(candidates, max_count, policy, &|| false)
+        .expect("non-cancellable exact solve cannot be cancelled")
+}
+
+pub fn exact_branch_and_bound_with_cancel<F>(
+    candidates: &[CandidateKernel],
+    max_count: usize,
+    policy: &ConflictPolicy,
+    should_cancel: &F,
+) -> Result<Vec<u32>, SolveCancelled>
+where
+    F: Fn() -> bool,
+{
+    if should_cancel() {
+        return Err(SolveCancelled);
+    }
+    let conflicts = build_conflict_matrix_with_cancel(candidates, policy, should_cancel)?;
     let mut order: Vec<usize> = (0..candidates.len()).collect();
     order.sort_by(|a, b| {
         candidates[*b]
@@ -605,94 +678,90 @@ pub fn exact_branch_and_bound(
     let mut selected: Vec<usize> = Vec::new();
     let mut covered = BitSet::new(coverage_len);
 
+    struct DfsContext<'a> {
+        order: &'a [usize],
+        candidates: &'a [CandidateKernel],
+        conflicts: &'a [BitSet],
+        max_count: usize,
+        best_score: &'a mut f32,
+        best: &'a mut Vec<usize>,
+        should_cancel: &'a dyn Fn() -> bool,
+        coverage_len: usize,
+    }
+
     fn dfs(
         pos: usize,
-        order: &[usize],
-        candidates: &[CandidateKernel],
-        conflicts: &[BitSet],
-        max_count: usize,
         selected: &mut Vec<usize>,
         covered: &mut BitSet,
-        best_score: &mut f32,
-        best: &mut Vec<usize>,
-    ) {
-        if selected.len() >= max_count || pos >= order.len() {
+        ctx: &mut DfsContext<'_>,
+    ) -> Result<(), SolveCancelled> {
+        if (ctx.should_cancel)() {
+            return Err(SolveCancelled);
+        }
+        if selected.len() >= ctx.max_count || pos >= ctx.order.len() {
             let score: f32 = selected
                 .iter()
-                .map(|idx| candidates[*idx].objective_score)
+                .map(|idx| ctx.candidates[*idx].objective_score)
                 .sum();
             let coverage_bonus = covered.count_ones() as f32 * COVERAGE_OBJECTIVE_BIG_M;
             let total = coverage_bonus + score;
-            if total > *best_score {
-                *best_score = total;
-                *best = selected.clone();
+            if total > *ctx.best_score {
+                *ctx.best_score = total;
+                *ctx.best = selected.clone();
             }
-            return;
+            return Ok(());
         }
+        let remaining_coverage = ctx
+            .coverage_len
+            .saturating_sub(covered.count_ones() as usize);
         let optimistic: f32 = selected
             .iter()
-            .map(|idx| candidates[*idx].objective_score)
+            .map(|idx| ctx.candidates[*idx].objective_score)
             .sum::<f32>()
-            + order[pos..]
+            + ctx.order[pos..]
                 .iter()
-                .take(max_count.saturating_sub(selected.len()))
-                .map(|idx| candidates[*idx].objective_score.max(0.0))
+                .take(ctx.max_count.saturating_sub(selected.len()))
+                .map(|idx| ctx.candidates[*idx].objective_score.max(0.0))
                 .sum::<f32>()
             + covered.count_ones() as f32 * COVERAGE_OBJECTIVE_BIG_M
-            + (max_count.saturating_sub(selected.len()) as f32 * COVERAGE_OBJECTIVE_BIG_M);
-        if optimistic < *best_score {
-            return;
+            + (remaining_coverage as f32 * COVERAGE_OBJECTIVE_BIG_M);
+        if optimistic < *ctx.best_score {
+            return Ok(());
         }
-        let idx = order[pos];
-        let can_take = !selected.iter().any(|chosen| conflicts[idx].get(*chosen));
+        let idx = ctx.order[pos];
+        let can_take = !selected
+            .iter()
+            .any(|chosen| ctx.conflicts[idx].get(*chosen));
         if can_take {
             let before = covered.clone();
-            covered.union_with(&candidates[idx].coverage);
+            covered.union_with(&ctx.candidates[idx].coverage);
             selected.push(idx);
-            dfs(
-                pos + 1,
-                order,
-                candidates,
-                conflicts,
-                max_count,
-                selected,
-                covered,
-                best_score,
-                best,
-            );
+            dfs(pos + 1, selected, covered, ctx)?;
             selected.pop();
             *covered = before;
         }
-        dfs(
-            pos + 1,
-            order,
-            candidates,
-            conflicts,
-            max_count,
-            selected,
-            covered,
-            best_score,
-            best,
-        );
+        dfs(pos + 1, selected, covered, ctx)?;
+        Ok(())
     }
 
-    dfs(
-        0,
-        &order,
+    let mut ctx = DfsContext {
+        order: &order,
         candidates,
-        &conflicts,
+        conflicts: &conflicts,
         max_count,
-        &mut selected,
-        &mut covered,
-        &mut best_score,
-        &mut best,
-    );
-    best.into_iter().map(|idx| candidates[idx].id).collect()
+        best_score: &mut best_score,
+        best: &mut best,
+        should_cancel,
+        coverage_len,
+    };
+    dfs(0, &mut selected, &mut covered, &mut ctx)?;
+    Ok(best.into_iter().map(|idx| candidates[idx].id).collect())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     fn candidate(id: u32, score: f32, cover: usize, traj: usize) -> CandidateKernel {
         let mut coverage = BitSet::new(4);
@@ -787,5 +856,45 @@ mod tests {
             &ConflictPolicy::default(),
         );
         assert_eq!(chosen, vec![2, 3]);
+    }
+
+    #[test]
+    fn cancellable_conflict_matrix_stops_early() {
+        let calls = AtomicUsize::new(0);
+        let candidates = vec![candidate(1, 1.0, 0, 20), candidate(2, 0.9, 1, 120)];
+        let result =
+            build_conflict_matrix_with_cancel(&candidates, &ConflictPolicy::default(), &|| {
+                calls.fetch_add(1, Ordering::SeqCst) >= 1
+            });
+        assert_eq!(result, Err(SolveCancelled));
+    }
+
+    #[test]
+    fn cancellable_greedy_stops_inside_pass() {
+        let calls = AtomicUsize::new(0);
+        let candidates = vec![
+            candidate(1, 1.0, 0, 20),
+            candidate(2, 0.9, 1, 120),
+            candidate(3, 0.8, 2, 220),
+        ];
+        let result = greedy_select_with_cancel(&candidates, 2, &ConflictPolicy::default(), &|| {
+            calls.fetch_add(1, Ordering::SeqCst) >= 2
+        });
+        assert_eq!(result, Err(SolveCancelled));
+    }
+
+    #[test]
+    fn cancellable_exact_stops_inside_dfs() {
+        let calls = AtomicUsize::new(0);
+        let candidates = vec![
+            candidate(1, 1.0, 0, 20),
+            candidate(2, 0.9, 1, 120),
+            candidate(3, 0.8, 2, 220),
+        ];
+        let result =
+            exact_branch_and_bound_with_cancel(&candidates, 2, &ConflictPolicy::default(), &|| {
+                calls.fetch_add(1, Ordering::SeqCst) >= 4
+            });
+        assert_eq!(result, Err(SolveCancelled));
     }
 }

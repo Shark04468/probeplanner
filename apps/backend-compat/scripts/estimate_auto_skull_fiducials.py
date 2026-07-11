@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 """Estimate native-space bregma/lambda surrogate fiducials.
 
 Deprecated for fully automatic planning acceptance: a single projected

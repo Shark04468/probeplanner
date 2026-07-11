@@ -77,15 +77,18 @@ $regionMapJson = Pick-First $inputDir @("*region*map*.json", "*acronym*id*.json"
 $regionMapCsv = Pick-First $inputDir @("*region*map*.csv", "*acronym*id*.csv")
 
 if ([string]::IsNullOrWhiteSpace($labelPath)) {
-  $readmeAscii = Join-Path $QiuRoot "README.txt"
-  $readmeCn = Join-Path $QiuRoot "README_鏀剧疆鏂囦欢璇存槑.txt"
+  $readmeCandidates = @(
+    (Join-Path $QiuRoot "README.txt"),
+    (Join-Path $QiuRoot "README_inputs.txt"),
+    (Join-Path $QiuRoot "README_placement.txt")
+  )
+  $readmePath = $readmeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+  if ([string]::IsNullOrWhiteSpace($readmePath)) {
+    $readmePath = $readmeCandidates[0]
+  }
   Write-Host "[QiuAuto] No label volume found in $inputDir" -ForegroundColor Yellow
   Write-Host "[QiuAuto] Please place one file, e.g. label.nii.gz, then rerun." -ForegroundColor Yellow
-  if (Test-Path $readmeAscii) {
-    Write-Host "[QiuAuto] README: $readmeAscii" -ForegroundColor Yellow
-  } else {
-    Write-Host "[QiuAuto] README: $readmeCn" -ForegroundColor Yellow
-  }
+  Write-Host "[QiuAuto] README: $readmePath" -ForegroundColor Yellow
   exit 2
 }
 

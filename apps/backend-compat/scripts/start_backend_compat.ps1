@@ -10,6 +10,7 @@
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "port_guard.ps1")
 $EnableEngineService = $UseEngineService -or (-not $LegacyPythonBackend)
 if ([string]::IsNullOrWhiteSpace($PythonExe) -or -not (Test-Path $PythonExe)) {
   $cmd = Get-Command python -ErrorAction SilentlyContinue
@@ -17,18 +18,7 @@ if ([string]::IsNullOrWhiteSpace($PythonExe) -or -not (Test-Path $PythonExe)) {
   $PythonExe = $cmd.Source
 }
 
-$existing = netstat -ano | Select-String ":$Port\s+.*LISTENING" | ForEach-Object {
-  ($_ -split "\s+")[-1]
-} | Where-Object { $_ -match "^\d+$" } | Select-Object -Unique
-
-foreach ($procId in $existing) {
-  try { Stop-Process -Id ([int]$procId) -Force -ErrorAction SilentlyContinue } catch {}
-}
-foreach ($procId in $existing) {
-  try {
-    Wait-Process -Id ([int]$procId) -Timeout 10 -ErrorAction SilentlyContinue
-  } catch {}
-}
+Stop-ProbePlannerPortListeners -TargetPort $Port -ProjectRoot $ProjectRoot -ThrowOnForeign
 
 $logs = Join-Path $ProjectRoot "logs"
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
@@ -71,27 +61,27 @@ if ($EnableEngineService) {
   for ($attempt = 0; $attempt -lt 45; $attempt++) {
     try {
       $health = Invoke-RestMethod -Uri "$EngineUrl/healthz" -TimeoutSec 2
-      if ($health.ok -and $health.atlasLoaded -and $health.regionIndexLoaded -and $health.sdfLoaded) {
+      if ($health.ok -and $health.atlasLoaded -and $health.regionIndexLoaded -and $health.sdfLoaded -and $health.riskSdfReady) {
         $engineHealthy = $true
         break
       }
-      $lastEngineError = "health ok=$($health.ok) atlas=$($health.atlasLoaded) region=$($health.regionIndexLoaded) sdf=$($health.sdfLoaded)"
+      $lastEngineError = "health ok=$($health.ok) atlas=$($health.atlasLoaded) region=$($health.regionIndexLoaded) sdf=$($health.sdfLoaded) riskSdf=$($health.riskSdfReady)"
     } catch {
       $lastEngineError = $_.Exception.Message
     }
     Start-Sleep -Seconds 1
   }
   if (-not $engineHealthy) {
-    throw "PROBEPLANNER_USE_ENGINE_SERVICE requires a healthy native planner-engine with atlas+SDF at $EngineUrl. Last health: $lastEngineError"
+    throw "PROBEPLANNER_USE_ENGINE_SERVICE requires a healthy native planner-engine with atlas+SDF+riskSDF at $EngineUrl. Last health: $lastEngineError"
   }
 } else {
   Remove-Item Env:\PROBEPLANNER_USE_ENGINE_SERVICE -ErrorAction SilentlyContinue
 }
 
+$serverScript = Join-Path $ProjectRoot "src\optimizer_server.py"
 $p = Start-Process -FilePath $PythonExe `
-  -ArgumentList @("src/optimizer_server.py") `
+  -ArgumentList @($serverScript) `
   -WorkingDirectory $ProjectRoot `
-  -WindowStyle Hidden `
   -RedirectStandardOutput $stdout `
   -RedirectStandardError $stderr `
   -PassThru

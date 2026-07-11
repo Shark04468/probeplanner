@@ -189,6 +189,8 @@ const S = {
     cursor: 'pointer',
     userSelect: 'none',
     zIndex: 1,
+    fontFamily: 'inherit',
+    textAlign: 'left',
   },
   sectionHdrLeft: {
     display: 'flex',
@@ -223,6 +225,8 @@ const S = {
     padding: '6px 8px',
     background: '#08121f',
     cursor: 'pointer',
+    fontFamily: 'inherit',
+    textAlign: 'left',
   },
   rowOn: {
     border: '1px solid #00d4ff66',
@@ -889,26 +893,20 @@ export default function RegionSelector({
               if (item.type === 'section') {
                 const expanded = isSectionExpanded(item.sectionKey);
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={item.id}
                     style={{ ...S.sectionHdr, top: item.top }}
-                    role="button"
-                    tabIndex={0}
                     data-testid={`region-section-${item.sectionKey}`}
                     onClick={() => toggleSection(item.sectionKey)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        toggleSection(item.sectionKey);
-                      }
-                    }}
+                    aria-expanded={expanded}
                   >
                     <span style={S.sectionHdrLeft}>
                       <span style={S.sectionChevron}>{expanded ? 'v' : '>'}</span>
                       <span>{item.sectionClassLabel} / {item.sectionLabel}</span>
                     </span>
                     <span style={S.sectionCount}>{item.count}</span>
-                  </div>
+                  </button>
                 );
               }
 
@@ -930,7 +928,8 @@ export default function RegionSelector({
                 : (supportState === 'ondemand' ? tr('regionWillAutoProvision') : '');
 
               return (
-                <div
+                <button
+                  type="button"
                   key={item.id}
                   ref={(el) => {
                     if (el) rowRefs.current[key] = el;
@@ -945,6 +944,7 @@ export default function RegionSelector({
                   }}
                   onClick={() => onToggleRegion?.(key)}
                   title={supportHint}
+                  aria-pressed={selected}
                 >
                   <div style={{ ...S.check, ...(selected ? S.checkOn : null) }}>{selected ? 'v' : ''}</div>
 
@@ -966,7 +966,7 @@ export default function RegionSelector({
                   >
                     {rowStatusLabel(tr, selected, covered, supportState)}
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

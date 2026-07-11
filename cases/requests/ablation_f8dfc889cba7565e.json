@@ -1,0 +1,67 @@
+{
+  "id": "ablation_f8dfc889cba7565e",
+  "label": "ablation_1_exact_LP",
+  "source": "ablation",
+  "requestHash": "f8dfc889cba7565e85e9ddb66ed85532b36d7112eb1ad95a1a8a9278dee850af",
+  "targetKeys": [
+    "LP"
+  ],
+  "excludedTargetKeys": [],
+  "algorithm": "exact",
+  "request": {
+    "probeParams": {
+      "preset": "NP2.0-4shank",
+      "depth": 10,
+      "count": 1,
+      "shankCount": 4,
+      "shanks": 4,
+      "entrySpacingUm": 3500,
+      "shankPitchUm": 250,
+      "shankWidthUm": 70
+    },
+    "clinicalContext": {
+      "replayCase": "ablation_1_exact_LP",
+      "nativeExcludedFallbackTargetKeys": [],
+      "paperEvidenceCase": true
+    },
+    "params": {
+      "candidateRefineStepUm": 50,
+      "robustSamples": 4,
+      "paretoTopK": 4,
+      "minClearance": 1000,
+      "constraintAwareSearch": true,
+      "scoreEarlyStopTopK": 20,
+      "angleStep": 10,
+      "gridSpacing": 2500,
+      "candidateCoarseStepUm": 150,
+      "objectivePreset": "safety_first",
+      "autoAvoidEnabled": true,
+      "coverageRadius": 600,
+      "algorithm": "exact",
+      "riskThresholdTemplate": "balanced",
+      "autoRepairEnabled": true,
+      "maxAngle": 15,
+      "strictAtlasTargets": true,
+      "allowFallbackTargetCoverage": false,
+      "drccSolver": "exact_pool",
+      "drccEnabled": false,
+      "nativeCandidateLimit": 4096,
+      "exactMaxCandidates": 36,
+      "drccExactMaxCandidates": 36,
+      "drccPerTargetKeep": 6,
+      "depthUm": 10000
+    },
+    "targetKeys": [
+      "LP"
+    ],
+    "constraintModes": {
+      "minEntrySpacing": "enforce",
+      "hemisphere": "warn",
+      "lambdaBoundary": "enforce",
+      "brainBounds": "enforce",
+      "continuousRiskDistance": "enforce",
+      "maxAngle": "enforce",
+      "minClearance": "enforce"
+    }
+  }
+}

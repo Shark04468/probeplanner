@@ -1,0 +1,254 @@
+{
+  "generatedAt": "2026-07-10T05:49:06.942284+00:00\n",
+  "status": "PASS\n",
+  "metricStatus": "PASS\n",
+  "artifactRoot": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\n",
+  "sampleCount": 1000,
+  "seed": 20260709,
+  "acceptance": {
+    "oneNativeVoxelMm": 0.014999999664723873,
+    "criterion": "max round-trip physical and voxel-scaled error must be <= one native MRI voxel spacing\n"
+  },
+  "paths": {
+    "movingBrainMask": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\\prepared\\moving_brain_mask_full.nii.gz\n",
+    "fixedCcfTemplate": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\\prepared\\fixed_ccf_template_full_mm.nii.gz\n",
+    "affine": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\\registration\\ambmc_to_ccf_0GenericAffine.mat\n",
+    "warp": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\\registration\\ambmc_to_ccf_1Warp.nii.gz\n",
+    "inverseWarp": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\\registration\\ambmc_to_ccf_1InverseWarp.nii.gz\n",
+    "sampledMriPointsCsv": "${LOCAL_DATA_ROOT}/sampled_mri_points_mm.csv\n",
+    "ccfPointsCsv": "${LOCAL_DATA_ROOT}/sampled_points_in_ccf_mm.csv\n",
+    "ccfPointsAfterPlannerCsv": "${LOCAL_DATA_ROOT}/sampled_points_after_planner_loop_ccf_mm.csv\n",
+    "backProjectedMriPointsCsv": "${LOCAL_DATA_ROOT}/sampled_points_back_mri_mm.csv\n",
+    "antsPointLog": "${LOCAL_DATA_ROOT}/ants_points_roundtrip.log\n"
+  },
+  "inputHashes": {
+    "movingBrainMaskSha256": "312636fb011e52599c966a3d269eef84724ee08bf5eb2d39b45470fbf509c426\n",
+    "fixedCcfTemplateSha256": "29a07f38a019248964268305680cac5ee93184db19d3039d440ec991de8fd495\n",
+    "affineSha256": "b9cae3f82f539e634e0707a71febea2e2dd74f23ee850fa561b918b0577edda8\n",
+    "warpSha256": "9c7fdb65dc13f42ead169b723f74aaa3e60474dcf759ba1919136ed6840c2ffd\n",
+    "inverseWarpSha256": "2a6cf2cf3a2246804bda15d8a3db39075e6b24411f94ea025da26d8426abe138\n"
+  },
+  "imageGeometry": {
+    "movingMri": {
+      "sizeXyz": [
+        1311,
+        499,
+        679
+      ],
+      "spacingMmXyz": [
+        0.014999999664723873,
+        0.014999999664723873,
+        0.014999999664723873
+      ],
+      "originMmXyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "direction": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "fixedCcf": {
+      "sizeXyz": [
+        528,
+        320,
+        456
+      ],
+      "spacingMmXyz": [
+        0.02500000037252903,
+        0.02500000037252903,
+        0.02500000037252903
+      ],
+      "originMmXyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "direction": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    }
+  },
+  "metrics": {
+    "roundTripErrorMm": {
+      "median": 3.1771219961227704e-05,
+      "p95": 0.0003768986928159083,
+      "max": 0.001555005325111198
+    },
+    "roundTripErrorFromVoxelIndexMm": {
+      "median": 3.1771219961218406e-05,
+      "p95": 0.0003768986928156695,
+      "max": 0.0015550053251109574
+    },
+    "roundTripErrorVoxels": {
+      "median": 0.002118081378090702,
+      "p95": 0.025126580082667466,
+      "max": 0.10366702399120238
+    },
+    "plannerQuantizationErrorMm": {
+      "median": 2.32023500386669e-07,
+      "p95": 4.6227612115822347e-07,
+      "max": 8.156525980138204e-07
+    },
+    "axisWiseIndexErrorVoxels": {
+      "AP": {
+        "median": 0.0006573907085112296,
+        "p95": 0.013348300358052257,
+        "max": 0.04666266674789199
+      },
+      "DV": {
+        "median": 0.0013286059696326902,
+        "p95": 0.01536350312101146,
+        "max": 0.08266879192991894
+      },
+      "ML": {
+        "median": 0.0006742103946066891,
+        "p95": 0.010669782737965506,
+        "max": 0.06666371772678303
+      }
+    }
+  },
+  "unitConsistency": {
+    "nativeSpacingMm": [
+      0.014999999664723873,
+      0.014999999664723873,
+      0.014999999664723873
+    ],
+    "nativeSpacingUm": [
+      14.999999664723873,
+      14.999999664723873,
+      14.999999664723873
+    ],
+    "ccfSpacingMm": [
+      0.02500000037252903,
+      0.02500000037252903,
+      0.02500000037252903
+    ],
+    "ccfSpacingUm": [
+      25.00000037252903,
+      25.00000037252903,
+      25.00000037252903
+    ],
+    "plannerSpacingUm": [
+      25.0,
+      25.0,
+      25.0
+    ],
+    "ccfMmToPlannerUmScale": 1000.0,
+    "status": "PASS\n"
+  },
+  "axisChecks": {
+    "originMmXyz": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "spacingMmXyz": [
+      0.02500000037252903,
+      0.02500000037252903,
+      0.02500000037252903
+    ],
+    "directionDeterminant": 1.0,
+    "directionIsIdentity": true,
+    "axisDeltaChecks": [
+      {
+        "axis": "AP\n",
+        "voxelAxisIndex": 0,
+        "physicalDeltaMm": [
+          0.02500000037252903,
+          0.0,
+          0.0
+        ],
+        "plannerDeltaUm": [
+          25.00000037252903,
+          0.0,
+          0.0
+        ],
+        "bregmaDisplayDeltaMm": [
+          -0.025000000000000355,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "axis": "DV\n",
+        "voxelAxisIndex": 1,
+        "physicalDeltaMm": [
+          0.0,
+          0.02500000037252903,
+          0.0
+        ],
+        "plannerDeltaUm": [
+          0.0,
+          25.00000037252903,
+          0.0
+        ],
+        "bregmaDisplayDeltaMm": [
+          0.0,
+          0.025000000000000022,
+          0.0
+        ]
+      },
+      {
+        "axis": "ML\n",
+        "voxelAxisIndex": 2,
+        "physicalDeltaMm": [
+          0.0,
+          0.0,
+          0.02500000037252903
+        ],
+        "plannerDeltaUm": [
+          0.0,
+          0.0,
+          25.00000037252903
+        ],
+        "bregmaDisplayDeltaMm": [
+          0.0,
+          0.0,
+          0.025000000000000355
+        ]
+      }
+    ],
+    "leftRightFlipCheck": {
+      "status": "PASS\n",
+      "criterion": "+1 ML voxel must increase planner ML um and bregma ML mm\n"
+    },
+    "apDvMlAxisConsistency": {
+      "status": "PASS\n",
+      "plannerConvention": "+AP/+DV/+ML voxel axes map to +AP/+DV/+ML planner um\n",
+      "bregmaDisplayConvention": "+AP index is posterior in bregma display, so displayed AP mm decreases; +DV and +ML increase.\n"
+    }
+  },
+  "plannerCoordinateContract": {
+    "internalUnit": "um\n",
+    "internalAxisOrder": [
+      "AP\n",
+      "DV\n",
+      "ML\n"
+    ],
+    "trajectoryOutputFields": [
+      "entry_um\n",
+      "tip_um\n"
+    ],
+    "trajectoryOutputSimulation": "planner um coordinates cast through float32, matching native engine f32 coordinate storage\n",
+    "bregmaDisplayIsNotInternalPlannerFrame": true
+  },
+  "interpretation": "The sampled MRI brain voxels returned to their original MRI physical/voxel coordinates within the derived one-voxel tolerance after the MRI->CCF ANTs point transform, planner-unit conversion, f32 trajectory-output simulation, and inverse CCF->MRI point transform. The end-to-end residual is dominated by the ANTs forward/inverse point-transform consistency; the planner mm-to-um-to-f32-output loop contributes only sub-micrometre numerical error. The AP/DV/ML checks show that the internal planner frame uses [AP,DV,ML] in micrometres; bregma-display AP has the expected opposite sign because increasing AP voxel index moves posteriorly. No left-right flip was detected because increasing ML voxel index increases both planner ML and bregma ML.\n"
+}

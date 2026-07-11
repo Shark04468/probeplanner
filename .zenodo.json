@@ -1,6 +1,7 @@
 {
   "title": "ProbePlanner: an auditable software workflow for MRI-CCF probe trajectory planning in mouse electrophysiology",
   "upload_type": "software",
+  "version": "0.2.0-paper",
   "description": "Source-code release for ProbePlanner, an auditable workflow for MRI-CCF probe trajectory planning in mouse electrophysiology. The release includes the React interface, Flask compatibility API, Rust native planning engine, replay/performance tooling, installation instructions, minimal examples, replay commands, and expected outputs.",
   "creators": [
     {

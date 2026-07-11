@@ -1,0 +1,405 @@
+{
+  "generatedAt": "2026-07-10T06:28:26.626Z\n",
+  "phantom": {
+    "brain": {
+      "center": {
+        "x": 0,
+        "y": 4.5,
+        "z": 0
+      },
+      "radii": {
+        "x": 4.2,
+        "y": 4.6,
+        "z": 3.2
+      }
+    },
+    "obstacleCount": 4,
+    "targetCount": 16,
+    "candidateCount": 46565,
+    "clearanceMm": 0.2,
+    "targetRadiusRangeMm": [
+      0.42,
+      0.45
+    ]
+  },
+  "metrics": {
+    "coverageRecall": 1,
+    "selectedBoundaryViolationRate": 0,
+    "selectedObstacleViolationRate": 0,
+    "targetDistanceMedianMm": 0.10811286866931981,
+    "targetDistanceP95Mm": 0.2880262155346315,
+    "targetDistanceMaxMm": 0.2880262155346315,
+    "minBoundaryMarginMm": 0.009295523568851749,
+    "minObstacleMarginMm": 0.04205628635751274
+  },
+  "targets": [
+    {
+      "targetId": "T01_CA1_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.42,
+      "targetDistanceMm": 0.1095654794252721,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.08454863097038263,
+      "minObstacleMarginMm": 0.5734649600498658,
+      "entry": {
+        "x": -0.8,
+        "y": 0.35,
+        "z": 1
+      },
+      "tip": {
+        "x": -1.8999809416857132,
+        "y": 4.45518476172854,
+        "z": 1.0000000000000002
+      },
+      "thetaDeg": 15,
+      "phiDeg": 180,
+      "depthMm": 4.25
+    },
+    {
+      "targetId": "T02_CA3_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.42,
+      "targetDistanceMm": 0.10009128130326148,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.23564547042594697,
+      "minObstacleMarginMm": 0.6075776570740585,
+      "entry": {
+        "x": -0.4,
+        "y": 0.35,
+        "z": -0.6
+      },
+      "tip": {
+        "x": -2.1961276123979725,
+        "y": 4.201808094905762,
+        "z": -0.5999999999999998
+      },
+      "thetaDeg": 25,
+      "phiDeg": 180,
+      "depthMm": 4.25
+    },
+    {
+      "targetId": "T03_DG_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.42,
+      "targetDistanceMm": 0.08788896721777167,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.01088784678885304,
+      "minObstacleMarginMm": 0.11526570032051464,
+      "entry": {
+        "x": -1.2,
+        "y": 0.35,
+        "z": 1
+      },
+      "tip": {
+        "x": -1.2,
+        "y": 5.081924815935791,
+        "z": 0.5860102219486237
+      },
+      "thetaDeg": 5,
+      "phiDeg": 270,
+      "depthMm": 4.75
+    },
+    {
+      "targetId": "T04_VPM_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.42,
+      "targetDistanceMm": 0.11852134888016773,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.11285952283362413,
+      "minObstacleMarginMm": 0.27991113648631594,
+      "entry": {
+        "x": 1.2,
+        "y": 0.35,
+        "z": -0.6
+      },
+      "tip": {
+        "x": 1.4927349794020417,
+        "y": 5.081924815935791,
+        "z": -0.8927349794020419
+      },
+      "thetaDeg": 5,
+      "phiDeg": 315,
+      "depthMm": 4.75
+    },
+    {
+      "targetId": "T05_LGd_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.42,
+      "targetDistanceMm": 0.12470987809953779,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.23564547042594697,
+      "minObstacleMarginMm": 0.15952136040311982,
+      "entry": {
+        "x": 0.4,
+        "y": 0.35,
+        "z": -0.6
+      },
+      "tip": {
+        "x": 1.8941811936505992,
+        "y": 4.881538935183249,
+        "z": 0.8941811936505991
+      },
+      "thetaDeg": 25,
+      "phiDeg": 45,
+      "depthMm": 5
+    },
+    {
+      "targetId": "T06_VISp_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.45,
+      "targetDistanceMm": 0.2880262155346315,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.05984155560300302,
+      "minObstacleMarginMm": 0.04205628635751274,
+      "entry": {
+        "x": 1.6,
+        "y": 0.35,
+        "z": 0.2
+      },
+      "tip": {
+        "x": 2.7490485194281398,
+        "y": 3.164582562299426,
+        "z": 1.3490485194281394
+      },
+      "thetaDeg": 30,
+      "phiDeg": 45,
+      "depthMm": 3.25
+    },
+    {
+      "targetId": "T07_VISrl_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.45,
+      "targetDistanceMm": 0.10538090711059558,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.05984155560300302,
+      "minObstacleMarginMm": 1.2533237693799502,
+      "entry": {
+        "x": 1.6,
+        "y": 0.35,
+        "z": -0.2
+      },
+      "tip": {
+        "x": 2.6459268355554193,
+        "y": 3.522077254628275,
+        "z": -1.2459268355554196
+      },
+      "thetaDeg": 25,
+      "phiDeg": 315,
+      "depthMm": 3.5
+    },
+    {
+      "targetId": "T08_LP_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.42,
+      "targetDistanceMm": 0.12451429389436769,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.01088784678885304,
+      "minObstacleMarginMm": 0.18650139057496135,
+      "entry": {
+        "x": 1.2,
+        "y": 0.35,
+        "z": 1
+      },
+      "tip": {
+        "x": 0.8764508122398484,
+        "y": 5.5800221649816635,
+        "z": 1.3235491877601517
+      },
+      "thetaDeg": 5,
+      "phiDeg": 135,
+      "depthMm": 5.25
+    },
+    {
+      "targetId": "T09_TH_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.42,
+      "targetDistanceMm": 0.07803230539312728,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.01088784678885304,
+      "minObstacleMarginMm": 0.7426586800278543,
+      "entry": {
+        "x": -1.2,
+        "y": 0.35,
+        "z": -1
+      },
+      "tip": {
+        "x": -0.8610437080607936,
+        "y": 5.8290708395046,
+        "z": -1.3389562919392064
+      },
+      "thetaDeg": 5,
+      "phiDeg": 315,
+      "depthMm": 5.5
+    },
+    {
+      "targetId": "T10_RSP_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.45,
+      "targetDistanceMm": 0.10811286866931981,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.01088784678885304,
+      "minObstacleMarginMm": 0.7709022037488888,
+      "entry": {
+        "x": 1.2,
+        "y": 0.35,
+        "z": 1
+      },
+      "tip": {
+        "x": 0.3034912838096404,
+        "y": 3.06892336110995,
+        "z": 1.8965087161903595
+      },
+      "thetaDeg": 25,
+      "phiDeg": 135,
+      "depthMm": 3
+    },
+    {
+      "targetId": "T11_ACA_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.45,
+      "targetDistanceMm": 0.04026979123524886,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.23564547042594697,
+      "minObstacleMarginMm": 1.5825073756972377,
+      "entry": {
+        "x": -0.4,
+        "y": 0.35,
+        "z": -0.6
+      },
+      "tip": {
+        "x": -0.4000000000000003,
+        "y": 2.7315698604072067,
+        "z": -1.9749999999999996
+      },
+      "thetaDeg": 30,
+      "phiDeg": 270,
+      "depthMm": 2.75
+    },
+    {
+      "targetId": "T12_CP_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.42,
+      "targetDistanceMm": 0.11257287534340035,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.3061240596023989,
+      "minObstacleMarginMm": 0.3228898327310807,
+      "entry": {
+        "x": 0,
+        "y": 0.35,
+        "z": 0.2
+      },
+      "tip": {
+        "x": 2.7499999999999996,
+        "y": 5.113139720814413,
+        "z": 0.2
+      },
+      "thetaDeg": 30,
+      "phiDeg": 0,
+      "depthMm": 5.5
+    },
+    {
+      "targetId": "T13_MOs_boundary_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.42,
+      "targetDistanceMm": 0.23609237855022752,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.05984155560300302,
+      "minObstacleMarginMm": 1.6680508054138545,
+      "entry": {
+        "x": -1.6,
+        "y": 0.35,
+        "z": -0.2
+      },
+      "tip": {
+        "x": -2.8499999999999996,
+        "y": 2.515063509461097,
+        "z": -0.19999999999999984
+      },
+      "thetaDeg": 30,
+      "phiDeg": 180,
+      "depthMm": 2.5
+    },
+    {
+      "targetId": "T14_ACB_boundary_like\n",
+      "covered": true,
+      "targetRadiusMm": 0.42,
+      "targetDistanceMm": 0.12925426126876519,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.14475566305866466,
+      "minObstacleMarginMm": 0.09688823013376197,
+      "entry": {
+        "x": 0,
+        "y": 0.35,
+        "z": -1
+      },
+      "tip": {
+        "x": 3.468887544954966e-17,
+        "y": 6.825265537596346,
+        "z": -0.4334876721402219
+      },
+      "thetaDeg": 5,
+      "phiDeg": 90,
+      "depthMm": 6.5
+    },
+    {
+      "targetId": "T15_deep_safe\n",
+      "covered": true,
+      "targetRadiusMm": 0.42,
+      "targetDistanceMm": 0.06650686862692688,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.009295523568851749,
+      "minObstacleMarginMm": 0.2948852356604894,
+      "entry": {
+        "x": -1.6,
+        "y": 0.35,
+        "z": -0.6
+      },
+      "tip": {
+        "x": -1.5999999999999999,
+        "y": 6.223078879911927,
+        "z": 1.5376258957854292
+      },
+      "thetaDeg": 20,
+      "phiDeg": 90,
+      "depthMm": 6.25
+    },
+    {
+      "targetId": "T16_lateral_safe\n",
+      "covered": true,
+      "targetRadiusMm": 0.42,
+      "targetDistanceMm": 0.10533646650262507,
+      "boundaryViolation": false,
+      "obstacleViolation": false,
+      "minBoundaryMarginMm": 0.009295523568851749,
+      "minObstacleMarginMm": 1.1302989004623603,
+      "entry": {
+        "x": 1.6,
+        "y": 0.35,
+        "z": -0.6
+      },
+      "tip": {
+        "x": 2.968080573302675,
+        "y": 4.108770483143633,
+        "z": -0.6
+      },
+      "thetaDeg": 20,
+      "phiDeg": 0,
+      "depthMm": 4
+    }
+  ]
+}

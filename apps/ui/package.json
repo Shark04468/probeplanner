@@ -1,6 +1,7 @@
 {
   "name": "probe-planner",
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "type": "module",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
@@ -9,35 +10,27 @@
     "@testing-library/user-event": "^13.5.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-scripts": "5.0.1",
     "three": "^0.183.2",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "prestart": "node scripts/fix_react_warnings.js",
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "test:frontend": "react-scripts test --watchAll=false",
-    "lint": "eslint src --max-warnings=0",
+    "start": "vite --host 127.0.0.1 --port 3000 --strictPort",
+    "build": "vite build",
+    "test": "vitest run --passWithNoTests",
+    "test:frontend": "vitest run --passWithNoTests",
+    "lint": "node scripts/check_i18n_guard.js",
     "lint:i18n": "node --no-warnings scripts/check_i18n_guard.js",
-    "quality": "npm run lint && npm run lint:i18n && npm run test:frontend -- --runInBand",
+    "quality": "npm run lint && npm run test:frontend",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "eject": "react-scripts eject"
+    "test:e2e:ui": "playwright test --ui"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
-    "pyright": "^1.1.389"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ],
-    "rules": {
-      "unicode-bom": "off"
-    }
+    "@vitejs/plugin-react": "^5.1.2",
+    "jsdom": "^29.1.1",
+    "pyright": "^1.1.389",
+    "vite": "^7.3.0",
+    "vitest": "^4.1.0"
   },
   "browserslist": {
     "production": [

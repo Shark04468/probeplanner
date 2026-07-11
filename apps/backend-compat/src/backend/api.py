@@ -190,16 +190,16 @@ class TaskRegistry:
 
     def get(self, task_id: str) -> dict:
         if not task_id:
-                return {
-                    "taskId": "",
-                    "status": TASK_STATE_QUEUED,
-                    "stage": "unknown",
-                    "progress": 0.0,
-                    "message": "",
-                    "details": [],
-                    "result": None,
-                    "startedAt": None,
-                    "updatedAt": utc_now_iso(),
+            return {
+                "taskId": "",
+                "status": TASK_STATE_QUEUED,
+                "stage": "unknown",
+                "progress": 0.0,
+                "message": "",
+                "details": [],
+                "result": None,
+                "startedAt": None,
+                "updatedAt": utc_now_iso(),
                 "finishedAt": None,
                 "cancelled": False,
             }

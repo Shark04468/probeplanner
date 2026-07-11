@@ -1,0 +1,5 @@
+caseId,caseType,requestedTargets,candidateCount,selectedProbeCount,expectedProbeCount,exactMinProbeCount,coveredCoverageUnits,requiredCoverageUnits,uncoveredTargets,unsupportedTargets,riskWorstMarginMm,runtimeSec,status,figurePng
+case_01_single_vpm,single-region target,"[""VPM""]",1,1,1,1,1,1,[],[],,22.412611,ok,${LOCAL_DATA_ROOT}/2026-07-10-real-atlas-case-study-target-safe-case_01_single_vpm.png
+case_02_merged_hippocampal,nearby multi-region target,"[""CA1"", ""CA3"", ""DG""]",9,1,1,1,3,3,[],[],,76.303101,ok,${LOCAL_DATA_ROOT}/2026-07-10-real-atlas-case-study-target-safe-case_02_merged_hippocampal.png
+case_03_distributed_multitarget,distributed multi-region target,"[""CA1"", ""VPM"", ""MOs""]",27,2,2,2,3,3,[],[],,50.500117,ok,${LOCAL_DATA_ROOT}/2026-07-10-real-atlas-case-study-target-safe-case_03_distributed_multitarget.png
+case_04_depth_limited_uncovered,infeasible target,"[""VPM""]",0,0,0,,0,1,"[""VPM""]",[],,0.287353,fail_closed,${LOCAL_DATA_ROOT}/2026-07-10-real-atlas-case-study-target-safe-case_04_depth_limited_uncovered.png

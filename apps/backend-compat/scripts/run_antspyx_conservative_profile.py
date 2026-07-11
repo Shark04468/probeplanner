@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 """Run a conservative ANTsPyX MRI->CCF registration candidate profile.
 
 This is intentionally conservative:

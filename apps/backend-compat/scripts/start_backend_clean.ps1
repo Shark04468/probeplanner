@@ -21,6 +21,7 @@
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "port_guard.ps1")
 
 function Get-ListeningProcIds([int]$TargetPort) {
   $out = @()
@@ -46,25 +47,7 @@ function Describe-Proc([int]$ProcId) {
 }
 
 function Stop-PortListeners([int]$TargetPort) {
-  $pids = Get-ListeningProcIds -TargetPort $TargetPort
-  if (-not $pids -or $pids.Count -eq 0) {
-    Write-Host "[clean] no existing listener on :$TargetPort"
-    return
-  }
-  foreach ($procId in $pids) {
-    $procInfo = Describe-Proc -ProcId $procId
-    if ($procInfo) {
-      Write-Host ("[clean] killing PID={0} Name={1} Exe={2}" -f $procInfo.ProcessId, $procInfo.Name, $procInfo.ExecutablePath)
-    } else {
-      Write-Host ("[clean] killing PID={0}" -f $procId)
-    }
-    try {
-      Stop-Process -Id $procId -Force -ErrorAction Stop
-    } catch {
-      Write-Warning ("[clean] failed to kill PID={0}: {1}" -f $procId, $_.Exception.Message)
-    }
-  }
-  Start-Sleep -Milliseconds 500
+  Stop-ProbePlannerPortListeners -TargetPort $TargetPort -ProjectRoot $ProjectRoot -ThrowOnForeign
 }
 
 function Resolve-OptionalPath([string]$PathText) {

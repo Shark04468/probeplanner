@@ -1,0 +1,2 @@
+run_id,target_count,candidate_count,valid_covering_candidate_count,ground_truth_optimal_probe_count,selected_probe_count,optimal_probe_count_recovery,target_coverage_recall,over_selection_rate,under_selection_rate,obstacle_violation_rate,boundary_violation_rate,three_probe_max_covered_targets,three_probe_full_coverage_possible,five_probe_full_coverage_possible,five_probe_exact_full_coverage_possible,runtime_ms
+digital-phantom-known-optimal-probe-count,16,52,36,4,4,1,1,0,0,0,0,12,false,true,true,26.4443

@@ -7,8 +7,31 @@
 
 $ErrorActionPreference = "Stop"
 
+if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
+  throw "ProjectRoot is required. Pass the repository root or apps/backend-compat root."
+}
+if ([string]::IsNullOrWhiteSpace($PythonExe)) {
+  throw "PythonExe is required."
+}
+if ([string]::IsNullOrWhiteSpace($OutputDir)) {
+  throw "OutputDir is required."
+}
+
 if (-not (Test-Path $ProjectRoot)) { throw "Project root not found: $ProjectRoot" }
 if (-not (Test-Path $PythonExe)) { throw "Python executable not found: $PythonExe" }
+
+$ProjectRoot = (Resolve-Path -LiteralPath $ProjectRoot).Path
+$repoBackendCompat = Join-Path $ProjectRoot "apps\backend-compat"
+if (Test-Path (Join-Path $repoBackendCompat "scripts\build_mri_ccf_hybrid_artifacts.py")) {
+  $ProjectRoot = $repoBackendCompat
+}
+
+$builder = Join-Path $ProjectRoot "scripts\build_mri_ccf_hybrid_artifacts.py"
+$validator = Join-Path $ProjectRoot "scripts\validate_mri_ccf_inputs.py"
+$starter = Join-Path $ProjectRoot "scripts\start_backend_mri_ccf_hybrid.ps1"
+if (-not (Test-Path $builder)) {
+  throw "ProjectRoot must be the repository root or apps/backend-compat root; missing builder: $builder"
+}
 
 $seedAnnotation = Join-Path $ProjectRoot ".probeplanner\mri_ccf_hybrid_seed\annotation.npy"
 $seedRegionMap = Join-Path $ProjectRoot ".probeplanner\mri_ccf_hybrid_seed\region_map.json"
@@ -21,10 +44,6 @@ if (-not (Test-Path $seedRegionMap)) {
 }
 
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
-
-$builder = Join-Path $ProjectRoot "scripts\build_mri_ccf_hybrid_artifacts.py"
-$validator = Join-Path $ProjectRoot "scripts\validate_mri_ccf_inputs.py"
-$starter = Join-Path $ProjectRoot "scripts\start_backend_mri_ccf_hybrid.ps1"
 
 Write-Host "[STEP] Build MRI+CCF artifacts (auto skull/outer/sdf)"
 & $PythonExe $builder `

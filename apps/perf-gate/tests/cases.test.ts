@@ -13,11 +13,11 @@ async function makeTempRoot(): Promise<string> {
   return root;
 }
 
-async function writeReplay(pathname: string, label: string): Promise<void> {
+async function writeReplay(pathname: string, label: string, targetKeys = ["CA1"]): Promise<void> {
   await mkdir(path.dirname(pathname), { recursive: true });
   await writeFile(pathname, JSON.stringify({
     request: {
-      targetKeys: ["CA1"],
+      targetKeys,
       params: { algorithm: "greedy" },
       clinicalContext: { replayCase: label },
     },
@@ -53,12 +53,50 @@ describe("prepareCases", () => {
         expect(item.sourcePath).toBe(`repo-replay:${item.id}`);
       } else if (item.source === "local") {
         expect(item.sourcePath).toBe(`local-replay:${item.id}`);
-      } else {
+      } else if (item.source === "adversarial") {
         expect(item.sourcePath).toMatch(/^generated:sdf-adversarial:/);
+      } else {
+        expect(item.sourcePath).toMatch(/^generated:(paper_replay|stress|ablation):/);
       }
       expect(item.sourcePath).not.toContain(rootDir);
       expect(item.sourcePath).not.toContain("external-probe-planner");
       expect(item.sourcePath).not.toContain("user-home-replay");
+    }
+  });
+
+  test("filters non-atlas targets from a supplied native region map", async () => {
+    const rootDir = await makeTempRoot();
+    const sourceProject = path.join(rootDir, "external-probe-planner");
+    const localReplayDir = path.join(rootDir, "user-home-replay");
+    const regionMapPath = path.join(rootDir, "region_map_v2.json");
+    await writeFile(regionMapPath, JSON.stringify({
+      entries: [
+        { canonicalAcronym: "CA1", aliases: ["CA1"], id: 1 },
+        { canonicalAcronym: "MOs", aliases: ["MOs"], id: 2 },
+      ],
+    }), "utf8");
+    await Promise.all([
+      ...DEFAULT_REPO_REPLAY_IDS.map((id) =>
+        writeReplay(path.join(sourceProject, "replay", `${id}.json`), `repo-${id.slice(0, 8)}`, ["CA1", "PFC"]),
+      ),
+      ...DEFAULT_LOCAL_REPLAY_IDS.map((id) =>
+        writeReplay(path.join(localReplayDir, `${id}.json`), `local-${id.slice(0, 8)}`, ["MOs", "PTLp"]),
+      ),
+    ]);
+
+    const manifest = await prepareCases({
+      rootDir,
+      sourceProject,
+      localReplayDir,
+      nativeRegionMapPath: regionMapPath,
+    });
+
+    const replayCases = manifest.cases.filter((item) => item.source === "repo" || item.source === "local");
+    expect(replayCases).toHaveLength(10);
+    for (const item of replayCases) {
+      expect(item.targetKeys.every((key) => key === "CA1" || key === "MOs")).toBe(true);
+      expect(item.excludedTargetKeys?.length).toBe(1);
+      expect(item.excludedTargetKeys?.[0]).toMatch(/PFC|PTLp/);
     }
   });
 });

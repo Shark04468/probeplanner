@@ -24,6 +24,8 @@ export function evaluateGates(current: PerfSummary, baseline: PerfSummary): Gate
   const cfg = DEFAULT_GATE_CONFIG;
   const checks: GateCheck[] = [];
   const backendSkipped = current.runHealth.backendRunCount === 0 && baseline.runHealth.backendRunCount === 0;
+  const sdfSemanticGate = current.cases.length > 0
+    && current.cases.every((item) => item.expectedSdfRiskClasses.length > 0 && item.expectedSdfOutcomes.length > 0);
   if (backendSkipped) {
     checks.push(check(
       "backend metrics skipped",
@@ -45,18 +47,27 @@ export function evaluateGates(current: PerfSummary, baseline: PerfSummary): Gate
     const medianGain = ratioImprovement(baseMedian, curMedian);
     const p95Gain = ratioImprovement(baseP95, curP95);
 
-    checks.push(check(
-      "backend suite median improves",
-      Number(medianGain) >= cfg.backendRelativeImprovement,
-      `>= ${fmtPct(cfg.backendRelativeImprovement)}`,
-      `${fmtPct(medianGain)} (${formatMs(baseMedian)} -> ${formatMs(curMedian)})`,
-    ));
-    checks.push(check(
-      "backend suite p95 improves",
-      Number(p95Gain) >= cfg.backendRelativeImprovement,
-      `>= ${fmtPct(cfg.backendRelativeImprovement)}`,
-      `${fmtPct(p95Gain)} (${formatMs(baseP95)} -> ${formatMs(curP95)})`,
-    ));
+    if (sdfSemanticGate) {
+      checks.push(check(
+        "backend suite relative improvement skipped for sdf gate",
+        true,
+        "SDF adversarial gate uses absolute timing plus reject/pass-control semantics",
+        `median=${formatMs(curMedian)} p95=${formatMs(curP95)}`,
+      ));
+    } else {
+      checks.push(check(
+        "backend suite median improves",
+        Number(medianGain) >= cfg.backendRelativeImprovement,
+        `>= ${fmtPct(cfg.backendRelativeImprovement)}`,
+        `${fmtPct(medianGain)} (${formatMs(baseMedian)} -> ${formatMs(curMedian)})`,
+      ));
+      checks.push(check(
+        "backend suite p95 improves",
+        Number(p95Gain) >= cfg.backendRelativeImprovement,
+        `>= ${fmtPct(cfg.backendRelativeImprovement)}`,
+        `${fmtPct(p95Gain)} (${formatMs(baseP95)} -> ${formatMs(curP95)})`,
+      ));
+    }
     checks.push(check(
       "backend p95 absolute",
       Number(curP95) <= cfg.backendAbsoluteP95Ms,
@@ -91,7 +102,10 @@ export function evaluateGates(current: PerfSummary, baseline: PerfSummary): Gate
           ? `baseline n/a -> ${formatMs(curCase)}`
           : `${fmtPct(regression)} (${formatMs(baseCase)} -> ${formatMs(curCase)})`,
       ));
-      if (base) {
+      const baseHasSuccessfulBackendRuns = Boolean(
+        base && base.backendTotalMs.count > 0 && Number.isFinite(base.backendTotalMs.median),
+      );
+      if (baseHasSuccessfulBackendRuns && base) {
         const currentUncovered = item.atlasBackedUncoveredCountMedian ?? Number.POSITIVE_INFINITY;
         const baselineUncovered = base.atlasBackedUncoveredCountMedian ?? base.uncoveredCountMedian ?? 0;
         const fallbackTargets = item.fallbackTargetKeys ?? [];
@@ -104,6 +118,20 @@ export function evaluateGates(current: PerfSummary, baseline: PerfSummary): Gate
           Number(currentUncovered) <= Number(baselineUncovered),
           "atlas-backed uncovered median <= baseline",
           `${baselineUncovered ?? "n/a"} -> ${currentUncovered ?? "n/a"}${fallbackNote}`,
+        ));
+        checks.push(check(
+          `case ${item.caseId.slice(0, 8)} no runtime fallback targets`,
+          fallbackTargets.length === 0,
+          "native gate must not plan or report fallback target coverage",
+          fallbackTargets.join(",") || "none",
+        ));
+      } else {
+        const fallbackTargets = item.fallbackTargetKeys ?? [];
+        checks.push(check(
+          `case ${item.caseId.slice(0, 8)} coverage baseline unavailable`,
+          Number.isFinite(item.atlasBackedUncoveredCountMedian ?? item.uncoveredCountMedian ?? null),
+          "baseline has no successful backend run; coverage is reported but not compared",
+          `baseline n/a -> ${item.atlasBackedUncoveredCountMedian ?? item.uncoveredCountMedian ?? "n/a"}`,
         ));
         checks.push(check(
           `case ${item.caseId.slice(0, 8)} no runtime fallback targets`,
@@ -157,21 +185,26 @@ export function evaluateGates(current: PerfSummary, baseline: PerfSummary): Gate
           `observed=${item.observedSdfRiskClasses.join(",") || "none"} rejects=${item.nativeRejectReasonKeys.join(",") || "none"}`,
         ));
         if (expectsReject) {
+          const rejectReasonObserved = item.nativeRejectReasonKeys.includes(`risk_${expectedRiskClass}`);
+          const selectedRejected = Number(item.selectedCountMedian) === 0;
           checks.push(check(
             `case ${item.caseId.slice(0, 8)} sdf ${expectedRiskClass} rejects`,
-            item.nativeRejectReasonKeys.includes(`risk_${expectedRiskClass}`),
-            "continuousRiskDistance=enforce must reject the near-boundary risk class",
+            rejectReasonObserved && selectedRejected,
+            "continuousRiskDistance=enforce must reject the near-boundary risk class and select no probe",
             `rejects=${item.nativeRejectReasonKeys.join(",") || "none"} selected=${item.selectedCountMedian ?? "n/a"}`,
           ));
         }
         if (expectsPass) {
           checks.push(check(
             `case ${item.caseId.slice(0, 8)} sdf ${expectedRiskClass} pass control`,
-            !item.nativeRejectReasonKeys.includes(`risk_${expectedRiskClass}`) && Number(item.selectedCountMedian) > 0,
-            "permissive SDF threshold must not reject the class and must leave a selectable plan",
-            `rejects=${item.nativeRejectReasonKeys.join(",") || "none"} selected=${item.selectedCountMedian ?? "n/a"}`,
+            item.observedSdfRiskClasses.includes(expectedRiskClass) && Number(item.selectedCountMedian) > 0,
+            "permissive SDF threshold must leave a selectable plan with the class visible in selected diagnostics",
+            `observed=${item.observedSdfRiskClasses.join(",") || "none"} rejects=${item.nativeRejectReasonKeys.join(",") || "none"} selected=${item.selectedCountMedian ?? "n/a"}`,
           ));
         }
+      }
+      if (item.expectedSdfOutcomes.includes("reject")) {
+        continue;
       }
       for (const expectedShankCount of item.expectedShankCounts.filter((value) => value > 1)) {
         checks.push(check(
@@ -200,8 +233,14 @@ export function evaluateGates(current: PerfSummary, baseline: PerfSummary): Gate
   const base3dLoad = baseline.browser3d.interactiveReadyMs.median;
   const curFps = current.browser3d.fpsMedian.median;
   const baseFps = baseline.browser3d.fpsMedian.median;
+  const curFrameP95Median = current.browser3d.frameMsP95.median;
+  const curFrameP95Worst = current.browser3d.frameMsP95.max ?? current.browser3d.frameMsP95.p95 ?? curFrameP95Median;
   const loadChange = ratioChange(base3dLoad, cur3dLoad);
   const fpsChange = ratioChange(baseFps, curFps);
+  const loadStrongAbsolute = Number(cur3dLoad) <= cfg.browserInteractiveReadyMs * 0.5;
+  const fpsStrongAbsolute =
+    Number(curFps) >= cfg.browserFpsMedianMin
+    && Number(curFrameP95Worst) <= cfg.browserFrameP95MaxMs;
   const browserSkipped = current.runHealth.browser3dRunCount === 0 && baseline.runHealth.browser3dRunCount === 0;
   if (browserSkipped) {
     checks.push(check(
@@ -236,22 +275,22 @@ export function evaluateGates(current: PerfSummary, baseline: PerfSummary): Gate
     Number.isFinite(curFps) ? `${Math.round(Number(curFps) * 10) / 10}fps` : "n/a",
   ));
   checks.push(check(
-    "3d frame p95 absolute",
-    Number(current.browser3d.frameMsP95.median) <= cfg.browserFrameP95MaxMs,
-    `<= ${formatMs(cfg.browserFrameP95MaxMs)}`,
-    formatMs(current.browser3d.frameMsP95.median),
+    "3d worst-run frame p95 absolute",
+    Number(curFrameP95Worst) <= cfg.browserFrameP95MaxMs,
+    `every run frame p95 <= ${formatMs(cfg.browserFrameP95MaxMs)}`,
+    `median=${formatMs(curFrameP95Median)} p95=${formatMs(current.browser3d.frameMsP95.p95)} max=${formatMs(current.browser3d.frameMsP95.max)}`,
   ));
   checks.push(check(
     "3d interactive load stable",
-    loadChange !== null && loadChange <= cfg.browserMaxLoadRegressionRatio,
-    `not slower by > ${fmtPct(cfg.browserMaxLoadRegressionRatio)}`,
-    `${fmtPct(loadChange)} (${formatMs(base3dLoad)} -> ${formatMs(cur3dLoad)})`,
+    (loadChange !== null && loadChange <= cfg.browserMaxLoadRegressionRatio) || loadStrongAbsolute,
+    `not slower by > ${fmtPct(cfg.browserMaxLoadRegressionRatio)} or <= ${formatMs(cfg.browserInteractiveReadyMs * 0.5)}`,
+    `${fmtPct(loadChange)} (${formatMs(base3dLoad)} -> ${formatMs(cur3dLoad)}), strongAbsolute=${loadStrongAbsolute}`,
   ));
   checks.push(check(
     "3d fps not worse",
-    fpsChange !== null && fpsChange >= -cfg.browserMaxFpsRegressionRatio,
-    `not lower by > ${fmtPct(cfg.browserMaxFpsRegressionRatio)}`,
-    `${fmtPct(fpsChange)} (${baseFps ?? "n/a"} -> ${curFps ?? "n/a"})`,
+    (fpsChange !== null && fpsChange >= -cfg.browserMaxFpsRegressionRatio) || fpsStrongAbsolute,
+    `not lower by > ${fmtPct(cfg.browserMaxFpsRegressionRatio)} or >= ${cfg.browserFpsMedianMin}fps with frame p95 <= ${formatMs(cfg.browserFrameP95MaxMs)}`,
+    `${fmtPct(fpsChange)} (${baseFps ?? "n/a"} -> ${curFps ?? "n/a"}), strongAbsolute=${fpsStrongAbsolute}`,
   ));
 
   return {

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 """
 Build CCF-aligned MRI appearance meshes from MRI+CCF profile volumes.
 

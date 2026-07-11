@@ -4,6 +4,12 @@ import { PROBE_COLORS } from '../constants/brainRegions';
 import { t } from '../constants/i18n';
 
 const fmt = (n, d = 2) => (typeof n === 'number' && Number.isFinite(n) ? n.toFixed(d) : '--');
+const hasFiniteValue = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+const fmtCcfVectorMm = (value) => (
+  Array.isArray(value) && value.length === 3 && value.every((item) => Number.isFinite(Number(item)))
+    ? value.map((item) => (Number(item) / 1000).toFixed(3)).join(', ')
+    : '--'
+);
 
 function coverageColor(frac) {
   if (frac >= 0.9) return '#4ade80';
@@ -79,7 +85,7 @@ export default function ResultsPanel({
       <div style={styles.header}>
         <span style={styles.title}>{tr('resultsPanelTitle')}</span>
         <span style={styles.metaBadge}>
-          {algorithm} | {fmt((elapsedMs ?? 0) / 1000, 1)}s
+          {algorithm} | {results.plannerExecutionBackend || tr('backendLabel')} | {fmt((elapsedMs ?? 0) / 1000, 1)}s
         </span>
       </div>
 
@@ -90,21 +96,9 @@ export default function ResultsPanel({
         frac={covFrac}
         tr={tr}
       />
-      <FallbackTargetNotice results={results} lang={lang} />
-
-      <ClinicalContractSummary
-        contract={results.clinicalContract}
-        context={results.clinicalContext}
-        tr={tr}
-      />
-      <PrimaryEndpointsSummary summary={results.primaryEndpointSummary} tr={tr} />
-      <CandidateStageBreakdown breakdown={results.candidateStageBreakdown} tr={tr} />
-      <ProbeCriticalDigest probes={probes} tr={tr} />
-      <StatisticalReliabilitySummary results={results} tr={tr} />
-
-      {(results.rankingMode || results.paretoEnabled) && (
-        <ExplainSummary results={results} tr={tr} />
-      )}
+      <PlanningOutcomeSummary results={results} probes={probes} tr={tr} />
+      <UnifiedSafetyAuditSummary probes={probes} stability={results.stabilitySummary} tr={tr} />
+      <FallbackTargetNotice results={results} tr={tr} />
 
       {backendError && (
         <div style={styles.errorBox}>
@@ -114,13 +108,9 @@ export default function ResultsPanel({
       )}
 
       <FailureCards cards={results.failureCards} tr={tr} onApplyRepair={onApplyFailureRepair} />
-      <ReproSummary results={results} tr={tr} />
-
-      <SideCoverageSummary sideCoverage={results.sideCoverage} tr={tr} />
-
-      <ParetoScatter probes={probes} onHighlight={onHighlight} tr={tr} />
-
       {warnings.length > 0 && <WarningList warnings={warnings} tr={tr} lang={lang} />}
+
+      <ProbeCriticalDigest probes={probes} tr={tr} />
 
       <div style={styles.probeList}>
         {probes.map((probe, idx) => (
@@ -146,30 +136,168 @@ export default function ResultsPanel({
           tr={tr}
         />
       )}
+
+      <SideCoverageSummary sideCoverage={results.sideCoverage} tr={tr} />
+
+      <AdvancedResultsDisclosure tr={tr}>
+        <ClinicalContractSummary
+          contract={results.clinicalContract}
+          context={results.clinicalContext}
+          tr={tr}
+        />
+        <PrimaryEndpointsSummary summary={results.primaryEndpointSummary} tr={tr} />
+        <CandidateStageBreakdown breakdown={results.candidateStageBreakdown} tr={tr} />
+        <StatisticalReliabilitySummary results={results} tr={tr} />
+        {(results.rankingMode || results.paretoEnabled) && (
+          <ExplainSummary results={results} tr={tr} />
+        )}
+        <ReproSummary results={results} tr={tr} />
+        <ParetoScatter probes={probes} onHighlight={onHighlight} tr={tr} />
+      </AdvancedResultsDisclosure>
     </div>
   );
 }
 
-function FallbackTargetNotice({ results, lang }) {
+function AdvancedResultsDisclosure({ children, tr }) {
+  return (
+    <details style={styles.advancedResults}>
+      <summary style={styles.advancedResultsSummary}>{tr('advancedResultsLabel')}</summary>
+      <div style={styles.advancedResultsBody}>{children}</div>
+    </details>
+  );
+}
+
+function PlanningOutcomeSummary({ results, probes, tr }) {
+  const requested = Array.isArray(results?.requestedTargets) ? results.requestedTargets : [];
+  const uncovered = Array.isArray(results?.uncovered) ? results.uncovered : [];
+  const failClosed = uncovered.length > 0 && probes.length === 0;
+  const partial = uncovered.length > 0 && probes.length > 0;
+  const color = failClosed ? '#fb7185' : partial ? '#facc15' : '#4ade80';
+  return (
+    <div style={{ ...styles.outcomeBox, borderColor: `${color}66` }}>
+      <div style={styles.outcomeHead}>
+        <span style={{ color }}>{failClosed ? tr('planningFailClosed') : partial ? tr('planningPartial') : tr('planningFeasible')}</span>
+        <span style={styles.outcomeProbeCount}>
+          {tr('selectedProbeCountLabel')}: {probes.length}
+        </span>
+      </div>
+      {requested.length > 0 && (
+        <div style={styles.outcomeLine}>{tr('requestedTargetsLabel')}: {requested.join(', ')}</div>
+      )}
+      {uncovered.length > 0 && (
+        <div style={{ ...styles.outcomeLine, color }}>
+          {tr('uncoveredTargetsLabel')}: {uncovered.join(', ')}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UnifiedSafetyAuditSummary({ probes, stability, tr }) {
+  if (!Array.isArray(probes) || probes.length === 0) return null;
+  const audited = probes.filter((probe) => (
+    probe.brainContainmentPassed != null || probe.tipInTarget != null || probe.internalRiskAudit
+  ));
+  if (audited.length === 0) return null;
+  const brainPass = audited.filter((probe) => probe.brainContainmentPassed === true).length;
+  const tipPass = audited.filter((probe) => probe.tipInTarget === true).length;
+  const overshoots = audited
+    .filter((probe) => hasFiniteValue(probe.distalOvershootMm))
+    .map((probe) => Number(probe.distalOvershootMm))
+    .filter(Number.isFinite);
+  const maxOvershoot = overshoots.length ? Math.max(...overshoots) : null;
+  const claimStatuses = audited.map((probe) => String(probe.internalRiskAudit?.claimStatus || 'unavailable'));
+  const internalComplete = claimStatuses.every((status) => status === 'complete');
+  const internalPartial = claimStatuses.some((status) => status === 'partial' || status === 'complete');
+  const internalStatus = internalComplete ? 'complete' : internalPartial ? 'partial' : 'unavailable';
+  const internalViolations = internalPartial
+    ? audited.reduce((sum, probe) => sum + Math.max(0, Number(probe.internalRiskViolationCount) || 0), 0)
+    : null;
+  const strictPass = brainPass === audited.length
+    && tipPass === audited.length
+    && maxOvershoot != null
+    && maxOvershoot <= 1e-6
+    && internalComplete
+    && internalViolations === 0;
+  const maxEntry = Math.max(...audited.filter((probe) => hasFiniteValue(probe.objectiveScores?.referenceEntryDisplacementMm)).map((probe) => Number(probe.objectiveScores.referenceEntryDisplacementMm)), 0);
+  const maxTip = Math.max(...audited.filter((probe) => hasFiniteValue(probe.objectiveScores?.referenceTipDisplacementMm)).map((probe) => Number(probe.objectiveScores.referenceTipDisplacementMm)), 0);
+  const hasStabilityReference = Number(stability?.referenceProbeCount || 0) > 0;
+
+  return (
+    <div style={{ ...styles.auditBox, borderColor: strictPass ? '#166534' : '#854d0e' }}>
+      <div style={styles.auditHeader}>
+        <span>{tr('unifiedSafetyAuditTitle')}</span>
+        <span style={{ color: strictPass ? '#4ade80' : '#facc15' }}>
+          {strictPass ? tr('auditPassed') : tr('auditNeedsReview')}
+        </span>
+      </div>
+      <div style={styles.auditGrid}>
+        <AuditMetric label={tr('brainContainmentLabel')} value={`${brainPass}/${audited.length}`} pass={brainPass === audited.length} />
+        <AuditMetric label={tr('tipInTargetLabel')} value={`${tipPass}/${audited.length}`} pass={tipPass === audited.length} />
+        <AuditMetric
+          label={tr('distalOvershootLabel')}
+          value={maxOvershoot == null ? tr('unavailableLabel') : `${fmt(maxOvershoot, 3)} mm`}
+          pass={maxOvershoot != null && maxOvershoot <= 1e-6}
+        />
+        <AuditMetric
+          label={tr('internalRiskClaimLabel')}
+          value={tr(`internalRiskStatus_${internalStatus}`)}
+          pass={internalStatus === 'complete' && internalViolations === 0}
+          neutral={internalStatus === 'unavailable'}
+        />
+        <AuditMetric
+          label={tr('internalRiskViolationsLabel')}
+          value={internalViolations == null ? tr('unavailableLabel') : String(internalViolations)}
+          pass={internalViolations === 0}
+          neutral={internalViolations == null}
+        />
+        <AuditMetric
+          label={tr('entrySurfaceStatusLabel')}
+          value={audited.every((probe) => probe.entrySurfaceCrossingStatus === 'allowed_entry_surface_semantics')
+            ? tr('entrySurfaceAllowed')
+            : tr('entrySurfaceUnavailable')}
+          pass={audited.every((probe) => probe.brainContainmentPassed === true)}
+        />
+      </div>
+      {hasStabilityReference && (
+        <div style={styles.stabilityLine}>
+          {tr('trajectoryStabilityApplied')}
+          {' | '}{tr('referenceProbeCountLabel')}: {stability.referenceProbeCount}
+          {' | '}{tr('maxEntryDisplacementLabel')}: {fmt(maxEntry, 3)} mm
+          {' | '}{tr('maxTipDisplacementLabel')}: {fmt(maxTip, 3)} mm
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AuditMetric({ label, value, pass = false, neutral = false }) {
+  const color = neutral ? '#94a3b8' : pass ? '#4ade80' : '#facc15';
+  return (
+    <div style={styles.auditMetric}>
+      <span style={styles.auditMetricLabel}>{label}</span>
+      <span style={{ ...styles.auditMetricValue, color }}>{value}</span>
+    </div>
+  );
+}
+
+function FallbackTargetNotice({ results, tr }) {
   const fallbackKeys = Array.isArray(results?.fallbackTargetKeys) ? results.fallbackTargetKeys : [];
   if (!fallbackKeys.length) return null;
   const atlasBacked = Number.isFinite(Number(results?.atlasBackedUncoveredCount))
     ? Number(results.atlasBackedUncoveredCount)
     : null;
-  const isCn = String(lang || '').toLowerCase().startsWith('cn');
   return (
     <div style={{ ...styles.summaryBox, borderColor: '#8a6d1d', background: '#1f1807' }}>
       <div style={{ ...styles.summaryTitle, color: '#fde68a' }}>
-        {isCn ? 'Native atlas 覆盖说明' : 'Native atlas coverage note'}
+        {tr('nativeAtlasCoverageNoteTitle')}
       </div>
       <div style={styles.summaryLine}>
-        {isCn
-          ? `以下目标未被 native atlas 索引支持，已从真实覆盖门禁中排除：${fallbackKeys.join(', ')}`
-          : `These targets are not backed by the native atlas index and were excluded from hard coverage gates: ${fallbackKeys.join(', ')}`}
+        {tr('nativeAtlasFallbackTargetsTemplate').replace('{targets}', fallbackKeys.join(', '))}
       </div>
       {atlasBacked !== null && (
         <div style={styles.summaryLine}>
-          {isCn ? `Atlas-backed 未覆盖数：${atlasBacked}` : `Atlas-backed uncovered count: ${atlasBacked}`}
+          {tr('nativeAtlasBackedUncoveredTemplate').replace('{count}', String(atlasBacked))}
         </div>
       )}
     </div>
@@ -519,7 +647,7 @@ function ExplainSummary({ results, tr }) {
       )}
       {riskPolicy?.constraint && (
         <div style={styles.summaryLine}>
-          {tr('riskPolicyLabel')}: {riskPolicy.requestedMode || '--'} -> {riskPolicy.effectiveMode || '--'} ({riskPolicy.reason || 'default'})
+          {tr('riskPolicyLabel')}: {riskPolicy.requestedMode || '--'} {'->'} {riskPolicy.effectiveMode || '--'} ({riskPolicy.reason || 'default'})
         </div>
       )}
       {results.drccEnabled && (
@@ -1011,6 +1139,8 @@ function ProbeCard({ idx, probe, probeSpec, expanded, onToggle, onMouseEnter, on
   const sc = probe.selectiveConformal;
   const unc = probe.uncertainty;
   const primaryEp = probe.primaryEndpoints;
+  const actualDepthMm = Number(probe.depthUm) / 1000;
+  const internalClaimStatus = String(probe.internalRiskAudit?.claimStatus || 'unavailable');
 
   return (
     <div
@@ -1018,7 +1148,7 @@ function ProbeCard({ idx, probe, probeSpec, expanded, onToggle, onMouseEnter, on
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <div style={styles.probeHeader} onClick={onToggle}>
+      <button type="button" style={styles.probeHeader} onClick={onToggle} aria-expanded={expanded}>
         <span style={{ ...styles.probeName, color }}>
           {tr('probe')} {idx + 1}
         </span>
@@ -1032,16 +1162,73 @@ function ProbeCard({ idx, probe, probeSpec, expanded, onToggle, onMouseEnter, on
           {tr('scoreLabel')} {Number.isFinite(explainScore) ? explainScore.toFixed(3) : '--'}
         </span>
         <span style={styles.expandArrow}>{expanded ? tr('hideLabel') : tr('showLabel')}</span>
-      </div>
+      </button>
 
       {expanded && (
         <div style={styles.probeDetail}>
           <DetailRow label="AP (mm)" value={fmt(probe.ap)} />
           <DetailRow label="ML (mm)" value={fmt(probe.ml)} />
           <DetailRow label="DV entry (mm)" value={fmt(probe.dvEntry)} />
+          <DetailRow
+            label={tr('actualInsertionDepthLabel')}
+            value={Number.isFinite(actualDepthMm) ? `${actualDepthMm.toFixed(3)} mm` : `${fmt(probeSpec?.depth)} mm`}
+          />
+          <DetailRow label={tr('entryCcfCoordinatesLabel')} value={fmtCcfVectorMm(probe.entry_xyz ?? probe.entry)} />
+          <DetailRow label={tr('tipCcfCoordinatesLabel')} value={fmtCcfVectorMm(probe.tip_xyz ?? probe.tip)} />
           <DetailRow label={tr('azimuth')} value={`${fmt(probe.azimuth, 1)}deg`} />
           <DetailRow label={tr('elevation')} value={`${fmt(probe.elevation, 1)}deg`} />
-          <DetailRow label={tr('depth')} value={`${fmt(probeSpec?.depth)} mm`} />
+          <DetailRow
+            label={tr('brainContainmentLabel')}
+            value={probe.brainContainmentPassed === true ? tr('auditPassed') : tr('auditFailed')}
+            valueColor={probe.brainContainmentPassed === true ? '#4ade80' : '#f87171'}
+          />
+          <DetailRow
+            label={tr('tipInTargetLabel')}
+            value={probe.tipInTarget === true ? tr('auditPassed') : tr('auditFailed')}
+            valueColor={probe.tipInTarget === true ? '#4ade80' : '#f87171'}
+          />
+          <DetailRow
+            label={tr('distalOvershootLabel')}
+            value={hasFiniteValue(probe.distalOvershootMm)
+              ? `${Number(probe.distalOvershootMm).toFixed(3)} mm`
+              : tr('unavailableLabel')}
+            valueColor={hasFiniteValue(probe.distalOvershootMm) && Number(probe.distalOvershootMm) <= 1e-6 ? '#4ade80' : '#facc15'}
+          />
+          <DetailRow
+            label={tr('internalRiskClaimLabel')}
+            value={tr(`internalRiskStatus_${internalClaimStatus}`)}
+            valueColor={internalClaimStatus === 'complete' ? '#4ade80' : '#facc15'}
+          />
+          <DetailRow
+            label={tr('internalRiskViolationsLabel')}
+            value={internalClaimStatus === 'unavailable'
+              ? tr('unavailableLabel')
+              : String(Number(probe.internalRiskViolationCount) || 0)}
+          />
+          <DetailRow
+            label={tr('minimumInternalRiskMarginLabel')}
+            value={hasFiniteValue(probe.minimumInternalRiskMarginMm)
+              ? `${Number(probe.minimumInternalRiskMarginMm).toFixed(3)} mm`
+              : tr('unavailableLabel')}
+          />
+          <DetailRow
+            label={tr('entrySurfaceStatusLabel')}
+            value={probe.entrySurfaceCrossingStatus === 'allowed_entry_surface_semantics'
+              ? tr('entrySurfaceAllowed')
+              : tr('entrySurfaceUnavailable')}
+          />
+          {hasFiniteValue(probe.objectiveScores?.referenceEntryDisplacementMm) && (
+            <DetailRow
+              label={tr('referenceEntryDisplacementLabel')}
+              value={`${Number(probe.objectiveScores.referenceEntryDisplacementMm).toFixed(3)} mm`}
+            />
+          )}
+          {hasFiniteValue(probe.objectiveScores?.referenceTipDisplacementMm) && (
+            <DetailRow
+              label={tr('referenceTipDisplacementLabel')}
+              value={`${Number(probe.objectiveScores.referenceTipDisplacementMm).toFixed(3)} mm`}
+            />
+          )}
           <DetailRow
             label={tr('paretoRankLabel')}
             value={Number.isFinite(probe.paretoRank) ? `F${probe.paretoRank}` : '--'}
@@ -1329,6 +1516,103 @@ const styles = {
     borderRadius: 3,
     transition: 'width 0.4s ease',
   },
+  outcomeBox: {
+    background: '#071522',
+    border: '1px solid #1e3a5f',
+    borderRadius: 6,
+    padding: '8px 10px',
+    display: 'grid',
+    gap: 4,
+  },
+  outcomeHead: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+    fontSize: 11,
+    fontWeight: 700,
+  },
+  outcomeProbeCount: {
+    color: '#cbd5e1',
+    fontFamily: 'monospace',
+    fontWeight: 500,
+  },
+  outcomeLine: {
+    color: '#94a3b8',
+    fontSize: 10.5,
+    lineHeight: 1.4,
+    wordBreak: 'break-word',
+  },
+  auditBox: {
+    background: '#05150f',
+    border: '1px solid #166534',
+    borderRadius: 6,
+    padding: '8px 10px',
+    display: 'grid',
+    gap: 7,
+  },
+  auditHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    color: '#bbf7d0',
+    fontSize: 11,
+    fontWeight: 700,
+  },
+  auditGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(125px, 1fr))',
+    gap: 6,
+  },
+  auditMetric: {
+    background: '#061b14',
+    border: '1px solid #164e3a',
+    borderRadius: 5,
+    padding: '6px 7px',
+    display: 'grid',
+    gap: 3,
+    minWidth: 0,
+  },
+  auditMetricLabel: {
+    color: '#86a89a',
+    fontSize: 9.5,
+    overflowWrap: 'anywhere',
+  },
+  auditMetricValue: {
+    fontFamily: 'monospace',
+    fontSize: 10.5,
+    fontWeight: 700,
+    overflowWrap: 'anywhere',
+  },
+  stabilityLine: {
+    borderTop: '1px solid #164e3a',
+    paddingTop: 6,
+    color: '#93c5fd',
+    fontFamily: 'monospace',
+    fontSize: 9.5,
+    lineHeight: 1.45,
+    overflowWrap: 'anywhere',
+  },
+  advancedResults: {
+    background: '#061321',
+    border: '1px solid #1e3a5f',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  advancedResultsSummary: {
+    cursor: 'pointer',
+    color: '#93c5fd',
+    fontSize: 11,
+    fontWeight: 700,
+    padding: '9px 10px',
+    userSelect: 'none',
+  },
+  advancedResultsBody: {
+    borderTop: '1px solid #1e3a5f',
+    padding: 8,
+    display: 'grid',
+    gap: 8,
+  },
   summaryBox: {
     background: '#051426',
     border: '1px solid #1e3a5f',
@@ -1550,6 +1834,13 @@ const styles = {
     padding: '7px 10px',
     cursor: 'pointer',
     userSelect: 'none',
+    width: '100%',
+    border: 'none',
+    background: 'transparent',
+    color: 'inherit',
+    font: 'inherit',
+    textAlign: 'left',
+    flexWrap: 'wrap',
   },
   probeName: { fontSize: 12, fontWeight: 700, minWidth: 50 },
   probeSummary: {
@@ -1557,6 +1848,8 @@ const styles = {
     color: THEME.textSecondary,
     fontFamily: 'monospace',
     flex: 1,
+    minWidth: 180,
+    overflowWrap: 'anywhere',
   },
   probeRegionCount: {
     fontSize: 10,

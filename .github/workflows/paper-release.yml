@@ -1,0 +1,43 @@
+name: paper-release
+
+on:
+  push:
+    tags:
+      - "v*-paper"
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10.20"
+      - name: Verify tag, paths, cases, and Supplementary Data
+        run: python scripts/release/verify_release.py --require-clean --tag "$GITHUB_REF_NAME"
+      - name: Build immutable release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets/ProbePlanner-supplementary-${GITHUB_REF_NAME}
+          cp -R supplementary-data/. release-assets/ProbePlanner-supplementary-${GITHUB_REF_NAME}/
+          printf '%s\n' "$GITHUB_SHA" > release-assets/ProbePlanner-supplementary-${GITHUB_REF_NAME}/SOURCE_COMMIT.txt
+          cd release-assets
+          zip -qr ProbePlanner-supplementary-${GITHUB_REF_NAME}.zip ProbePlanner-supplementary-${GITHUB_REF_NAME}
+          sha256sum ProbePlanner-supplementary-${GITHUB_REF_NAME}.zip > ProbePlanner-supplementary-${GITHUB_REF_NAME}.zip.sha256
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            release-assets/ProbePlanner-supplementary-${GITHUB_REF_NAME}.zip \
+            release-assets/ProbePlanner-supplementary-${GITHUB_REF_NAME}.zip.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "ProbePlanner $GITHUB_REF_NAME" \
+            --notes-file RELEASE_NOTES.md \
+            --verify-tag

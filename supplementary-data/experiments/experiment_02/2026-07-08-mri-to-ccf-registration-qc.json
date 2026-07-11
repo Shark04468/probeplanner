@@ -1,0 +1,132 @@
+{
+  "generatedAt": "2026-07-10T06:20:48.340598+00:00\n",
+  "status": "INCOMPLETE_ANATOMICAL_TRE\n",
+  "numericGateStatus": "INCOMPLETE_ANATOMICAL_TRE\n",
+  "visualOverlayGateStatus": "PASS\n",
+  "artifactRoot": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\n",
+  "atlasArtifactRoot": "${PROBEPLANNER_PROFILE_ROOT}\n",
+  "voxelSpacingMm": [
+    0.025,
+    0.025,
+    0.025
+  ],
+  "dataInputs": {
+    "registrationArtifactRoot": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\n",
+    "atlasArtifactRoot": "${PROBEPLANNER_PROFILE_ROOT}\n",
+    "mriInCcf": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\\registration\\ambmc_in_ccf.nii.gz\n",
+    "annotation": "${PROBEPLANNER_PROFILE_ROOT}\\annotation.npy\n",
+    "structureTreeColors": "${LOCAL_DATA_ROOT}/structures.json\n",
+    "fixedMask": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\\quality_eval\\gt_mask.npy\n",
+    "alignedMriMask": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\\quality_eval\\pred_mask.npy\n",
+    "fixedLandmarks": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\\quality_eval\\fixed_landmarks.csv\n",
+    "warpedLandmarks": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\\quality_eval\\warped_landmarks.csv\n",
+    "jacobian": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\\jacobian.npy\n",
+    "stats": "${PROBEPLANNER_REGISTRATION_ROOT}\\ants_native_safe_062_cached_syn_grad070_long_s090_axis120_010mm\\stats.json\n",
+    "affineOnlyWarpedMri": null
+  },
+  "figure": {
+    "png": "docs\\evidence\\2026-07-10-strict-full-rerun\\experiment_02_registration_qc\\figures\\mri-ccf-registration-qc-ants062.png\n",
+    "pdf": "docs\\evidence\\2026-07-10-strict-full-rerun\\experiment_02_registration_qc\\figures\\mri-ccf-registration-qc-ants062.pdf\n",
+    "svg": "docs\\evidence\\2026-07-10-strict-full-rerun\\experiment_02_registration_qc\\figures\\mri-ccf-registration-qc-ants062.svg\n",
+    "panels": [
+      {
+        "plane": "horizontal\n",
+        "sliceIndex": 154,
+        "axis": 1,
+        "landmarkCountDisplayed": 0,
+        "controlPointCountDisplayed": 0,
+        "pointToleranceVoxels": 12
+      },
+      {
+        "plane": "coronal\n",
+        "sliceIndex": 264,
+        "axis": 0,
+        "landmarkCountDisplayed": 0,
+        "controlPointCountDisplayed": 0,
+        "pointToleranceVoxels": 12
+      },
+      {
+        "plane": "sagittal\n",
+        "sliceIndex": 228,
+        "axis": 2,
+        "landmarkCountDisplayed": 0,
+        "controlPointCountDisplayed": 0,
+        "pointToleranceVoxels": 12
+      }
+    ],
+    "annotationColorSource": "${LOCAL_DATA_ROOT}/structures.json\n",
+    "annotationColorMode": "Allen structure rgb_triplet\n"
+  },
+  "metrics": {
+    "dice": {
+      "value": 0.9364565761819142,
+      "formatted": "0.936457\n",
+      "threshold": ">= 0.8\n",
+      "definition": "MRI brain mask versus CCF-aligned fixed brain mask overlap, computed as twice the moving/fixed mask intersection divided by the summed mask volumes.\n",
+      "source": "fixed and aligned brain-mask overlap\n"
+    },
+    "hd95Mm": {
+      "value": 0.40620192885398865,
+      "formatted": "0.406202 mm\n",
+      "threshold": "<= 0.45 mm\n",
+      "definition": "Symmetric 95th-percentile Hausdorff distance between the aligned mask boundaries, reported in millimetres using 0.025 mm voxel spacing.\n",
+      "source": "symmetric mask-boundary distance percentile\n"
+    },
+    "treMm": {
+      "value": 2.4610797867355387,
+      "formatted": "2.461080 mm\n",
+      "threshold": "not evaluated\n",
+      "definition": "Mean Euclidean residual between automatically generated mask bounding-box control points; this is not an anatomical target-registration error.\n",
+      "source": "automatic mask bounding-box control points\n",
+      "validAsAnatomicalTre": false
+    },
+    "jacobianAnomalyRatio": {
+      "value": 0.0,
+      "formatted": "0.000000\n",
+      "threshold": "<= 0.03\n",
+      "definition": "Fraction of finite deformation-field Jacobian determinant voxels that were non-positive or outside the accepted [0.2, 5.0] determinant range.\n",
+      "source": "deformation-field Jacobian determinant audit\n"
+    }
+  },
+  "landmarks": {
+    "count": 75,
+    "type": "automatic mask bounding-box control points\n",
+    "manualAnatomicalLandmarks": false,
+    "validAsAnatomicalTre": false,
+    "displayedInFigure": false,
+    "note": "These points are generated from fixed/moving mask bounding boxes and must not be interpreted as manually curated anatomical landmarks.\n",
+    "treMeanMm": 2.4610797867355387,
+    "treMedianMm": 2.430397519666278,
+    "treP95Mm": 4.6019643586989405,
+    "treMaxMm": 4.605971832881743,
+    "meanAbsAxisResidualMm": {
+      "x": 2.4154771999999993,
+      "y": 0.3317772000000001,
+      "z": 0.033695866666666664
+    }
+  },
+  "lightweightRecompute": {
+    "dice": 0.9364565761819142,
+    "treMeanMm": 2.4610797867355387,
+    "jacobianAnomalyRatio": 0.0
+  },
+  "figureSelfReview": {
+    "rendered": true,
+    "inspected": true,
+    "notes": "Automatic visual gate detected an intensity-scale inconsistency requiring manual artifact revision.\n"
+  },
+  "visualQcFinding": {
+    "finding": "Orthogonal overlay was manually inspected; no twisting, clipping, or gross displacement was observed.\n",
+    "rawIntensityPolicy": "Raw intensity ranges are not compared across independently normalised images as a deformation-quality test.\n",
+    "deformableWarpedMriIntensityRange": [
+      191919.890625,
+      2353087.25
+    ],
+    "affineOnlyWarpedMriIntensityRange": null,
+    "intensityGate": {
+      "status": "PASS\n",
+      "reason": "Orthogonal overlay was manually inspected; no twisting, clipping, or gross displacement was observed.\n"
+    },
+    "diagnosticFigure": null
+  }
+}

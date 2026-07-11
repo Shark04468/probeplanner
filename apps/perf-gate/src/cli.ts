@@ -1,4 +1,5 @@
 import path from "node:path";
+import { existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { collect3dMetrics } from "./browser/collect3dMetrics.js";
@@ -46,11 +47,28 @@ function rootDir(): string {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 }
 
+function nativeRegionMapPath(flags: Record<string, string | boolean>): string | undefined {
+  const explicit = flagString(flags, "native-region-map");
+  if (explicit) return path.resolve(explicit);
+  const artifactRoot = flagString(flags, "artifact-root", process.env.PROBEPLANNER_ARTIFACT_ROOT);
+  if (!artifactRoot) return undefined;
+  for (const filename of ["region_map_v2.json", "region_map.json"]) {
+    const candidate = path.resolve(artifactRoot, filename);
+    if (existsSync(candidate)) return candidate;
+  }
+  return undefined;
+}
+
 async function commandPrepareCases(flags: Record<string, string | boolean>): Promise<void> {
   const root = rootDir();
   const sourceProject = path.resolve(root, flagString(flags, "source-project", "../probe-planner") || "../probe-planner");
   const localReplayDir = flagString(flags, "local-replay-dir");
-  const manifest = await prepareCases({ rootDir: root, sourceProject, localReplayDir });
+  const manifest = await prepareCases({
+    rootDir: root,
+    sourceProject,
+    localReplayDir,
+    nativeRegionMapPath: nativeRegionMapPath(flags),
+  });
   console.log(`Prepared ${manifest.cases.length} cases in ${path.join(root, "cases")}`);
 }
 
@@ -76,7 +94,11 @@ async function commandRun(flags: Record<string, string | boolean>): Promise<void
     .filter((item) => {
       if (!caseGroup) return true;
       if (caseGroup === "sdf-adversarial") return item.source === "adversarial" || item.label.startsWith("sdf_");
-      if (caseGroup === "replay10") return item.source !== "adversarial";
+      if (caseGroup === "sdf-boundary") return item.source === "adversarial" || item.label.startsWith("sdf_");
+      if (caseGroup === "replay10") return item.source === "repo" || item.source === "local";
+      if (caseGroup === "replay100") return item.source === "repo" || item.source === "local" || item.source === "paper_replay";
+      if (caseGroup === "stress") return item.source === "stress";
+      if (caseGroup === "ablation") return item.source === "ablation";
       throw new Error(`Unknown --case-group ${caseGroup}`);
     })
     .slice(0, Math.max(0, caseLimit));

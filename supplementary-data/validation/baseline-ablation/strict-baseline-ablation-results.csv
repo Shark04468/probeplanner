@@ -1,0 +1,325 @@
+caseId,requestedTargets,targetingMode,family,methodId,methodLabel,candidateCount,selectedProbeCount,coverageRate,fullCoverageRate,uncoveredCoverageUnitCount,uncoveredTargets,hardViolationCount,hardViolationRate,minimumInternalRiskMarginMm,internalRiskEvidenceAvailable,runtimeSec,status
+search_unilateral_ca1,"[""CA1""]",single_hemisphere,baselines,probeplanner,ProbePlanner,15,1,1.0,1.0,0,[],0,0.0,,False,17.838197,ok
+search_unilateral_ca1,"[""CA1""]",single_hemisphere,baselines,one_target_one_probe,one-target-one-probe,15,1,1.0,1.0,0,[],0,0.0,,False,17.838325,ok
+search_unilateral_ca1,"[""CA1""]",single_hemisphere,baselines,greedy_grouping,greedy grouping,15,1,1.0,1.0,0,[],0,0.0,,False,17.838331,ok
+search_unilateral_ca1,"[""CA1""]",single_hemisphere,baselines,coverage_first_greedy,coverage-first greedy,15,1,1.0,1.0,0,[],0,0.0,,False,17.838304,ok
+search_unilateral_ca1,"[""CA1""]",single_hemisphere,baselines,random_feasible,random feasible selection,15,1.0,1.0,1.0,0.0,[],0.0,0.0,,False,17.838244,aggregate
+search_unilateral_ca1,"[""CA1""]",single_hemisphere,ablations,full_probeplanner,full ProbePlanner,15,1,1.0,1.0,0,[],0,0.0,,False,17.838197,ok
+search_unilateral_ca1,"[""CA1""]",single_hemisphere,ablations,no_probe_count_penalty,no probe-count penalty,15,2,1.0,1.0,0,[],0,0.0,,False,17.840185,ok
+search_unilateral_ca1,"[""CA1""]",single_hemisphere,ablations,no_coverage_priority,no coverage priority,15,1,1.0,1.0,0,[],0,0.0,,False,17.838429,ok
+search_unilateral_ca1,"[""CA1""]",single_hemisphere,ablations,no_multi_target_grouping,no multi-target grouping,15,1,1.0,1.0,0,[],0,0.0,,False,17.838336,ok
+search_unilateral_ca1,"[""CA1""]",single_hemisphere,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,1,"[""CA1""]",0,0.0,,False,0.873979,partial_or_violating
+search_unilateral_ca1,"[""CA1""]",single_hemisphere,ablations,no_tip_in_target_policy,no tip-in-target policy,46,1,1.0,1.0,0,[],0,0.0,,False,25.665081,ok
+search_unilateral_ca1,"[""CA1""]",single_hemisphere,ablations,no_internal_risk_enforcement,no internal-risk enforcement,15,1,1.0,1.0,0,[],0,0.0,,False,12.194429,ok
+search_unilateral_ca3,"[""CA3""]",single_hemisphere,baselines,probeplanner,ProbePlanner,25,1,1.0,1.0,0,[],0,0.0,,False,24.659464,ok
+search_unilateral_ca3,"[""CA3""]",single_hemisphere,baselines,one_target_one_probe,one-target-one-probe,25,1,1.0,1.0,0,[],0,0.0,,False,24.659725,ok
+search_unilateral_ca3,"[""CA3""]",single_hemisphere,baselines,greedy_grouping,greedy grouping,25,1,1.0,1.0,0,[],0,0.0,,False,24.659821,ok
+search_unilateral_ca3,"[""CA3""]",single_hemisphere,baselines,coverage_first_greedy,coverage-first greedy,25,1,1.0,1.0,0,[],0,0.0,,False,24.659811,ok
+search_unilateral_ca3,"[""CA3""]",single_hemisphere,baselines,random_feasible,random feasible selection,25,1.0,1.0,1.0,0.0,[],0.0,0.0,,False,24.659528,aggregate
+search_unilateral_ca3,"[""CA3""]",single_hemisphere,ablations,full_probeplanner,full ProbePlanner,25,1,1.0,1.0,0,[],0,0.0,,False,24.659464,ok
+search_unilateral_ca3,"[""CA3""]",single_hemisphere,ablations,no_probe_count_penalty,no probe-count penalty,25,2,1.0,1.0,0,[],0,0.0,,False,24.663716,ok
+search_unilateral_ca3,"[""CA3""]",single_hemisphere,ablations,no_coverage_priority,no coverage priority,25,1,1.0,1.0,0,[],0,0.0,,False,24.659785,ok
+search_unilateral_ca3,"[""CA3""]",single_hemisphere,ablations,no_multi_target_grouping,no multi-target grouping,25,1,1.0,1.0,0,[],0,0.0,,False,24.659669,ok
+search_unilateral_ca3,"[""CA3""]",single_hemisphere,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,1,"[""CA3""]",0,0.0,,False,0.942296,partial_or_violating
+search_unilateral_ca3,"[""CA3""]",single_hemisphere,ablations,no_tip_in_target_policy,no tip-in-target policy,36,1,1.0,1.0,0,[],0,0.0,,False,22.902305,ok
+search_unilateral_ca3,"[""CA3""]",single_hemisphere,ablations,no_internal_risk_enforcement,no internal-risk enforcement,25,1,1.0,1.0,0,[],0,0.0,,False,12.784136,ok
+search_unilateral_dg,"[""DG""]",single_hemisphere,baselines,probeplanner,ProbePlanner,37,1,1.0,1.0,0,[],0,0.0,,False,22.446886,ok
+search_unilateral_dg,"[""DG""]",single_hemisphere,baselines,one_target_one_probe,one-target-one-probe,37,1,1.0,1.0,0,[],0,0.0,,False,22.44721,ok
+search_unilateral_dg,"[""DG""]",single_hemisphere,baselines,greedy_grouping,greedy grouping,37,1,1.0,1.0,0,[],0,0.0,,False,22.447267,ok
+search_unilateral_dg,"[""DG""]",single_hemisphere,baselines,coverage_first_greedy,coverage-first greedy,37,1,1.0,1.0,0,[],0,0.0,,False,22.447254,ok
+search_unilateral_dg,"[""DG""]",single_hemisphere,baselines,random_feasible,random feasible selection,37,1.0,1.0,1.0,0.0,[],0.0,0.0,,False,22.446962,aggregate
+search_unilateral_dg,"[""DG""]",single_hemisphere,ablations,full_probeplanner,full ProbePlanner,37,1,1.0,1.0,0,[],0,0.0,,False,22.446886,ok
+search_unilateral_dg,"[""DG""]",single_hemisphere,ablations,no_probe_count_penalty,no probe-count penalty,37,2,1.0,1.0,0,[],0,0.0,,False,22.45415,ok
+search_unilateral_dg,"[""DG""]",single_hemisphere,ablations,no_coverage_priority,no coverage priority,37,1,1.0,1.0,0,[],0,0.0,,False,22.44737,ok
+search_unilateral_dg,"[""DG""]",single_hemisphere,ablations,no_multi_target_grouping,no multi-target grouping,37,1,1.0,1.0,0,[],0,0.0,,False,22.447195,ok
+search_unilateral_dg,"[""DG""]",single_hemisphere,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,1,"[""DG""]",0,0.0,,False,2.028412,partial_or_violating
+search_unilateral_dg,"[""DG""]",single_hemisphere,ablations,no_tip_in_target_policy,no tip-in-target policy,44,1,1.0,1.0,0,[],1,1.0,,False,20.957457,partial_or_violating
+search_unilateral_dg,"[""DG""]",single_hemisphere,ablations,no_internal_risk_enforcement,no internal-risk enforcement,37,1,1.0,1.0,0,[],0,0.0,,False,13.213765,ok
+search_unilateral_visp,"[""VISp""]",single_hemisphere,baselines,probeplanner,ProbePlanner,18,1,1.0,1.0,0,[],0,0.0,,False,12.328348,ok
+search_unilateral_visp,"[""VISp""]",single_hemisphere,baselines,one_target_one_probe,one-target-one-probe,18,1,1.0,1.0,0,[],0,0.0,,False,12.328539,ok
+search_unilateral_visp,"[""VISp""]",single_hemisphere,baselines,greedy_grouping,greedy grouping,18,1,1.0,1.0,0,[],0,0.0,,False,12.328559,ok
+search_unilateral_visp,"[""VISp""]",single_hemisphere,baselines,coverage_first_greedy,coverage-first greedy,18,1,1.0,1.0,0,[],0,0.0,,False,12.328528,ok
+search_unilateral_visp,"[""VISp""]",single_hemisphere,baselines,random_feasible,random feasible selection,18,1.0,1.0,1.0,0.0,[],0.0,0.0,,False,12.328389,aggregate
+search_unilateral_visp,"[""VISp""]",single_hemisphere,ablations,full_probeplanner,full ProbePlanner,18,1,1.0,1.0,0,[],0,0.0,,False,12.328348,ok
+search_unilateral_visp,"[""VISp""]",single_hemisphere,ablations,no_probe_count_penalty,no probe-count penalty,18,2,1.0,1.0,0,[],0,0.0,,False,12.331089,ok
+search_unilateral_visp,"[""VISp""]",single_hemisphere,ablations,no_coverage_priority,no coverage priority,18,1,1.0,1.0,0,[],0,0.0,,False,12.32859,ok
+search_unilateral_visp,"[""VISp""]",single_hemisphere,ablations,no_multi_target_grouping,no multi-target grouping,18,1,1.0,1.0,0,[],0,0.0,,False,12.328519,ok
+search_unilateral_visp,"[""VISp""]",single_hemisphere,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,1,"[""VISp""]",0,0.0,,False,1.089333,partial_or_violating
+search_unilateral_visp,"[""VISp""]",single_hemisphere,ablations,no_tip_in_target_policy,no tip-in-target policy,32,1,1.0,1.0,0,[],0,0.0,,False,12.812583,ok
+search_unilateral_visp,"[""VISp""]",single_hemisphere,ablations,no_internal_risk_enforcement,no internal-risk enforcement,18,1,1.0,1.0,0,[],0,0.0,,False,11.557335,ok
+search_unilateral_ssp,"[""SSp""]",single_hemisphere,baselines,probeplanner,ProbePlanner,26,1,1.0,1.0,0,[],0,0.0,,False,22.085852,ok
+search_unilateral_ssp,"[""SSp""]",single_hemisphere,baselines,one_target_one_probe,one-target-one-probe,26,1,1.0,1.0,0,[],0,0.0,,False,22.086101,ok
+search_unilateral_ssp,"[""SSp""]",single_hemisphere,baselines,greedy_grouping,greedy grouping,26,1,1.0,1.0,0,[],0,0.0,,False,22.08612,ok
+search_unilateral_ssp,"[""SSp""]",single_hemisphere,baselines,coverage_first_greedy,coverage-first greedy,26,1,1.0,1.0,0,[],0,0.0,,False,22.086058,ok
+search_unilateral_ssp,"[""SSp""]",single_hemisphere,baselines,random_feasible,random feasible selection,26,1.0,1.0,1.0,0.0,[],0.0,0.0,,False,22.08589,aggregate
+search_unilateral_ssp,"[""SSp""]",single_hemisphere,ablations,full_probeplanner,full ProbePlanner,26,1,1.0,1.0,0,[],0,0.0,,False,22.085852,ok
+search_unilateral_ssp,"[""SSp""]",single_hemisphere,ablations,no_probe_count_penalty,no probe-count penalty,26,2,1.0,1.0,0,[],0,0.0,,False,22.087591,ok
+search_unilateral_ssp,"[""SSp""]",single_hemisphere,ablations,no_coverage_priority,no coverage priority,26,1,1.0,1.0,0,[],0,0.0,,False,22.086046,ok
+search_unilateral_ssp,"[""SSp""]",single_hemisphere,ablations,no_multi_target_grouping,no multi-target grouping,26,1,1.0,1.0,0,[],0,0.0,,False,22.085981,ok
+search_unilateral_ssp,"[""SSp""]",single_hemisphere,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,1,"[""SSp""]",0,0.0,,False,5.895808,partial_or_violating
+search_unilateral_ssp,"[""SSp""]",single_hemisphere,ablations,no_tip_in_target_policy,no tip-in-target policy,48,1,1.0,1.0,0,[],1,1.0,,False,25.893131,partial_or_violating
+search_unilateral_ssp,"[""SSp""]",single_hemisphere,ablations,no_internal_risk_enforcement,no internal-risk enforcement,26,1,1.0,1.0,0,[],0,0.0,,False,17.185362,ok
+search_unilateral_vpm,"[""VPM""]",single_hemisphere,baselines,probeplanner,ProbePlanner,12,1,1.0,1.0,0,[],0,0.0,,False,21.212045,ok
+search_unilateral_vpm,"[""VPM""]",single_hemisphere,baselines,one_target_one_probe,one-target-one-probe,12,1,1.0,1.0,0,[],0,0.0,,False,21.212184,ok
+search_unilateral_vpm,"[""VPM""]",single_hemisphere,baselines,greedy_grouping,greedy grouping,12,1,1.0,1.0,0,[],0,0.0,,False,21.212225,ok
+search_unilateral_vpm,"[""VPM""]",single_hemisphere,baselines,coverage_first_greedy,coverage-first greedy,12,1,1.0,1.0,0,[],0,0.0,,False,21.212214,ok
+search_unilateral_vpm,"[""VPM""]",single_hemisphere,baselines,random_feasible,random feasible selection,12,1.0,1.0,1.0,0.0,[],0.0,0.0,,False,21.212086,aggregate
+search_unilateral_vpm,"[""VPM""]",single_hemisphere,ablations,full_probeplanner,full ProbePlanner,12,1,1.0,1.0,0,[],0,0.0,,False,21.212045,ok
+search_unilateral_vpm,"[""VPM""]",single_hemisphere,ablations,no_probe_count_penalty,no probe-count penalty,12,2,1.0,1.0,0,[],0,0.0,,False,21.214578,ok
+search_unilateral_vpm,"[""VPM""]",single_hemisphere,ablations,no_coverage_priority,no coverage priority,12,1,1.0,1.0,0,[],0,0.0,,False,21.212288,ok
+search_unilateral_vpm,"[""VPM""]",single_hemisphere,ablations,no_multi_target_grouping,no multi-target grouping,12,1,1.0,1.0,0,[],0,0.0,,False,21.212175,ok
+search_unilateral_vpm,"[""VPM""]",single_hemisphere,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,1,"[""VPM""]",0,0.0,,False,0.355779,partial_or_violating
+search_unilateral_vpm,"[""VPM""]",single_hemisphere,ablations,no_tip_in_target_policy,no tip-in-target policy,32,1,1.0,1.0,0,[],0,0.0,,False,35.27156,ok
+search_unilateral_vpm,"[""VPM""]",single_hemisphere,ablations,no_internal_risk_enforcement,no internal-risk enforcement,12,1,1.0,1.0,0,[],0,0.0,,False,13.196225,ok
+search_unilateral_mos,"[""MOs""]",single_hemisphere,baselines,probeplanner,ProbePlanner,30,1,1.0,1.0,0,[],0,0.0,,False,15.848742,ok
+search_unilateral_mos,"[""MOs""]",single_hemisphere,baselines,one_target_one_probe,one-target-one-probe,30,1,1.0,1.0,0,[],0,0.0,,False,15.849055,ok
+search_unilateral_mos,"[""MOs""]",single_hemisphere,baselines,greedy_grouping,greedy grouping,30,1,1.0,1.0,0,[],0,0.0,,False,15.849199,ok
+search_unilateral_mos,"[""MOs""]",single_hemisphere,baselines,coverage_first_greedy,coverage-first greedy,30,1,1.0,1.0,0,[],0,0.0,,False,15.84913,ok
+search_unilateral_mos,"[""MOs""]",single_hemisphere,baselines,random_feasible,random feasible selection,30,1.0,1.0,1.0,0.0,[],0.0,0.0,,False,15.848812,aggregate
+search_unilateral_mos,"[""MOs""]",single_hemisphere,ablations,full_probeplanner,full ProbePlanner,30,1,1.0,1.0,0,[],0,0.0,,False,15.848742,ok
+search_unilateral_mos,"[""MOs""]",single_hemisphere,ablations,no_probe_count_penalty,no probe-count penalty,30,2,1.0,1.0,0,[],0,0.0,,False,15.854504,ok
+search_unilateral_mos,"[""MOs""]",single_hemisphere,ablations,no_coverage_priority,no coverage priority,30,1,1.0,1.0,0,[],0,0.0,,False,15.849178,ok
+search_unilateral_mos,"[""MOs""]",single_hemisphere,ablations,no_multi_target_grouping,no multi-target grouping,30,1,1.0,1.0,0,[],0,0.0,,False,15.848996,ok
+search_unilateral_mos,"[""MOs""]",single_hemisphere,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,1,"[""MOs""]",0,0.0,,False,0.91568,partial_or_violating
+search_unilateral_mos,"[""MOs""]",single_hemisphere,ablations,no_tip_in_target_policy,no tip-in-target policy,65,1,1.0,1.0,0,[],1,1.0,,False,23.903009,partial_or_violating
+search_unilateral_mos,"[""MOs""]",single_hemisphere,ablations,no_internal_risk_enforcement,no internal-risk enforcement,30,1,1.0,1.0,0,[],0,0.0,,False,12.300312,ok
+search_unilateral_lp,"[""LP""]",single_hemisphere,baselines,probeplanner,ProbePlanner,7,1,1.0,1.0,0,[],0,0.0,,False,15.821378,ok
+search_unilateral_lp,"[""LP""]",single_hemisphere,baselines,one_target_one_probe,one-target-one-probe,7,1,1.0,1.0,0,[],0,0.0,,False,15.821461,ok
+search_unilateral_lp,"[""LP""]",single_hemisphere,baselines,greedy_grouping,greedy grouping,7,1,1.0,1.0,0,[],0,0.0,,False,15.821479,ok
+search_unilateral_lp,"[""LP""]",single_hemisphere,baselines,coverage_first_greedy,coverage-first greedy,7,1,1.0,1.0,0,[],0,0.0,,False,15.821475,ok
+search_unilateral_lp,"[""LP""]",single_hemisphere,baselines,random_feasible,random feasible selection,7,1.0,1.0,1.0,0.0,[],0.0,0.0,,False,15.821402,aggregate
+search_unilateral_lp,"[""LP""]",single_hemisphere,ablations,full_probeplanner,full ProbePlanner,7,1,1.0,1.0,0,[],0,0.0,,False,15.821378,ok
+search_unilateral_lp,"[""LP""]",single_hemisphere,ablations,no_probe_count_penalty,no probe-count penalty,7,2,1.0,1.0,0,[],0,0.0,,False,15.822375,ok
+search_unilateral_lp,"[""LP""]",single_hemisphere,ablations,no_coverage_priority,no coverage priority,7,1,1.0,1.0,0,[],0,0.0,,False,15.821504,ok
+search_unilateral_lp,"[""LP""]",single_hemisphere,ablations,no_multi_target_grouping,no multi-target grouping,7,1,1.0,1.0,0,[],0,0.0,,False,15.82145,ok
+search_unilateral_lp,"[""LP""]",single_hemisphere,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,1,"[""LP""]",0,0.0,,False,0.328941,partial_or_violating
+search_unilateral_lp,"[""LP""]",single_hemisphere,ablations,no_tip_in_target_policy,no tip-in-target policy,32,1,1.0,1.0,0,[],1,1.0,,False,30.624733,partial_or_violating
+search_unilateral_lp,"[""LP""]",single_hemisphere,ablations,no_internal_risk_enforcement,no internal-risk enforcement,7,1,1.0,1.0,0,[],0,0.0,,False,11.267799,ok
+search_unilateral_lgd,"[""LGd""]",single_hemisphere,baselines,probeplanner,ProbePlanner,7,1,1.0,1.0,0,[],0,0.0,,False,14.70493,ok
+search_unilateral_lgd,"[""LGd""]",single_hemisphere,baselines,one_target_one_probe,one-target-one-probe,7,1,1.0,1.0,0,[],0,0.0,,False,14.705035,ok
+search_unilateral_lgd,"[""LGd""]",single_hemisphere,baselines,greedy_grouping,greedy grouping,7,1,1.0,1.0,0,[],0,0.0,,False,14.705044,ok
+search_unilateral_lgd,"[""LGd""]",single_hemisphere,baselines,coverage_first_greedy,coverage-first greedy,7,1,1.0,1.0,0,[],0,0.0,,False,14.70502,ok
+search_unilateral_lgd,"[""LGd""]",single_hemisphere,baselines,random_feasible,random feasible selection,7,1.0,1.0,1.0,0.0,[],0.0,0.0,,False,14.704953,aggregate
+search_unilateral_lgd,"[""LGd""]",single_hemisphere,ablations,full_probeplanner,full ProbePlanner,7,1,1.0,1.0,0,[],0,0.0,,False,14.70493,ok
+search_unilateral_lgd,"[""LGd""]",single_hemisphere,ablations,no_probe_count_penalty,no probe-count penalty,7,2,1.0,1.0,0,[],0,0.0,,False,14.706744,ok
+search_unilateral_lgd,"[""LGd""]",single_hemisphere,ablations,no_coverage_priority,no coverage priority,7,1,1.0,1.0,0,[],0,0.0,,False,14.705064,ok
+search_unilateral_lgd,"[""LGd""]",single_hemisphere,ablations,no_multi_target_grouping,no multi-target grouping,7,1,1.0,1.0,0,[],0,0.0,,False,14.705005,ok
+search_unilateral_lgd,"[""LGd""]",single_hemisphere,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,1,"[""LGd""]",0,0.0,,False,0.62885,partial_or_violating
+search_unilateral_lgd,"[""LGd""]",single_hemisphere,ablations,no_tip_in_target_policy,no tip-in-target policy,32,1,1.0,1.0,0,[],1,1.0,,False,30.90661,partial_or_violating
+search_unilateral_lgd,"[""LGd""]",single_hemisphere,ablations,no_internal_risk_enforcement,no internal-risk enforcement,7,1,1.0,1.0,0,[],0,0.0,,False,11.793973,ok
+search_unilateral_mop,"[""MOp""]",single_hemisphere,baselines,probeplanner,ProbePlanner,30,1,1.0,1.0,0,[],0,0.0,,False,15.435931,ok
+search_unilateral_mop,"[""MOp""]",single_hemisphere,baselines,one_target_one_probe,one-target-one-probe,30,1,1.0,1.0,0,[],0,0.0,,False,15.436188,ok
+search_unilateral_mop,"[""MOp""]",single_hemisphere,baselines,greedy_grouping,greedy grouping,30,1,1.0,1.0,0,[],0,0.0,,False,15.436296,ok
+search_unilateral_mop,"[""MOp""]",single_hemisphere,baselines,coverage_first_greedy,coverage-first greedy,30,1,1.0,1.0,0,[],0,0.0,,False,15.436243,ok
+search_unilateral_mop,"[""MOp""]",single_hemisphere,baselines,random_feasible,random feasible selection,30,1.0,1.0,1.0,0.0,[],0.0,0.0,,False,15.435997,aggregate
+search_unilateral_mop,"[""MOp""]",single_hemisphere,ablations,full_probeplanner,full ProbePlanner,30,1,1.0,1.0,0,[],0,0.0,,False,15.435931,ok
+search_unilateral_mop,"[""MOp""]",single_hemisphere,ablations,no_probe_count_penalty,no probe-count penalty,30,2,1.0,1.0,0,[],0,0.0,,False,15.442198,ok
+search_unilateral_mop,"[""MOp""]",single_hemisphere,ablations,no_coverage_priority,no coverage priority,30,1,1.0,1.0,0,[],0,0.0,,False,15.436334,ok
+search_unilateral_mop,"[""MOp""]",single_hemisphere,ablations,no_multi_target_grouping,no multi-target grouping,30,1,1.0,1.0,0,[],0,0.0,,False,15.43617,ok
+search_unilateral_mop,"[""MOp""]",single_hemisphere,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,1,"[""MOp""]",0,0.0,,False,0.82545,partial_or_violating
+search_unilateral_mop,"[""MOp""]",single_hemisphere,ablations,no_tip_in_target_policy,no tip-in-target policy,42,1,1.0,1.0,0,[],1,1.0,,False,17.492815,partial_or_violating
+search_unilateral_mop,"[""MOp""]",single_hemisphere,ablations,no_internal_risk_enforcement,no internal-risk enforcement,30,1,1.0,1.0,0,[],0,0.0,,False,11.781378,ok
+search_bilateral_ca1_ca3,"[""CA1"", ""CA3""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,95,2,1.0,1.0,0,[],0,0.0,,False,45.054301,ok
+search_bilateral_ca1_ca3,"[""CA1"", ""CA3""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,95,4,1.0,1.0,0,[],2,0.2,,False,45.055585,partial_or_violating
+search_bilateral_ca1_ca3,"[""CA1"", ""CA3""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,95,2,1.0,1.0,0,[],0,0.0,,False,45.060322,ok
+search_bilateral_ca1_ca3,"[""CA1"", ""CA3""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,95,2,1.0,1.0,0,[],0,0.0,,False,45.058775,ok
+search_bilateral_ca1_ca3,"[""CA1"", ""CA3""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,95,2.1,1.0,1.0,0.0,[],0.05,0.008333,,False,45.064404,aggregate
+search_bilateral_ca1_ca3,"[""CA1"", ""CA3""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,95,2,1.0,1.0,0,[],0,0.0,,False,45.054301,ok
+search_bilateral_ca1_ca3,"[""CA1"", ""CA3""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,95,6,1.0,1.0,0,[],1,0.047619,,False,45.073037,partial_or_violating
+search_bilateral_ca1_ca3,"[""CA1"", ""CA3""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,95,2,1.0,1.0,0,[],0,0.0,,False,45.055348,ok
+search_bilateral_ca1_ca3,"[""CA1"", ""CA3""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,95,4,1.0,1.0,0,[],2,0.2,,False,45.055223,partial_or_violating
+search_bilateral_ca1_ca3,"[""CA1"", ""CA3""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""CA1"", ""CA3""]",0,0.0,,False,1.323755,partial_or_violating
+search_bilateral_ca1_ca3,"[""CA1"", ""CA3""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,125,2,1.0,1.0,0,[],2,0.666667,,False,49.069659,partial_or_violating
+search_bilateral_ca1_ca3,"[""CA1"", ""CA3""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,95,2,1.0,1.0,0,[],0,0.0,,False,18.203837,ok
+search_bilateral_ca1_dg,"[""CA1"", ""DG""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,66,2,1.0,1.0,0,[],0,0.0,,False,30.073796,ok
+search_bilateral_ca1_dg,"[""CA1"", ""DG""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,66,4,1.0,1.0,0,[],2,0.2,,False,30.075248,partial_or_violating
+search_bilateral_ca1_dg,"[""CA1"", ""DG""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,66,2,1.0,1.0,0,[],0,0.0,,False,30.080781,ok
+search_bilateral_ca1_dg,"[""CA1"", ""DG""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,66,2,1.0,1.0,0,[],0,0.0,,False,30.082641,ok
+search_bilateral_ca1_dg,"[""CA1"", ""DG""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,66,2.0,1.0,1.0,0.0,[],0.0,0.0,,False,30.079479,aggregate
+search_bilateral_ca1_dg,"[""CA1"", ""DG""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,66,2,1.0,1.0,0,[],0,0.0,,False,30.073796,ok
+search_bilateral_ca1_dg,"[""CA1"", ""DG""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,66,4,1.0,1.0,0,[],0,0.0,,False,30.086897,ok
+search_bilateral_ca1_dg,"[""CA1"", ""DG""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,66,2,0.5,0.0,2,"[""CA1"", ""DG""]",0,0.0,,False,30.075377,partial_or_violating
+search_bilateral_ca1_dg,"[""CA1"", ""DG""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,66,4,1.0,1.0,0,[],2,0.2,,False,30.074951,partial_or_violating
+search_bilateral_ca1_dg,"[""CA1"", ""DG""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""CA1"", ""DG""]",0,0.0,,False,2.082348,partial_or_violating
+search_bilateral_ca1_dg,"[""CA1"", ""DG""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,123,2,1.0,1.0,0,[],2,0.666667,,False,47.40231,partial_or_violating
+search_bilateral_ca1_dg,"[""CA1"", ""DG""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,66,2,1.0,1.0,0,[],0,0.0,,False,16.645854,ok
+search_bilateral_ca1_visp,"[""CA1"", ""VISp""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,50,2,1.0,1.0,0,[],0,0.0,,False,24.995583,ok
+search_bilateral_ca1_visp,"[""CA1"", ""VISp""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,50,4,1.0,1.0,0,[],1,0.1,,False,24.996139,partial_or_violating
+search_bilateral_ca1_visp,"[""CA1"", ""VISp""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,50,2,1.0,1.0,0,[],0,0.0,,False,25.000241,ok
+search_bilateral_ca1_visp,"[""CA1"", ""VISp""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,50,2,1.0,1.0,0,[],0,0.0,,False,25.00109,ok
+search_bilateral_ca1_visp,"[""CA1"", ""VISp""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,50,2.15,1.0,1.0,0.0,[],0.0,0.0,,False,24.999994,aggregate
+search_bilateral_ca1_visp,"[""CA1"", ""VISp""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,50,2,1.0,1.0,0,[],0,0.0,,False,24.995583,ok
+search_bilateral_ca1_visp,"[""CA1"", ""VISp""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,50,4,1.0,1.0,0,[],0,0.0,,False,25.005899,ok
+search_bilateral_ca1_visp,"[""CA1"", ""VISp""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,50,2,1.0,1.0,0,[],0,0.0,,False,24.998333,ok
+search_bilateral_ca1_visp,"[""CA1"", ""VISp""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,50,4,1.0,1.0,0,[],1,0.1,,False,24.996501,partial_or_violating
+search_bilateral_ca1_visp,"[""CA1"", ""VISp""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""CA1"", ""VISp""]",0,0.0,,False,1.429163,partial_or_violating
+search_bilateral_ca1_visp,"[""CA1"", ""VISp""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,138,2,1.0,1.0,0,[],0,0.0,,False,47.326677,ok
+search_bilateral_ca1_visp,"[""CA1"", ""VISp""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,50,2,1.0,1.0,0,[],0,0.0,,False,15.83981,ok
+search_bilateral_ca1_ssp,"[""CA1"", ""SSp""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,38,2,1.0,1.0,0,[],0,0.0,,False,25.050092,ok
+search_bilateral_ca1_ssp,"[""CA1"", ""SSp""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,38,4,1.0,1.0,0,[],0,0.0,,False,25.050801,ok
+search_bilateral_ca1_ssp,"[""CA1"", ""SSp""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,38,2,1.0,1.0,0,[],0,0.0,,False,25.053153,ok
+search_bilateral_ca1_ssp,"[""CA1"", ""SSp""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,38,2,1.0,1.0,0,[],0,0.0,,False,25.053603,ok
+search_bilateral_ca1_ssp,"[""CA1"", ""SSp""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,38,2.55,1.0,1.0,0.0,[],0.0,0.0,,False,25.055999,aggregate
+search_bilateral_ca1_ssp,"[""CA1"", ""SSp""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,38,2,1.0,1.0,0,[],0,0.0,,False,25.050092,ok
+search_bilateral_ca1_ssp,"[""CA1"", ""SSp""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,38,5,1.0,1.0,0,[],0,0.0,,False,25.053905,ok
+search_bilateral_ca1_ssp,"[""CA1"", ""SSp""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,38,2,1.0,1.0,0,[],0,0.0,,False,25.050858,ok
+search_bilateral_ca1_ssp,"[""CA1"", ""SSp""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,38,4,1.0,1.0,0,[],0,0.0,,False,25.050469,ok
+search_bilateral_ca1_ssp,"[""CA1"", ""SSp""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""CA1"", ""SSp""]",0,0.0,,False,6.00829,partial_or_violating
+search_bilateral_ca1_ssp,"[""CA1"", ""SSp""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,175,2,1.0,1.0,0,[],2,0.666667,,False,121.679656,partial_or_violating
+search_bilateral_ca1_ssp,"[""CA1"", ""SSp""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,38,2,1.0,1.0,0,[],0,0.0,,False,21.507231,ok
+search_bilateral_ca1_vpm,"[""CA1"", ""VPM""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,32,2,1.0,1.0,0,[],0,0.0,,False,31.889549,ok
+search_bilateral_ca1_vpm,"[""CA1"", ""VPM""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,32,4,1.0,1.0,0,[],2,0.2,,False,31.890171,partial_or_violating
+search_bilateral_ca1_vpm,"[""CA1"", ""VPM""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,32,2,1.0,1.0,0,[],0,0.0,,False,31.893436,ok
+search_bilateral_ca1_vpm,"[""CA1"", ""VPM""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,32,2,1.0,1.0,0,[],0,0.0,,False,31.89406,ok
+search_bilateral_ca1_vpm,"[""CA1"", ""VPM""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,32,2.2,1.0,1.0,0.0,[],0.15,0.025,,False,31.893391,aggregate
+search_bilateral_ca1_vpm,"[""CA1"", ""VPM""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,32,2,1.0,1.0,0,[],0,0.0,,False,31.889549,ok
+search_bilateral_ca1_vpm,"[""CA1"", ""VPM""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,32,2,1.0,1.0,0,[],0,0.0,,False,31.896827,ok
+search_bilateral_ca1_vpm,"[""CA1"", ""VPM""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,32,2,1.0,1.0,0,[],0,0.0,,False,31.890963,ok
+search_bilateral_ca1_vpm,"[""CA1"", ""VPM""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,32,4,1.0,1.0,0,[],2,0.2,,False,31.890096,partial_or_violating
+search_bilateral_ca1_vpm,"[""CA1"", ""VPM""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""CA1"", ""VPM""]",0,0.0,,False,1.260482,partial_or_violating
+search_bilateral_ca1_vpm,"[""CA1"", ""VPM""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,93,2,1.0,1.0,0,[],0,0.0,,False,50.315955,ok
+search_bilateral_ca1_vpm,"[""CA1"", ""VPM""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,32,2,1.0,1.0,0,[],0,0.0,,False,16.490361,ok
+search_bilateral_ca1_lp,"[""CA1"", ""LP""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,25,2,1.0,1.0,0,[],0,0.0,,False,23.299072,ok
+search_bilateral_ca1_lp,"[""CA1"", ""LP""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,25,4,1.0,1.0,0,[],2,0.2,,False,23.299367,partial_or_violating
+search_bilateral_ca1_lp,"[""CA1"", ""LP""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,25,2,1.0,1.0,0,[],0,0.0,,False,23.300133,ok
+search_bilateral_ca1_lp,"[""CA1"", ""LP""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,25,2,1.0,1.0,0,[],0,0.0,,False,23.300252,ok
+search_bilateral_ca1_lp,"[""CA1"", ""LP""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,25,2.3,1.0,1.0,0.0,[],0.05,0.008333,,False,23.302587,aggregate
+search_bilateral_ca1_lp,"[""CA1"", ""LP""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,25,2,1.0,1.0,0,[],0,0.0,,False,23.299072,ok
+search_bilateral_ca1_lp,"[""CA1"", ""LP""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,25,4,1.0,1.0,0,[],0,0.0,,False,23.302524,ok
+search_bilateral_ca1_lp,"[""CA1"", ""LP""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,25,2,1.0,1.0,0,[],0,0.0,,False,23.29968,ok
+search_bilateral_ca1_lp,"[""CA1"", ""LP""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,25,4,1.0,1.0,0,[],2,0.2,,False,23.299544,partial_or_violating
+search_bilateral_ca1_lp,"[""CA1"", ""LP""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""CA1"", ""LP""]",0,0.0,,False,1.055468,partial_or_violating
+search_bilateral_ca1_lp,"[""CA1"", ""LP""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,111,2,1.0,1.0,0,[],2,0.666667,,False,57.628713,partial_or_violating
+search_bilateral_ca1_lp,"[""CA1"", ""LP""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,25,2,1.0,1.0,0,[],0,0.0,,False,14.544547,ok
+search_bilateral_ca1_lgd,"[""CA1"", ""LGd""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,40,2,1.0,1.0,0,[],0,0.0,,False,24.959319,ok
+search_bilateral_ca1_lgd,"[""CA1"", ""LGd""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,40,4,1.0,1.0,0,[],2,0.2,,False,24.960046,partial_or_violating
+search_bilateral_ca1_lgd,"[""CA1"", ""LGd""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,40,2,1.0,1.0,0,[],0,0.0,,False,24.960733,ok
+search_bilateral_ca1_lgd,"[""CA1"", ""LGd""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,40,2,1.0,1.0,0,[],0,0.0,,False,24.961565,ok
+search_bilateral_ca1_lgd,"[""CA1"", ""LGd""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,40,2.45,1.0,1.0,0.0,[],0.0,0.0,,False,24.964459,aggregate
+search_bilateral_ca1_lgd,"[""CA1"", ""LGd""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,40,2,1.0,1.0,0,[],0,0.0,,False,24.959319,ok
+search_bilateral_ca1_lgd,"[""CA1"", ""LGd""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,40,6,1.0,1.0,0,[],0,0.0,,False,24.964813,ok
+search_bilateral_ca1_lgd,"[""CA1"", ""LGd""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,40,2,1.0,1.0,0,[],0,0.0,,False,24.961307,ok
+search_bilateral_ca1_lgd,"[""CA1"", ""LGd""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,40,4,1.0,1.0,0,[],2,0.2,,False,24.959661,partial_or_violating
+search_bilateral_ca1_lgd,"[""CA1"", ""LGd""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""CA1"", ""LGd""]",0,0.0,,False,1.208581,partial_or_violating
+search_bilateral_ca1_lgd,"[""CA1"", ""LGd""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,154,2,1.0,1.0,0,[],1,0.333333,,False,67.005342,partial_or_violating
+search_bilateral_ca1_lgd,"[""CA1"", ""LGd""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,40,2,1.0,1.0,0,[],0,0.0,,False,15.288853,ok
+search_bilateral_ca3_dg,"[""CA3"", ""DG""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,102,2,1.0,1.0,0,[],0,0.0,,False,35.824967,ok
+search_bilateral_ca3_dg,"[""CA3"", ""DG""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,102,4,1.0,1.0,0,[],2,0.2,,False,35.826756,partial_or_violating
+search_bilateral_ca3_dg,"[""CA3"", ""DG""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,102,2,1.0,1.0,0,[],0,0.0,,False,35.835234,ok
+search_bilateral_ca3_dg,"[""CA3"", ""DG""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,102,2,1.0,1.0,0,[],0,0.0,,False,35.835804,ok
+search_bilateral_ca3_dg,"[""CA3"", ""DG""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,102,2.05,1.0,1.0,0.0,[],0.0,0.0,,False,35.834394,aggregate
+search_bilateral_ca3_dg,"[""CA3"", ""DG""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,102,2,1.0,1.0,0,[],0,0.0,,False,35.824967,ok
+search_bilateral_ca3_dg,"[""CA3"", ""DG""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,102,5,1.0,1.0,0,[],1,0.066667,,False,35.838977,partial_or_violating
+search_bilateral_ca3_dg,"[""CA3"", ""DG""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,102,2,0.5,0.0,2,"[""CA3"", ""DG""]",0,0.0,,False,35.826196,partial_or_violating
+search_bilateral_ca3_dg,"[""CA3"", ""DG""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,102,4,1.0,1.0,0,[],2,0.2,,False,35.825941,partial_or_violating
+search_bilateral_ca3_dg,"[""CA3"", ""DG""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""CA3"", ""DG""]",0,0.0,,False,1.953065,partial_or_violating
+search_bilateral_ca3_dg,"[""CA3"", ""DG""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,135,2,1.0,1.0,0,[],0,0.0,,False,32.090139,ok
+search_bilateral_ca3_dg,"[""CA3"", ""DG""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,102,2,1.0,1.0,0,[],0,0.0,,False,16.513963,ok
+search_bilateral_ca3_mos,"[""CA3"", ""MOs""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,91,3,1.0,1.0,0,[],0,0.0,,False,30.000604,ok
+search_bilateral_ca3_mos,"[""CA3"", ""MOs""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,91,4,1.0,1.0,0,[],0,0.0,,False,30.0012,ok
+search_bilateral_ca3_mos,"[""CA3"", ""MOs""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,91,4,1.0,1.0,0,[],0,0.0,,False,30.015912,ok
+search_bilateral_ca3_mos,"[""CA3"", ""MOs""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,91,3,1.0,1.0,0,[],0,0.0,,False,30.021562,ok
+search_bilateral_ca3_mos,"[""CA3"", ""MOs""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,91,3.85,1.0,1.0,0.0,[],0.0,0.0,,False,30.026808,aggregate
+search_bilateral_ca3_mos,"[""CA3"", ""MOs""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,91,3,1.0,1.0,0,[],0,0.0,,False,30.000604,ok
+search_bilateral_ca3_mos,"[""CA3"", ""MOs""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,91,8,1.0,1.0,0,[],2,0.055556,,False,30.029844,partial_or_violating
+search_bilateral_ca3_mos,"[""CA3"", ""MOs""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,91,3,0.75,0.0,1,"[""CA3""]",0,0.0,,False,30.003255,partial_or_violating
+search_bilateral_ca3_mos,"[""CA3"", ""MOs""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,91,4,1.0,1.0,0,[],0,0.0,,False,30.001568,ok
+search_bilateral_ca3_mos,"[""CA3"", ""MOs""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""CA3"", ""MOs""]",0,0.0,,False,1.560832,partial_or_violating
+search_bilateral_ca3_mos,"[""CA3"", ""MOs""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,266,3,1.0,1.0,0,[],3,0.5,,False,73.959119,partial_or_violating
+search_bilateral_ca3_mos,"[""CA3"", ""MOs""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,91,3,1.0,1.0,0,[],0,0.0,,False,18.743815,ok
+search_bilateral_ca3_mop,"[""CA3"", ""MOp""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,74,3,1.0,1.0,0,[],0,0.0,,False,22.311171,ok
+search_bilateral_ca3_mop,"[""CA3"", ""MOp""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,74,4,1.0,1.0,0,[],0,0.0,,False,22.311644,ok
+search_bilateral_ca3_mop,"[""CA3"", ""MOp""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,74,4,1.0,1.0,0,[],0,0.0,,False,22.320292,ok
+search_bilateral_ca3_mop,"[""CA3"", ""MOp""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,74,3,1.0,1.0,0,[],0,0.0,,False,22.33059,ok
+search_bilateral_ca3_mop,"[""CA3"", ""MOp""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,74,3.9,1.0,1.0,0.0,[],0.0,0.0,,False,22.33375,aggregate
+search_bilateral_ca3_mop,"[""CA3"", ""MOp""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,74,3,1.0,1.0,0,[],0,0.0,,False,22.311171,ok
+search_bilateral_ca3_mop,"[""CA3"", ""MOp""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,74,7,1.0,1.0,0,[],0,0.0,,False,22.327076,ok
+search_bilateral_ca3_mop,"[""CA3"", ""MOp""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,74,3,0.5,0.0,2,"[""CA3"", ""MOp""]",0,0.0,,False,22.312286,partial_or_violating
+search_bilateral_ca3_mop,"[""CA3"", ""MOp""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,74,4,1.0,1.0,0,[],0,0.0,,False,22.311651,ok
+search_bilateral_ca3_mop,"[""CA3"", ""MOp""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""CA3"", ""MOp""]",0,0.0,,False,1.604393,partial_or_violating
+search_bilateral_ca3_mop,"[""CA3"", ""MOp""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,215,3,1.0,1.0,0,[],3,0.5,,False,63.312734,partial_or_violating
+search_bilateral_ca3_mop,"[""CA3"", ""MOp""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,74,3,1.0,1.0,0,[],0,0.0,,False,19.937088,ok
+search_bilateral_dg_mos,"[""DG"", ""MOs""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,84,3,1.0,1.0,0,[],0,0.0,,False,25.25773,ok
+search_bilateral_dg_mos,"[""DG"", ""MOs""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,84,4,1.0,1.0,0,[],0,0.0,,False,25.258734,ok
+search_bilateral_dg_mos,"[""DG"", ""MOs""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,84,4,1.0,1.0,0,[],0,0.0,,False,25.281701,ok
+search_bilateral_dg_mos,"[""DG"", ""MOs""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,84,3,1.0,1.0,0,[],0,0.0,,False,25.270395,ok
+search_bilateral_dg_mos,"[""DG"", ""MOs""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,84,3.95,1.0,1.0,0.0,[],0.0,0.0,,False,25.277504,aggregate
+search_bilateral_dg_mos,"[""DG"", ""MOs""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,84,3,1.0,1.0,0,[],0,0.0,,False,25.25773,ok
+search_bilateral_dg_mos,"[""DG"", ""MOs""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,84,8,1.0,1.0,0,[],1,0.027778,,False,25.300778,partial_or_violating
+search_bilateral_dg_mos,"[""DG"", ""MOs""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,84,3,0.75,0.0,1,"[""DG""]",0,0.0,,False,25.260352,partial_or_violating
+search_bilateral_dg_mos,"[""DG"", ""MOs""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,84,4,1.0,1.0,0,[],0,0.0,,False,25.258629,ok
+search_bilateral_dg_mos,"[""DG"", ""MOs""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""DG"", ""MOs""]",0,0.0,,False,2.256141,partial_or_violating
+search_bilateral_dg_mos,"[""DG"", ""MOs""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,273,3,1.0,1.0,0,[],3,0.5,,False,77.513324,partial_or_violating
+search_bilateral_dg_mos,"[""DG"", ""MOs""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,84,3,1.0,1.0,0,[],0,0.0,,False,18.641267,ok
+search_bilateral_ssp_mos,"[""SSp"", ""MOs""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,180,3,1.0,1.0,0,[],0,0.0,,False,34.580848,ok
+search_bilateral_ssp_mos,"[""SSp"", ""MOs""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,180,4,1.0,1.0,0,[],0,0.0,,False,34.581983,ok
+search_bilateral_ssp_mos,"[""SSp"", ""MOs""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,180,4,1.0,1.0,0,[],0,0.0,,False,34.622892,ok
+search_bilateral_ssp_mos,"[""SSp"", ""MOs""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,180,3,1.0,1.0,0,[],0,0.0,,False,34.607496,ok
+search_bilateral_ssp_mos,"[""SSp"", ""MOs""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,180,3.85,1.0,1.0,0.0,[],0.0,0.0,,False,34.622704,aggregate
+search_bilateral_ssp_mos,"[""SSp"", ""MOs""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,180,3,1.0,1.0,0,[],0,0.0,,False,34.580848,ok
+search_bilateral_ssp_mos,"[""SSp"", ""MOs""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,180,8,1.0,1.0,0,[],1,0.027778,,False,34.646811,partial_or_violating
+search_bilateral_ssp_mos,"[""SSp"", ""MOs""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,180,3,0.75,0.0,1,"[""SSp""]",0,0.0,,False,34.586016,partial_or_violating
+search_bilateral_ssp_mos,"[""SSp"", ""MOs""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,180,4,1.0,1.0,0,[],0,0.0,,False,34.582714,ok
+search_bilateral_ssp_mos,"[""SSp"", ""MOs""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""MOs"", ""SSp""]",0,0.0,,False,5.511985,partial_or_violating
+search_bilateral_ssp_mos,"[""SSp"", ""MOs""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,366,3,1.0,1.0,0,[],2,0.333333,,False,73.4783,partial_or_violating
+search_bilateral_ssp_mos,"[""SSp"", ""MOs""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,180,3,1.0,1.0,0,[],0,0.0,,False,21.774352,ok
+search_bilateral_vpm_mop,"[""VPM"", ""MOp""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,53,3,1.0,1.0,0,[],0,0.0,,False,27.923376,ok
+search_bilateral_vpm_mop,"[""VPM"", ""MOp""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,53,4,1.0,1.0,0,[],0,0.0,,False,27.923757,ok
+search_bilateral_vpm_mop,"[""VPM"", ""MOp""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,53,4,1.0,1.0,0,[],0,0.0,,False,27.931116,ok
+search_bilateral_vpm_mop,"[""VPM"", ""MOp""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,53,3,1.0,1.0,0,[],0,0.0,,False,27.931178,ok
+search_bilateral_vpm_mop,"[""VPM"", ""MOp""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,53,3.75,1.0,1.0,0.0,[],0.0,0.0,,False,27.933178,aggregate
+search_bilateral_vpm_mop,"[""VPM"", ""MOp""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,53,3,1.0,1.0,0,[],0,0.0,,False,27.923376,ok
+search_bilateral_vpm_mop,"[""VPM"", ""MOp""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,53,6,1.0,1.0,0,[],1,0.047619,,False,27.93098,partial_or_violating
+search_bilateral_vpm_mop,"[""VPM"", ""MOp""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,53,3,0.75,0.0,1,"[""MOp""]",0,0.0,,False,27.924335,partial_or_violating
+search_bilateral_vpm_mop,"[""VPM"", ""MOp""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,53,4,1.0,1.0,0,[],0,0.0,,False,27.923701,ok
+search_bilateral_vpm_mop,"[""VPM"", ""MOp""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""MOp"", ""VPM""]",0,0.0,,False,1.022649,partial_or_violating
+search_bilateral_vpm_mop,"[""VPM"", ""MOp""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,170,3,1.0,1.0,0,[],2,0.333333,,False,59.817464,partial_or_violating
+search_bilateral_vpm_mop,"[""VPM"", ""MOp""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,53,3,1.0,1.0,0,[],0,0.0,,False,19.552296,ok
+search_bilateral_ca1_mos,"[""CA1"", ""MOs""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,83,4,1.0,1.0,0,[],0,0.0,,False,25.574274,ok
+search_bilateral_ca1_mos,"[""CA1"", ""MOs""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,83,4,1.0,1.0,0,[],0,0.0,,False,25.576338,ok
+search_bilateral_ca1_mos,"[""CA1"", ""MOs""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,83,4,1.0,1.0,0,[],0,0.0,,False,25.586712,ok
+search_bilateral_ca1_mos,"[""CA1"", ""MOs""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,83,4,1.0,1.0,0,[],0,0.0,,False,25.596072,ok
+search_bilateral_ca1_mos,"[""CA1"", ""MOs""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,83,4.0,1.0,1.0,0.0,[],0.0,0.0,,False,25.588582,aggregate
+search_bilateral_ca1_mos,"[""CA1"", ""MOs""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,83,4,1.0,1.0,0,[],0,0.0,,False,25.574274,ok
+search_bilateral_ca1_mos,"[""CA1"", ""MOs""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,83,8,1.0,1.0,0,[],1,0.027778,,False,25.58349,partial_or_violating
+search_bilateral_ca1_mos,"[""CA1"", ""MOs""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,83,4,1.0,1.0,0,[],0,0.0,,False,25.577298,ok
+search_bilateral_ca1_mos,"[""CA1"", ""MOs""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,83,4,1.0,1.0,0,[],0,0.0,,False,25.574786,ok
+search_bilateral_ca1_mos,"[""CA1"", ""MOs""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""CA1"", ""MOs""]",0,0.0,,False,1.494517,partial_or_violating
+search_bilateral_ca1_mos,"[""CA1"", ""MOs""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,285,4,1.0,1.0,0,[],3,0.3,,False,67.683787,partial_or_violating
+search_bilateral_ca1_mos,"[""CA1"", ""MOs""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,83,4,1.0,1.0,0,[],0,0.0,,False,20.539003,ok
+search_bilateral_ca1_mop,"[""CA1"", ""MOp""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,113,4,1.0,1.0,0,[],0,0.0,,False,28.177457,ok
+search_bilateral_ca1_mop,"[""CA1"", ""MOp""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,113,4,1.0,1.0,0,[],0,0.0,,False,28.178154,ok
+search_bilateral_ca1_mop,"[""CA1"", ""MOp""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,113,4,1.0,1.0,0,[],0,0.0,,False,28.218824,ok
+search_bilateral_ca1_mop,"[""CA1"", ""MOp""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,113,4,1.0,1.0,0,[],0,0.0,,False,28.200662,ok
+search_bilateral_ca1_mop,"[""CA1"", ""MOp""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,113,4.0,1.0,1.0,0.0,[],0.0,0.0,,False,28.200209,aggregate
+search_bilateral_ca1_mop,"[""CA1"", ""MOp""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,113,4,1.0,1.0,0,[],0,0.0,,False,28.177457,ok
+search_bilateral_ca1_mop,"[""CA1"", ""MOp""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,113,8,1.0,1.0,0,[],1,0.027778,,False,28.210333,partial_or_violating
+search_bilateral_ca1_mop,"[""CA1"", ""MOp""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,113,4,0.75,0.0,1,"[""MOp""]",1,0.1,,False,28.180078,partial_or_violating
+search_bilateral_ca1_mop,"[""CA1"", ""MOp""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,113,4,1.0,1.0,0,[],0,0.0,,False,28.17838,ok
+search_bilateral_ca1_mop,"[""CA1"", ""MOp""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""CA1"", ""MOp""]",0,0.0,,False,1.549869,partial_or_violating
+search_bilateral_ca1_mop,"[""CA1"", ""MOp""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,253,4,1.0,1.0,0,[],2,0.2,,False,57.071565,partial_or_violating
+search_bilateral_ca1_mop,"[""CA1"", ""MOp""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,113,4,1.0,1.0,0,[],0,0.0,,False,20.8978,ok
+search_bilateral_dg_mop,"[""DG"", ""MOp""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,101,4,1.0,1.0,0,[],0,0.0,,False,27.604173,ok
+search_bilateral_dg_mop,"[""DG"", ""MOp""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,101,4,1.0,1.0,0,[],0,0.0,,False,27.604857,ok
+search_bilateral_dg_mop,"[""DG"", ""MOp""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,101,4,1.0,1.0,0,[],0,0.0,,False,27.623145,ok
+search_bilateral_dg_mop,"[""DG"", ""MOp""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,101,4,1.0,1.0,0,[],0,0.0,,False,27.634089,ok
+search_bilateral_dg_mop,"[""DG"", ""MOp""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,101,4.0,1.0,1.0,0.0,[],0.0,0.0,,False,27.628002,aggregate
+search_bilateral_dg_mop,"[""DG"", ""MOp""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,101,4,1.0,1.0,0,[],0,0.0,,False,27.604173,ok
+search_bilateral_dg_mop,"[""DG"", ""MOp""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,101,8,1.0,1.0,0,[],0,0.0,,False,27.617496,ok
+search_bilateral_dg_mop,"[""DG"", ""MOp""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,101,4,0.75,0.0,1,"[""MOp""]",0,0.0,,False,27.605967,partial_or_violating
+search_bilateral_dg_mop,"[""DG"", ""MOp""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,101,4,1.0,1.0,0,[],0,0.0,,False,27.605464,ok
+search_bilateral_dg_mop,"[""DG"", ""MOp""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""DG"", ""MOp""]",0,0.0,,False,2.112828,partial_or_violating
+search_bilateral_dg_mop,"[""DG"", ""MOp""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,234,4,1.0,1.0,0,[],2,0.2,,False,52.557352,partial_or_violating
+search_bilateral_dg_mop,"[""DG"", ""MOp""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,101,4,1.0,1.0,0,[],0,0.0,,False,22.959889,ok
+search_bilateral_vpm_mos,"[""VPM"", ""MOs""]",bilateral_symmetric,baselines,probeplanner,ProbePlanner,66,4,1.0,1.0,0,[],0,0.0,,False,30.605008,ok
+search_bilateral_vpm_mos,"[""VPM"", ""MOs""]",bilateral_symmetric,baselines,one_target_one_probe,one-target-one-probe,66,4,1.0,1.0,0,[],0,0.0,,False,30.605442,ok
+search_bilateral_vpm_mos,"[""VPM"", ""MOs""]",bilateral_symmetric,baselines,greedy_grouping,greedy grouping,66,4,1.0,1.0,0,[],0,0.0,,False,30.610515,ok
+search_bilateral_vpm_mos,"[""VPM"", ""MOs""]",bilateral_symmetric,baselines,coverage_first_greedy,coverage-first greedy,66,4,1.0,1.0,0,[],0,0.0,,False,30.627649,ok
+search_bilateral_vpm_mos,"[""VPM"", ""MOs""]",bilateral_symmetric,baselines,random_feasible,random feasible selection,66,4.0,1.0,1.0,0.0,[],0.0,0.0,,False,30.616449,aggregate
+search_bilateral_vpm_mos,"[""VPM"", ""MOs""]",bilateral_symmetric,ablations,full_probeplanner,full ProbePlanner,66,4,1.0,1.0,0,[],0,0.0,,False,30.605008,ok
+search_bilateral_vpm_mos,"[""VPM"", ""MOs""]",bilateral_symmetric,ablations,no_probe_count_penalty,no probe-count penalty,66,8,1.0,1.0,0,[],1,0.027778,,False,30.617537,partial_or_violating
+search_bilateral_vpm_mos,"[""VPM"", ""MOs""]",bilateral_symmetric,ablations,no_coverage_priority,no coverage priority,66,4,1.0,1.0,0,[],0,0.0,,False,30.610929,ok
+search_bilateral_vpm_mos,"[""VPM"", ""MOs""]",bilateral_symmetric,ablations,no_multi_target_grouping,no multi-target grouping,66,4,1.0,1.0,0,[],0,0.0,,False,30.605985,ok
+search_bilateral_vpm_mos,"[""VPM"", ""MOs""]",bilateral_symmetric,ablations,no_depth_optimization,no depth optimization,0,0,0.0,0.0,4,"[""MOs"", ""VPM""]",0,0.0,,False,1.193191,partial_or_violating
+search_bilateral_vpm_mos,"[""VPM"", ""MOs""]",bilateral_symmetric,ablations,no_tip_in_target_policy,no tip-in-target policy,222,4,1.0,1.0,0,[],2,0.2,,False,73.19883,partial_or_violating
+search_bilateral_vpm_mos,"[""VPM"", ""MOs""]",bilateral_symmetric,ablations,no_internal_risk_enforcement,no internal-risk enforcement,66,4,1.0,1.0,0,[],0,0.0,,False,22.061846,ok

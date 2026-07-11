@@ -1,14 +1,17 @@
 {
   "id": "15089cf26d0a4299971ab5e2a240e5f5",
-  "label": "LP+ACA+MOs+ACB+LGd+FRP1-15089cf2",
+  "label": "LP+ACA+MOs+ACB+LGd-15089cf2",
   "source": "local",
-  "requestHash": "3d0d2136dfc7ce6db3148679b26dad6070cad234506bab80577fc5619e0b0595",
+  "requestHash": "3e09a09af6915ca129b40817ca21aca4a234fe745d60e60c6667735b469f819c",
   "targetKeys": [
     "LP",
     "ACA",
     "MOs",
     "ACB",
-    "LGd",
+    "LGd"
+  ],
+  "excludedTargetKeys": [
+    "PFC",
     "FRP1"
   ],
   "algorithm": "greedy",
@@ -18,8 +21,7 @@
       "ACA",
       "MOs",
       "ACB",
-      "LGd",
-      "FRP1"
+      "LGd"
     ],
     "params": {
       "algorithm": "greedy",
@@ -87,7 +89,8 @@
       "minClearance": "enforce",
       "lambdaBoundary": "enforce",
       "brainBounds": "enforce",
-      "hemisphere": "warn"
+      "hemisphere": "warn",
+      "continuousRiskDistance": "enforce"
     },
     "correctionFactors": null,
     "correctionUncertainty": null,
@@ -95,9 +98,11 @@
       "species": "mouse",
       "intendedUse": "automatic_decision",
       "nativeExcludedFallbackTargetKeys": [
-        "PFC"
+        "PFC",
+        "FRP1"
       ],
-      "nativeExcludedFallbackTargetReason": "not atlas-backed in native region index; excluded from real coverage gate"
+      "nativeExcludedFallbackTargetReason": "not atlas-backed in native region index; excluded from real coverage gate",
+      "nativeTargetLookupSource": "artifact://region-map"
     }
   }
 }

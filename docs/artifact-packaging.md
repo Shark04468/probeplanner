@@ -15,6 +15,14 @@ artifact-root/
   region_map.json     # compatibility fallback when v2 is unavailable
   stats.json
   layered_sdf.npz
+  signed_sdf_mm.npy
+  skull_sdf_mm.npy
+  brain_surface_sdf_mm.npy
+  ventricle_sdf_mm.npy
+  vessel_sdf_mm.npy
+  sulcus_sdf_mm.npy
+  outer_tissue_sdf_mm.npy  # or cortex_outside_sdf_mm.npy
+  drilling_surface_sdf_mm.npy
   registration/
     registration_summary.json
 ```
@@ -23,25 +31,27 @@ artifact-root/
 labels. `region_map.json` is accepted by the launcher and native engine as a
 compatibility fallback. New packages should include both files when possible.
 
-`layered_sdf.npz` must contain `signed_sdf_mm` and any available risk channels
-used by the hard constraints:
+`layered_sdf.npz` must contain `signed_sdf_mm` and every risk channel used by
+the hard constraints:
 
 - `skull_sdf_mm`
 - `brain_surface_sdf_mm`
 - `ventricle_sdf_mm`
 - `vessel_sdf_mm`
 - `sulcus_sdf_mm`
-- `outer_tissue_sdf_mm`
+- `outer_tissue_sdf_mm` or `cortex_outside_sdf_mm`
 - `drilling_surface_sdf_mm`
 
-For faster startup, export mmap-ready `.npy` files next to the package or under
-`.cache/native-artifacts`:
+For native planning, export mmap-ready `.npy` files next to the package or under
+`.cache/native-artifacts` before delivery:
 
 ```powershell
 scripts/prepare_native_artifacts.ps1 -ArtifactRoot $env:PROBEPLANNER_ARTIFACT_ROOT
 ```
 
-The engine will prefer these files when present:
+The launcher can generate these files from `layered_sdf.npz`, but the engine
+health gate is fail-closed when any required class is missing. The engine will
+prefer these files when present:
 
 ```text
 artifact-root/
@@ -51,6 +61,8 @@ artifact-root/
   ventricle_sdf_mm.npy
   vessel_sdf_mm.npy
   sulcus_sdf_mm.npy
+  outer_tissue_sdf_mm.npy
+  drilling_surface_sdf_mm.npy
 ```
 
 Optional MRI/QC assets should stay under the same root and be referenced by
@@ -108,6 +120,14 @@ Default native planning requires atlas-backed target keys. Known non-atlas
 replay targets are excluded from perf-gate cases and recorded as
 `nativeExcludedFallbackTargetKeys`. Runtime `fallbackTargetKeys` in a native
 gate is a failure.
+
+Regenerate replay cases against the delivered native region map, not a
+hard-coded target list:
+
+```powershell
+$env:PROBEPLANNER_ARTIFACT_ROOT = "C:\path\to\planner_artifacts"
+npm run prepare:cases -- --artifact-root "$env:PROBEPLANNER_ARTIFACT_ROOT"
+```
 
 For demo-only behavior, a request may set both:
 

@@ -2,10 +2,11 @@
   "id": "2f6de98fc6b14259b50625db53a2ff3f",
   "label": "golden_ca1_coarse",
   "source": "repo",
-  "requestHash": "9064a22fe67f0e8a337ec3068a335d33993d247d1a0056bd914b462ea863cd63",
+  "requestHash": "9c0442a05dc8189c715580fc3112665ddf2e3e4e87c3939442f8ecd38535deee",
   "targetKeys": [
     "CA1"
   ],
+  "excludedTargetKeys": [],
   "algorithm": "greedy",
   "request": {
     "probeParams": {
@@ -42,9 +43,9 @@
     "constraintModes": {
       "minEntrySpacing": "enforce",
       "hemisphere": "warn",
-      "lambdaBoundary": "warn",
+      "lambdaBoundary": "enforce",
       "brainBounds": "enforce",
-      "continuousRiskDistance": "warn",
+      "continuousRiskDistance": "enforce",
       "maxAngle": "enforce",
       "minClearance": "enforce"
     }

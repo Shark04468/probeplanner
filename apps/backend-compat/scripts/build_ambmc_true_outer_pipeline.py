@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 """
 Build MRI+CCF hybrid artifacts with AMBMC -> CCF registration and
 MRI-derived outer-layer masks (skull / outer tissue).

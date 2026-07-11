@@ -459,7 +459,7 @@ function CapabilityBanner({ status, capabilities, tr }) {
         <div style={styles.bannerText}>
           <strong style={{ color: '#f87171' }}>{tr('backendOffline')}</strong>
           <br />
-          <span style={{ color: THEME.textSecondary, fontSize: 10 }}>{tr('fallbackWorker')}</span>
+          <span style={{ color: THEME.textSecondary, fontSize: 10 }}>{tr('backendOnlineRequired')}</span>
         </div>
       </div>
     );

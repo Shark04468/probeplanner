@@ -1,13 +1,13 @@
 /**
- * useBackend — Hook for managing Flask backend connection state.
+ * useBackend hook for managing Flask backend connection state.
  * Connects to optimizer_server.py at localhost:5000.
- * Falls back gracefully to in-browser Web Worker when offline.
+ * Optimizer execution requires an online backend; this hook only reports
+ * connection state and never starts an in-browser planning fallback.
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
 
 const DEFAULT_BASE = "http://localhost:5000";
-const TOKEN_STORAGE_KEY = "probePlannerApiToken";
 const BASE_STORAGE_KEY = "probePlannerBackendBase";
 const ATLAS_MODE_STORAGE_KEY = "probePlannerAtlasMode";
 const DEFAULT_ATLAS_MODE = "allen_sdk";
@@ -36,20 +36,8 @@ function safeStorageSet(key, value) {
   }
 }
 
-function safeStorageRemove(key) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(key);
-  } catch {
-    // ignore storage failures
-  }
-}
-
 function resolveToken(next = null) {
   if (typeof next === "string") return next.trim();
-  if (typeof process !== "undefined") {
-    return (process.env.REACT_APP_PROBEPLANNER_API_TOKEN || "").trim();
-  }
   return "";
 }
 
@@ -258,9 +246,6 @@ async function enrichStatusPayload(payload, base, atlasMode) {
 }
 
 _currentBase = resolveBase(_currentBase);
-if (typeof window !== "undefined") {
-  safeStorageRemove(TOKEN_STORAGE_KEY);
-}
 
 export function setBackendAuthToken(token) {
   const clean = resolveToken(token);

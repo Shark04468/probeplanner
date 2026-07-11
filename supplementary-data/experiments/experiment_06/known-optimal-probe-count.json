@@ -1,0 +1,1137 @@
+{
+  "generatedAt": "2026-07-10T06:28:32.480Z\n",
+  "runId": "digital-phantom-known-optimal-probe-count\n",
+  "method": {
+    "description": "Analytic 16-target phantom with four spatial target groups. Each valid candidate covers targets from at most one group; four designed candidates cover all groups, proving the optimal probe count is exactly four.\n",
+    "plannerSelector": "exact minimal set cover over valid, constraint-screened phantom candidates\n",
+    "coverageCriterion": "target is covered when its center-to-trajectory segment distance is <= target radius\n",
+    "boundaryCriterion": "candidate is boundary-valid when all sampled trajectory points remain inside the ellipsoid brain\n",
+    "obstacleCriterion": "candidate is obstacle-valid when sampled trajectory clearance to every obstacle is non-negative\n"
+  },
+  "phantom": {
+    "brain": {
+      "center": {
+        "x": 0,
+        "y": 4.4,
+        "z": 0
+      },
+      "radii": {
+        "x": 4.5,
+        "y": 4.8,
+        "z": 3.5
+      }
+    },
+    "obstacles": [
+      {
+        "id": "central_ventricle_like_obstacle\n",
+        "center": {
+          "x": 0,
+          "y": 4.4,
+          "z": 0
+        },
+        "radiusMm": 0.55
+      },
+      {
+        "id": "anterior_vessel_like_obstacle\n",
+        "center": {
+          "x": 0.35,
+          "y": 5.8,
+          "z": 0
+        },
+        "radiusMm": 0.32
+      },
+      {
+        "id": "posterior_vessel_like_obstacle\n",
+        "center": {
+          "x": -0.35,
+          "y": 3,
+          "z": 0
+        },
+        "radiusMm": 0.32
+      }
+    ],
+    "targetCount": 16,
+    "targetGroupCount": 4,
+    "targetsPerGroup": 4,
+    "targetRadiusMm": 0.2,
+    "candidateCount": 52,
+    "validCoveringCandidateCount": 36,
+    "invalidBoundaryCandidateCount": 4,
+    "invalidObstacleCandidateCount": 4,
+    "probeClearanceMm": 0.08
+  },
+  "groundTruth": {
+    "optimalProbeCount": 4,
+    "designedSolutionCandidateIds": [
+      "P_G1_left_posterior_designed\n",
+      "P_G2_right_posterior_designed\n",
+      "P_G3_left_anterior_designed\n",
+      "P_G4_right_anterior_designed\n"
+    ],
+    "maxTargetGroupsPerValidCandidate": 1,
+    "groupLowerBoundProbeCount": 4,
+    "threeProbeFullCoveragePossible": false,
+    "threeProbeMaxCoveredTargets": 12,
+    "fiveProbeFullCoveragePossible": true,
+    "fiveProbeExactFullCoveragePossible": true
+  },
+  "metrics": {
+    "selectedProbeCount": 4,
+    "optimalProbeCountRecovery": 1,
+    "targetCoverageRecall": 1,
+    "coveredTargetCount": 16,
+    "overSelectionRate": 0,
+    "underSelectionRate": 0,
+    "selectedBoundaryViolationRate": 0,
+    "selectedObstacleViolationRate": 0,
+    "minSelectedBoundaryMarginMm": 0.394213929122684,
+    "minSelectedObstacleMarginMm": 2.0275196317434796,
+    "runtimeMs": 26.4443
+  },
+  "selectedCandidates": [
+    {
+      "candidateId": "P_G1_left_posterior_designed\n",
+      "family": "designed_optimal\n",
+      "coveredTargets": [
+        "G1_left_posterior_T1\n",
+        "G1_left_posterior_T2\n",
+        "G1_left_posterior_T3\n",
+        "G1_left_posterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G1_left_posterior\n"
+      ],
+      "entry": {
+        "x": -2.4,
+        "y": 1.5,
+        "z": -1.3
+      },
+      "tip": {
+        "x": -2.4,
+        "y": 6.9,
+        "z": -1.3
+      },
+      "thetaDeg": 0,
+      "phiDeg": 0,
+      "depthMm": 5.4,
+      "minBoundaryMarginMm": 0.394213929122684,
+      "minObstacleMarginMm": 2.0275196317434796
+    },
+    {
+      "candidateId": "P_G2_right_posterior_designed\n",
+      "family": "designed_optimal\n",
+      "coveredTargets": [
+        "G2_right_posterior_T1\n",
+        "G2_right_posterior_T2\n",
+        "G2_right_posterior_T3\n",
+        "G2_right_posterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G2_right_posterior\n"
+      ],
+      "entry": {
+        "x": 2.4,
+        "y": 1.5,
+        "z": -1.3
+      },
+      "tip": {
+        "x": 2.4,
+        "y": 6.9,
+        "z": -1.3
+      },
+      "thetaDeg": 0,
+      "phiDeg": 0,
+      "depthMm": 5.4,
+      "minBoundaryMarginMm": 0.394213929122684,
+      "minObstacleMarginMm": 2.027575951437977
+    },
+    {
+      "candidateId": "P_G3_left_anterior_designed\n",
+      "family": "designed_optimal\n",
+      "coveredTargets": [
+        "G3_left_anterior_T1\n",
+        "G3_left_anterior_T2\n",
+        "G3_left_anterior_T3\n",
+        "G3_left_anterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G3_left_anterior\n"
+      ],
+      "entry": {
+        "x": -2.4,
+        "y": 1.5,
+        "z": 1.3
+      },
+      "tip": {
+        "x": -2.4,
+        "y": 6.9,
+        "z": 1.3
+      },
+      "thetaDeg": 0,
+      "phiDeg": 0,
+      "depthMm": 5.4,
+      "minBoundaryMarginMm": 0.394213929122684,
+      "minObstacleMarginMm": 2.0275196317434796
+    },
+    {
+      "candidateId": "P_G4_right_anterior_designed\n",
+      "family": "designed_optimal\n",
+      "coveredTargets": [
+        "G4_right_anterior_T1\n",
+        "G4_right_anterior_T2\n",
+        "G4_right_anterior_T3\n",
+        "G4_right_anterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G4_right_anterior\n"
+      ],
+      "entry": {
+        "x": 2.4,
+        "y": 1.5,
+        "z": 1.3
+      },
+      "tip": {
+        "x": 2.4,
+        "y": 6.9,
+        "z": 1.3
+      },
+      "thetaDeg": 0,
+      "phiDeg": 0,
+      "depthMm": 5.4,
+      "minBoundaryMarginMm": 0.394213929122684,
+      "minObstacleMarginMm": 2.027575951437977
+    }
+  ],
+  "targets": [
+    {
+      "id": "G1_left_posterior_T1\n",
+      "groupId": "G1_left_posterior\n",
+      "center": {
+        "x": -2.4,
+        "y": 2.7,
+        "z": -1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G1_left_posterior_T2\n",
+      "groupId": "G1_left_posterior\n",
+      "center": {
+        "x": -2.4,
+        "y": 3.7,
+        "z": -1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G1_left_posterior_T3\n",
+      "groupId": "G1_left_posterior\n",
+      "center": {
+        "x": -2.4,
+        "y": 4.7,
+        "z": -1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G1_left_posterior_T4\n",
+      "groupId": "G1_left_posterior\n",
+      "center": {
+        "x": -2.4,
+        "y": 5.7,
+        "z": -1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G2_right_posterior_T1\n",
+      "groupId": "G2_right_posterior\n",
+      "center": {
+        "x": 2.4,
+        "y": 2.7,
+        "z": -1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G2_right_posterior_T2\n",
+      "groupId": "G2_right_posterior\n",
+      "center": {
+        "x": 2.4,
+        "y": 3.7,
+        "z": -1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G2_right_posterior_T3\n",
+      "groupId": "G2_right_posterior\n",
+      "center": {
+        "x": 2.4,
+        "y": 4.7,
+        "z": -1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G2_right_posterior_T4\n",
+      "groupId": "G2_right_posterior\n",
+      "center": {
+        "x": 2.4,
+        "y": 5.7,
+        "z": -1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G3_left_anterior_T1\n",
+      "groupId": "G3_left_anterior\n",
+      "center": {
+        "x": -2.4,
+        "y": 2.7,
+        "z": 1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G3_left_anterior_T2\n",
+      "groupId": "G3_left_anterior\n",
+      "center": {
+        "x": -2.4,
+        "y": 3.7,
+        "z": 1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G3_left_anterior_T3\n",
+      "groupId": "G3_left_anterior\n",
+      "center": {
+        "x": -2.4,
+        "y": 4.7,
+        "z": 1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G3_left_anterior_T4\n",
+      "groupId": "G3_left_anterior\n",
+      "center": {
+        "x": -2.4,
+        "y": 5.7,
+        "z": 1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G4_right_anterior_T1\n",
+      "groupId": "G4_right_anterior\n",
+      "center": {
+        "x": 2.4,
+        "y": 2.7,
+        "z": 1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G4_right_anterior_T2\n",
+      "groupId": "G4_right_anterior\n",
+      "center": {
+        "x": 2.4,
+        "y": 3.7,
+        "z": 1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G4_right_anterior_T3\n",
+      "groupId": "G4_right_anterior\n",
+      "center": {
+        "x": 2.4,
+        "y": 4.7,
+        "z": 1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    },
+    {
+      "id": "G4_right_anterior_T4\n",
+      "groupId": "G4_right_anterior\n",
+      "center": {
+        "x": 2.4,
+        "y": 5.7,
+        "z": 1.3
+      },
+      "radiusMm": 0.2,
+      "covered": true
+    }
+  ],
+  "candidates": [
+    {
+      "id": "P_G1_left_posterior_designed\n",
+      "family": "designed_optimal\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G1_left_posterior_T1\n",
+        "G1_left_posterior_T2\n",
+        "G1_left_posterior_T3\n",
+        "G1_left_posterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G1_left_posterior\n"
+      ],
+      "minBoundaryMarginMm": 0.394213929122684,
+      "minObstacleMarginMm": 2.0275196317434796,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G2_right_posterior_designed\n",
+      "family": "designed_optimal\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G2_right_posterior_T1\n",
+        "G2_right_posterior_T2\n",
+        "G2_right_posterior_T3\n",
+        "G2_right_posterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G2_right_posterior\n"
+      ],
+      "minBoundaryMarginMm": 0.394213929122684,
+      "minObstacleMarginMm": 2.027575951437977,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G3_left_anterior_designed\n",
+      "family": "designed_optimal\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G3_left_anterior_T1\n",
+        "G3_left_anterior_T2\n",
+        "G3_left_anterior_T3\n",
+        "G3_left_anterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G3_left_anterior\n"
+      ],
+      "minBoundaryMarginMm": 0.394213929122684,
+      "minObstacleMarginMm": 2.0275196317434796,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G4_right_anterior_designed\n",
+      "family": "designed_optimal\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G4_right_anterior_T1\n",
+        "G4_right_anterior_T2\n",
+        "G4_right_anterior_T3\n",
+        "G4_right_anterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G4_right_anterior\n"
+      ],
+      "minBoundaryMarginMm": 0.394213929122684,
+      "minObstacleMarginMm": 2.027575951437977,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G1_left_posterior_redundant\n",
+      "family": "redundant_group\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G1_left_posterior_T1\n",
+        "G1_left_posterior_T2\n",
+        "G1_left_posterior_T3\n",
+        "G1_left_posterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G1_left_posterior\n"
+      ],
+      "minBoundaryMarginMm": 0.42016537888756433,
+      "minObstacleMarginMm": 2.018576580059253,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G2_right_posterior_redundant\n",
+      "family": "redundant_group\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G2_right_posterior_T1\n",
+        "G2_right_posterior_T2\n",
+        "G2_right_posterior_T3\n",
+        "G2_right_posterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G2_right_posterior\n"
+      ],
+      "minBoundaryMarginMm": 0.39200973044879045,
+      "minObstacleMarginMm": 2.068866356259375,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G3_left_anterior_redundant\n",
+      "family": "redundant_group\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G3_left_anterior_T1\n",
+        "G3_left_anterior_T2\n",
+        "G3_left_anterior_T3\n",
+        "G3_left_anterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G3_left_anterior\n"
+      ],
+      "minBoundaryMarginMm": 0.44559640954199037,
+      "minObstacleMarginMm": 1.9861082694653884,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G4_right_anterior_redundant\n",
+      "family": "redundant_group\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G4_right_anterior_T1\n",
+        "G4_right_anterior_T2\n",
+        "G4_right_anterior_T3\n",
+        "G4_right_anterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G4_right_anterior\n"
+      ],
+      "minBoundaryMarginMm": 0.4172084865134003,
+      "minObstacleMarginMm": 2.0370681330380247,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G1_left_posterior_pair_1_2\n",
+      "family": "within_group_pair\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G1_left_posterior_T1\n",
+        "G1_left_posterior_T2\n"
+      ],
+      "coveredGroups": [
+        "G1_left_posterior\n"
+      ],
+      "minBoundaryMarginMm": 0.8810246052977976,
+      "minObstacleMarginMm": 2.027453262223143,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G1_left_posterior_pair_2_3\n",
+      "family": "within_group_pair\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G1_left_posterior_T2\n",
+        "G1_left_posterior_T3\n"
+      ],
+      "coveredGroups": [
+        "G1_left_posterior\n"
+      ],
+      "minBoundaryMarginMm": 1.1552354047912516,
+      "minObstacleMarginMm": 2.0994741875089744,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G1_left_posterior_pair_3_4\n",
+      "family": "within_group_pair\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G1_left_posterior_T3\n",
+        "G1_left_posterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G1_left_posterior\n"
+      ],
+      "minBoundaryMarginMm": 1.012635228410508,
+      "minObstacleMarginMm": 2.1083206532471683,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G2_right_posterior_pair_1_2\n",
+      "family": "within_group_pair\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G2_right_posterior_T1\n",
+        "G2_right_posterior_T2\n"
+      ],
+      "coveredGroups": [
+        "G2_right_posterior\n"
+      ],
+      "minBoundaryMarginMm": 0.8810246052977976,
+      "minObstacleMarginMm": 2.1689998213647677,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G2_right_posterior_pair_2_3\n",
+      "family": "within_group_pair\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G2_right_posterior_T2\n",
+        "G2_right_posterior_T3\n"
+      ],
+      "coveredGroups": [
+        "G2_right_posterior\n"
+      ],
+      "minBoundaryMarginMm": 1.1552354047912516,
+      "minObstacleMarginMm": 2.0994741875089744,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G2_right_posterior_pair_3_4\n",
+      "family": "within_group_pair\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G2_right_posterior_T3\n",
+        "G2_right_posterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G2_right_posterior\n"
+      ],
+      "minBoundaryMarginMm": 1.012635228410508,
+      "minObstacleMarginMm": 2.0275296084703065,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G3_left_anterior_pair_1_2\n",
+      "family": "within_group_pair\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G3_left_anterior_T1\n",
+        "G3_left_anterior_T2\n"
+      ],
+      "coveredGroups": [
+        "G3_left_anterior\n"
+      ],
+      "minBoundaryMarginMm": 0.8810246052977976,
+      "minObstacleMarginMm": 2.027453262223143,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G3_left_anterior_pair_2_3\n",
+      "family": "within_group_pair\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G3_left_anterior_T2\n",
+        "G3_left_anterior_T3\n"
+      ],
+      "coveredGroups": [
+        "G3_left_anterior\n"
+      ],
+      "minBoundaryMarginMm": 1.1552354047912516,
+      "minObstacleMarginMm": 2.0994741875089744,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G3_left_anterior_pair_3_4\n",
+      "family": "within_group_pair\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G3_left_anterior_T3\n",
+        "G3_left_anterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G3_left_anterior\n"
+      ],
+      "minBoundaryMarginMm": 1.012635228410508,
+      "minObstacleMarginMm": 2.1083206532471683,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G4_right_anterior_pair_1_2\n",
+      "family": "within_group_pair\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G4_right_anterior_T1\n",
+        "G4_right_anterior_T2\n"
+      ],
+      "coveredGroups": [
+        "G4_right_anterior\n"
+      ],
+      "minBoundaryMarginMm": 0.8810246052977976,
+      "minObstacleMarginMm": 2.1689998213647677,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G4_right_anterior_pair_2_3\n",
+      "family": "within_group_pair\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G4_right_anterior_T2\n",
+        "G4_right_anterior_T3\n"
+      ],
+      "coveredGroups": [
+        "G4_right_anterior\n"
+      ],
+      "minBoundaryMarginMm": 1.1552354047912516,
+      "minObstacleMarginMm": 2.0994741875089744,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G4_right_anterior_pair_3_4\n",
+      "family": "within_group_pair\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G4_right_anterior_T3\n",
+        "G4_right_anterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G4_right_anterior\n"
+      ],
+      "minBoundaryMarginMm": 1.012635228410508,
+      "minObstacleMarginMm": 2.0275296084703065,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G1_left_posterior_T1_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G1_left_posterior_T1\n"
+      ],
+      "coveredGroups": [
+        "G1_left_posterior\n"
+      ],
+      "minBoundaryMarginMm": 0.8774033406093074,
+      "minObstacleMarginMm": 2.0365139031000825,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G1_left_posterior_T2_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G1_left_posterior_T2\n"
+      ],
+      "coveredGroups": [
+        "G1_left_posterior\n"
+      ],
+      "minBoundaryMarginMm": 1.1534560634455286,
+      "minObstacleMarginMm": 2.102918296708864,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G1_left_posterior_T3_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G1_left_posterior_T3\n"
+      ],
+      "coveredGroups": [
+        "G1_left_posterior\n"
+      ],
+      "minBoundaryMarginMm": 1.2075529264409517,
+      "minObstacleMarginMm": 2.107535387899122,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G1_left_posterior_T4_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G1_left_posterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G1_left_posterior\n"
+      ],
+      "minBoundaryMarginMm": 1.0096764960122373,
+      "minObstacleMarginMm": 2.35564900817226,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G2_right_posterior_T1_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G2_right_posterior_T1\n"
+      ],
+      "coveredGroups": [
+        "G2_right_posterior\n"
+      ],
+      "minBoundaryMarginMm": 0.8774033406093074,
+      "minObstacleMarginMm": 2.5389272632864266,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G2_right_posterior_T2_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G2_right_posterior_T2\n"
+      ],
+      "coveredGroups": [
+        "G2_right_posterior\n"
+      ],
+      "minBoundaryMarginMm": 1.1534560634455286,
+      "minObstacleMarginMm": 2.166801744850714,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G2_right_posterior_T3_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G2_right_posterior_T3\n"
+      ],
+      "coveredGroups": [
+        "G2_right_posterior\n"
+      ],
+      "minBoundaryMarginMm": 1.2075529264409517,
+      "minObstacleMarginMm": 2.107535387899122,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G2_right_posterior_T4_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G2_right_posterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G2_right_posterior\n"
+      ],
+      "minBoundaryMarginMm": 1.0096764960122373,
+      "minObstacleMarginMm": 2.0274678164704882,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G3_left_anterior_T1_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G3_left_anterior_T1\n"
+      ],
+      "coveredGroups": [
+        "G3_left_anterior\n"
+      ],
+      "minBoundaryMarginMm": 0.8774033406093074,
+      "minObstacleMarginMm": 2.0365139031000825,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G3_left_anterior_T2_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G3_left_anterior_T2\n"
+      ],
+      "coveredGroups": [
+        "G3_left_anterior\n"
+      ],
+      "minBoundaryMarginMm": 1.1534560634455286,
+      "minObstacleMarginMm": 2.102918296708864,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G3_left_anterior_T3_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G3_left_anterior_T3\n"
+      ],
+      "coveredGroups": [
+        "G3_left_anterior\n"
+      ],
+      "minBoundaryMarginMm": 1.2075529264409517,
+      "minObstacleMarginMm": 2.107535387899122,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G3_left_anterior_T4_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G3_left_anterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G3_left_anterior\n"
+      ],
+      "minBoundaryMarginMm": 1.0096764960122373,
+      "minObstacleMarginMm": 2.35564900817226,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G4_right_anterior_T1_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G4_right_anterior_T1\n"
+      ],
+      "coveredGroups": [
+        "G4_right_anterior\n"
+      ],
+      "minBoundaryMarginMm": 0.8774033406093074,
+      "minObstacleMarginMm": 2.5389272632864266,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G4_right_anterior_T2_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G4_right_anterior_T2\n"
+      ],
+      "coveredGroups": [
+        "G4_right_anterior\n"
+      ],
+      "minBoundaryMarginMm": 1.1534560634455286,
+      "minObstacleMarginMm": 2.166801744850714,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G4_right_anterior_T3_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G4_right_anterior_T3\n"
+      ],
+      "coveredGroups": [
+        "G4_right_anterior\n"
+      ],
+      "minBoundaryMarginMm": 1.2075529264409517,
+      "minObstacleMarginMm": 2.107535387899122,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G4_right_anterior_T4_single\n",
+      "family": "single_target\n",
+      "valid": true,
+      "coveredTargetIds": [
+        "G4_right_anterior_T4\n"
+      ],
+      "coveredGroups": [
+        "G4_right_anterior\n"
+      ],
+      "minBoundaryMarginMm": 1.0096764960122373,
+      "minObstacleMarginMm": 2.0274678164704882,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_obstacle_cross_1\n",
+      "family": "invalid_obstacle\n",
+      "valid": false,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": 1.3771935749919266,
+      "minObstacleMarginMm": -0.38870142975972705,
+      "violatesBoundary": false,
+      "violatesObstacle": true
+    },
+    {
+      "id": "P_obstacle_cross_2\n",
+      "family": "invalid_obstacle\n",
+      "valid": false,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": 1.3845014113572698,
+      "minObstacleMarginMm": -0.5461847269287992,
+      "violatesBoundary": false,
+      "violatesObstacle": true
+    },
+    {
+      "id": "P_obstacle_cross_3\n",
+      "family": "invalid_obstacle\n",
+      "valid": false,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": 1.3845014113572698,
+      "minObstacleMarginMm": -0.5461847269287992,
+      "violatesBoundary": false,
+      "violatesObstacle": true
+    },
+    {
+      "id": "P_obstacle_cross_4\n",
+      "family": "invalid_obstacle\n",
+      "valid": false,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": 1.3771935749919266,
+      "minObstacleMarginMm": -0.38870142975972705,
+      "violatesBoundary": false,
+      "violatesObstacle": true
+    },
+    {
+      "id": "P_boundary_out_1\n",
+      "family": "invalid_boundary\n",
+      "valid": false,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": -1.8550858484663388,
+      "minObstacleMarginMm": 5.037862775254632,
+      "violatesBoundary": true,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_boundary_out_2\n",
+      "family": "invalid_boundary\n",
+      "valid": false,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": -1.7931707180101424,
+      "minObstacleMarginMm": 5.037842521938529,
+      "violatesBoundary": true,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_boundary_out_3\n",
+      "family": "invalid_boundary\n",
+      "valid": false,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": -1.7345871640252373,
+      "minObstacleMarginMm": 5.037866466737617,
+      "violatesBoundary": true,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_boundary_out_4\n",
+      "family": "invalid_boundary\n",
+      "valid": false,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": -1.6794482358430591,
+      "minObstacleMarginMm": 5.037852898031079,
+      "violatesBoundary": true,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G1_left_posterior_near_miss_left\n",
+      "family": "near_miss\n",
+      "valid": true,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": 0.23855277794456925,
+      "minObstacleMarginMm": 2.303192845969373,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G1_left_posterior_near_miss_right\n",
+      "family": "near_miss\n",
+      "valid": true,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": 0.5371183601293289,
+      "minObstacleMarginMm": 1.764082152437841,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G2_right_posterior_near_miss_left\n",
+      "family": "near_miss\n",
+      "valid": true,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": 0.5371183601293289,
+      "minObstacleMarginMm": 1.7641453278372963,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G2_right_posterior_near_miss_right\n",
+      "family": "near_miss\n",
+      "valid": true,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": 0.23855277794456925,
+      "minObstacleMarginMm": 2.3032434222614877,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G3_left_anterior_near_miss_left\n",
+      "family": "near_miss\n",
+      "valid": true,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": 0.23855277794456925,
+      "minObstacleMarginMm": 2.303192845969373,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G3_left_anterior_near_miss_right\n",
+      "family": "near_miss\n",
+      "valid": true,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": 0.5371183601293289,
+      "minObstacleMarginMm": 1.764082152437841,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G4_right_anterior_near_miss_left\n",
+      "family": "near_miss\n",
+      "valid": true,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": 0.5371183601293289,
+      "minObstacleMarginMm": 1.7641453278372963,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    },
+    {
+      "id": "P_G4_right_anterior_near_miss_right\n",
+      "family": "near_miss\n",
+      "valid": true,
+      "coveredTargetIds": [],
+      "coveredGroups": [],
+      "minBoundaryMarginMm": 0.23855277794456925,
+      "minObstacleMarginMm": 2.3032434222614877,
+      "violatesBoundary": false,
+      "violatesObstacle": false
+    }
+  ]
+}

@@ -1,0 +1,263 @@
+{
+  "schemaVersion": 1,
+  "caseStudy": "${LOCAL_DATA_ROOT}/real-atlas-case-study.json\n",
+  "annotation": {
+    "path": "${PROBEPLANNER_PROFILE_ROOT}\\annotation.npy\n",
+    "shape": [
+      528,
+      320,
+      456
+    ],
+    "sha256": "8cd42d0f72ae4e2fb3eea35736b907ae8a64c46b04e95dcf9d803c7df39a7c44\n",
+    "voxelSpacingUm": 25.0
+  },
+  "samplingStepUm": 25.0,
+  "acceptanceContract": {
+    "tipInside": true,
+    "insideRatioAfterEntry": 1.0,
+    "outsideSampleCount": 0,
+    "maxOutsideGapMm": 0.0,
+    "tipInRequestedTarget": true,
+    "overshootAfterLastTargetMm": 0.0
+  },
+  "summary": {
+    "selectedProbeCount": 4,
+    "strictPassCount": 4,
+    "strictFailureCount": 0
+  },
+  "probes": [
+    {
+      "caseId": "case_01_single_vpm\n",
+      "probeIndex": 1,
+      "physicalLengthMm": 4.075006,
+      "brainMask": {
+        "firstInsideIndex": 0,
+        "lastInsideIndex": 164,
+        "firstInsideDepthMm": 0.0,
+        "lastInsideDepthMm": 4.075006,
+        "insideRatioAfterEntry": 1.0,
+        "tipInside": true,
+        "outsideSampleCount": 0,
+        "maxOutsideGapMm": 0.0,
+        "maxOutsideGapSegmentMm": null,
+        "brainBoundaryPassed": true
+      },
+      "targetMetrics": {
+        "VPM": {
+          "sampleCount": 36,
+          "firstEntryDepthMm": 3.225,
+          "lastExitDepthMm": 4.075006,
+          "intersectionLengthMm": 0.850006,
+          "intervalsMm": [
+            [
+              3.225,
+              4.075006
+            ]
+          ]
+        }
+      },
+      "targetEndpoint": {
+        "tipRegionId": 733,
+        "tipRegionAcronym": "VPM\n",
+        "tipRegionName": "Ventral posteromedial nucleus of the thalamus\n",
+        "tipInRequestedTarget": true,
+        "tipTargetKeys": [
+          "VPM\n"
+        ],
+        "lastTargetIntersectionDepthMm": 4.075006,
+        "overshootAfterLastTargetMm": 0.0,
+        "minDistanceToTargetCenterMm": 1.855923
+      },
+      "strictPass": true
+    },
+    {
+      "caseId": "case_02_merged_hippocampal\n",
+      "probeIndex": 1,
+      "physicalLengthMm": 5.787026,
+      "brainMask": {
+        "firstInsideIndex": 0,
+        "lastInsideIndex": 232,
+        "firstInsideDepthMm": 0.0,
+        "lastInsideDepthMm": 5.787026,
+        "insideRatioAfterEntry": 1.0,
+        "tipInside": true,
+        "outsideSampleCount": 0,
+        "maxOutsideGapMm": 0.0,
+        "maxOutsideGapSegmentMm": null,
+        "brainBoundaryPassed": true
+      },
+      "targetMetrics": {
+        "CA1": {
+          "sampleCount": 22,
+          "firstEntryDepthMm": 1.025,
+          "lastExitDepthMm": 1.55,
+          "intersectionLengthMm": 0.55,
+          "intervalsMm": [
+            [
+              1.025,
+              1.55
+            ]
+          ]
+        },
+        "CA3": {
+          "sampleCount": 12,
+          "firstEntryDepthMm": 5.525,
+          "lastExitDepthMm": 5.787026,
+          "intersectionLengthMm": 0.262026,
+          "intervalsMm": [
+            [
+              5.525,
+              5.787026
+            ]
+          ]
+        },
+        "DG": {
+          "sampleCount": 32,
+          "firstEntryDepthMm": 1.575,
+          "lastExitDepthMm": 2.35,
+          "intersectionLengthMm": 0.8,
+          "intervalsMm": [
+            [
+              1.575,
+              2.35
+            ]
+          ]
+        }
+      },
+      "targetEndpoint": {
+        "tipRegionId": 463,
+        "tipRegionAcronym": "CA3\n",
+        "tipRegionName": "Field CA3\n",
+        "tipInRequestedTarget": true,
+        "tipTargetKeys": [
+          "CA3\n"
+        ],
+        "lastTargetIntersectionDepthMm": 5.787026,
+        "overshootAfterLastTargetMm": 0.0,
+        "minDistanceToTargetCenterMm": 1.601292
+      },
+      "strictPass": true
+    },
+    {
+      "caseId": "case_03_distributed_multitarget\n",
+      "probeIndex": 1,
+      "physicalLengthMm": 4.075006,
+      "brainMask": {
+        "firstInsideIndex": 0,
+        "lastInsideIndex": 164,
+        "firstInsideDepthMm": 0.0,
+        "lastInsideDepthMm": 4.075006,
+        "insideRatioAfterEntry": 1.0,
+        "tipInside": true,
+        "outsideSampleCount": 0,
+        "maxOutsideGapMm": 0.0,
+        "maxOutsideGapSegmentMm": null,
+        "brainBoundaryPassed": true
+      },
+      "targetMetrics": {
+        "CA1": {
+          "sampleCount": 24,
+          "firstEntryDepthMm": 1.05,
+          "lastExitDepthMm": 1.625,
+          "intersectionLengthMm": 0.6,
+          "intervalsMm": [
+            [
+              1.05,
+              1.625
+            ]
+          ]
+        },
+        "VPM": {
+          "sampleCount": 36,
+          "firstEntryDepthMm": 3.225,
+          "lastExitDepthMm": 4.075006,
+          "intersectionLengthMm": 0.850006,
+          "intervalsMm": [
+            [
+              3.225,
+              4.075006
+            ]
+          ]
+        },
+        "MOs": {
+          "sampleCount": 0,
+          "firstEntryDepthMm": null,
+          "lastExitDepthMm": null,
+          "intersectionLengthMm": 0.0,
+          "intervalsMm": []
+        }
+      },
+      "targetEndpoint": {
+        "tipRegionId": 733,
+        "tipRegionAcronym": "VPM\n",
+        "tipRegionName": "Ventral posteromedial nucleus of the thalamus\n",
+        "tipInRequestedTarget": true,
+        "tipTargetKeys": [
+          "VPM\n"
+        ],
+        "lastTargetIntersectionDepthMm": 4.075006,
+        "overshootAfterLastTargetMm": 0.0,
+        "minDistanceToTargetCenterMm": 1.855923
+      },
+      "strictPass": true
+    },
+    {
+      "caseId": "case_03_distributed_multitarget\n",
+      "probeIndex": 2,
+      "physicalLengthMm": 3.124985,
+      "brainMask": {
+        "firstInsideIndex": 36,
+        "lastInsideIndex": 125,
+        "firstInsideDepthMm": 0.9,
+        "lastInsideDepthMm": 3.124985,
+        "insideRatioAfterEntry": 1.0,
+        "tipInside": true,
+        "outsideSampleCount": 0,
+        "maxOutsideGapMm": 0.0,
+        "maxOutsideGapSegmentMm": null,
+        "brainBoundaryPassed": true
+      },
+      "targetMetrics": {
+        "CA1": {
+          "sampleCount": 0,
+          "firstEntryDepthMm": null,
+          "lastExitDepthMm": null,
+          "intersectionLengthMm": 0.0,
+          "intervalsMm": []
+        },
+        "VPM": {
+          "sampleCount": 0,
+          "firstEntryDepthMm": null,
+          "lastExitDepthMm": null,
+          "intersectionLengthMm": 0.0,
+          "intervalsMm": []
+        },
+        "MOs": {
+          "sampleCount": 90,
+          "firstEntryDepthMm": 0.9,
+          "lastExitDepthMm": 3.124985,
+          "intersectionLengthMm": 2.224985,
+          "intervalsMm": [
+            [
+              0.9,
+              3.124985
+            ]
+          ]
+        }
+      },
+      "targetEndpoint": {
+        "tipRegionId": 1085,
+        "tipRegionAcronym": "MOs6b\n",
+        "tipRegionName": "Secondary motor area, layer 6b\n",
+        "tipInRequestedTarget": true,
+        "tipTargetKeys": [
+          "MOs\n"
+        ],
+        "lastTargetIntersectionDepthMm": 3.124985,
+        "overshootAfterLastTargetMm": 0.0,
+        "minDistanceToTargetCenterMm": 1.572461
+      },
+      "strictPass": true
+    }
+  ]
+}

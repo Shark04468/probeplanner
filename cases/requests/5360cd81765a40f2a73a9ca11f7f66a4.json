@@ -2,7 +2,7 @@
   "id": "5360cd81765a40f2a73a9ca11f7f66a4",
   "label": "ACA+CA3+ACB+CA1+CP-5360cd81",
   "source": "local",
-  "requestHash": "768afcd05dc42f337287ad3630c52d035cd2dde069547973b27152533cf88b3f",
+  "requestHash": "86f6b3289a8c45abb1720f5a9f78b10fcbece161edef423e84e8a4a010e3e4a5",
   "targetKeys": [
     "ACA",
     "CA3",
@@ -10,6 +10,7 @@
     "CA1",
     "CP"
   ],
+  "excludedTargetKeys": [],
   "algorithm": "greedy",
   "request": {
     "targetKeys": [
@@ -86,7 +87,8 @@
       "minClearance": "enforce",
       "lambdaBoundary": "enforce",
       "brainBounds": "enforce",
-      "hemisphere": "warn"
+      "hemisphere": "warn",
+      "continuousRiskDistance": "enforce"
     },
     "correctionFactors": null,
     "correctionUncertainty": null,

@@ -8,7 +8,7 @@ This repository is the source-code release used for the Frontiers in Neuroinform
 
 - Project link: https://github.com/Shark04467/probeplanner
 - License: MIT
-- Release tag used for the manuscript: `v0.1.0-frontiers`
+- Release tag used for the manuscript: `v0.2.0-paper`
 - Primary tested operating system: Windows 11 with PowerShell 7/Windows PowerShell 5.1
 - Experimental support: Linux/macOS for TypeScript and Rust checks; MRI artifact scripts and launcher commands are Windows-first
 
@@ -105,7 +105,8 @@ For the manuscript locked-profile workflow demonstration, the accepted CA1 mediu
 
 ## Replay command
 
-Start the compatibility backend with the locked profile, then run replay gates:
+Start the native engine plus compatibility backend with the locked profile,
+then run replay gates:
 
 ```powershell
 $env:PROBEPLANNER_ARTIFACT_ROOT = "<artifact-root-containing-profiles>"
@@ -113,6 +114,13 @@ $env:PROBEPLANNER_MRI_CCF_PROFILE_NAME = "ambmc_true_outer_full"
 $env:PROBEPLANNER_STATE_DIR = "$PWD\.probeplanner\state"
 $env:PROBEPLANNER_REPLAY_DIR = "$env:PROBEPLANNER_STATE_DIR\replay"
 $env:PROBEPLANNER_AUDIT_LOG = "$env:PROBEPLANNER_STATE_DIR\audit.log"
+npm run dev:stack -- -ArtifactRoot $env:PROBEPLANNER_ARTIFACT_ROOT
+```
+
+Use `-LegacyPythonBackend` only when intentionally regenerating a historical
+Python baseline:
+
+```powershell
 npm run dev:stack -- -ArtifactRoot $env:PROBEPLANNER_ARTIFACT_ROOT -LegacyPythonBackend
 ```
 

@@ -1,0 +1,8 @@
+name: probeplanner-paper
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10.20
+  - pip=26.0.1
+  - pip:
+      - -r apps/backend-compat/requirements-lock-py310.txt

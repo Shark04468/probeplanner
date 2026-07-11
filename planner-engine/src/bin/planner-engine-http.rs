@@ -6,13 +6,21 @@ use axum::{
 };
 use planner_engine::{
     api::{
-        engine_version, CancelTaskResponse, HealthResponse, OptimizeRequest, SubmitTaskResponse,
-        TaskStatusResponse,
+        engine_version, CancelTaskResponse, HealthResponse, OptimizeRequest, OptimizeResponse,
+        SubmitTaskResponse, TaskStatusResponse,
     },
     optimizer::{PlannerCore, PlannerEngineConfig},
     task::{TaskRecord, TaskStore},
 };
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use serde_json::json;
+use std::{
+    any::Any,
+    collections::BTreeMap,
+    net::SocketAddr,
+    panic::{catch_unwind, AssertUnwindSafe},
+    sync::Arc,
+    time::Duration,
+};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -21,23 +29,69 @@ struct EngineState {
     tasks: TaskStore,
 }
 
+fn panic_payload_message(payload: Box<dyn Any + Send>) -> String {
+    if let Some(message) = payload.downcast_ref::<&str>() {
+        (*message).to_string()
+    } else if let Some(message) = payload.downcast_ref::<String>() {
+        message.clone()
+    } else {
+        "unknown panic payload".to_string()
+    }
+}
+
+fn panic_response(message: String) -> OptimizeResponse {
+    let mut compute_profile = BTreeMap::new();
+    compute_profile.insert("panic".to_string(), json!(true));
+    OptimizeResponse {
+        ok: false,
+        code: Some("engine_panic".to_string()),
+        error: Some(message),
+        engine_version: engine_version().to_string(),
+        engine_status: "engine_panic".to_string(),
+        algorithm: "unknown".to_string(),
+        candidate_count: 0,
+        candidate_universe_count: 0,
+        selected: Vec::new(),
+        uncovered: Vec::new(),
+        required_coverage_units: 0,
+        covered_coverage_units: 0,
+        time_ms: 0,
+        compute_profile,
+        candidate_stage_breakdown: BTreeMap::new(),
+    }
+}
+
 async fn health(State(state): State<Arc<EngineState>>) -> Json<HealthResponse> {
-    let (atlas_loaded, sdf_loaded, region_index_loaded) = state.core.health_flags();
+    let (atlas_loaded, sdf_loaded, region_index_loaded, risk_sdf_readiness, load_error) =
+        state.core.health_flags();
+    let ok = atlas_loaded && sdf_loaded && region_index_loaded && risk_sdf_readiness.ready;
     Json(HealthResponse {
-        ok: true,
+        ok,
         engine_version: engine_version().to_string(),
         atlas_loaded,
         sdf_loaded,
+        risk_sdf_ready: risk_sdf_readiness.ready,
+        risk_sdf_loaded_classes: risk_sdf_readiness.loaded_classes,
+        risk_sdf_missing_classes: risk_sdf_readiness.missing_classes,
         region_index_loaded,
         task_count: state.tasks.len(),
+        load_error,
     })
 }
 
 async fn optimize(
-    State(_state): State<Arc<EngineState>>,
+    State(state): State<Arc<EngineState>>,
     Json(request): Json<OptimizeRequest>,
 ) -> Json<planner_engine::api::OptimizeResponse> {
-    Json(_state.core.optimize(request))
+    Json(
+        match catch_unwind(AssertUnwindSafe(|| state.core.optimize(request))) {
+            Ok(response) => response,
+            Err(payload) => panic_response(format!(
+                "Native engine optimize panic: {}",
+                panic_payload_message(payload),
+            )),
+        },
+    )
 }
 
 async fn submit_task(
@@ -72,7 +126,24 @@ async fn submit_task(
         if tasks.is_cancelled(&task_id_for_worker) {
             return;
         }
-        let result = core.optimize(request);
+        let result = match catch_unwind(AssertUnwindSafe(|| {
+            core.optimize_with_cancel(request, || tasks.is_cancelled(&task_id_for_worker))
+        })) {
+            Ok(result) => result,
+            Err(payload) => {
+                tasks.fail(
+                    &task_id_for_worker,
+                    format!(
+                        "Native engine worker panic: {}",
+                        panic_payload_message(payload),
+                    ),
+                );
+                return;
+            }
+        };
+        if tasks.is_cancelled(&task_id_for_worker) || result.code.as_deref() == Some("cancelled") {
+            return;
+        }
         let post_stages = [
             ("candidate_generated", 0.46, "Native candidates generated"),
             ("candidate_scoring", 0.55, "Scoring native candidates"),
@@ -123,6 +194,13 @@ async fn cancel_task(
 
 #[tokio::main]
 async fn main() {
+    if let Err(err) = run().await {
+        eprintln!("planner-engine fatal: {err}");
+        std::process::exit(1);
+    }
+}
+
+async fn run() -> Result<(), String> {
     let host = std::env::var("PROBEPLANNER_ENGINE_HOST")
         .ok()
         .filter(|value| !value.trim().is_empty())
@@ -142,14 +220,16 @@ async fn main() {
         .route("/v1/tasks/:task_id", get(task_status))
         .route("/v1/tasks/:task_id/cancel", post(cancel_task))
         .with_state(state);
-    let addr: SocketAddr = format!("{host}:{port}")
+    let addr_text = format!("{host}:{port}");
+    let addr: SocketAddr = addr_text
         .parse()
-        .expect("valid bind address");
+        .map_err(|err| format!("invalid bind address {addr_text}: {err}"))?;
     let listener = tokio::net::TcpListener::bind(addr)
         .await
-        .expect("bind planner engine");
+        .map_err(|err| format!("failed to bind planner engine at {addr}: {err}"))?;
     println!("planner-engine listening on http://{addr}");
     axum::serve(listener, app)
         .await
-        .expect("planner engine server");
+        .map_err(|err| format!("planner engine server failed: {err}"))?;
+    Ok(())
 }

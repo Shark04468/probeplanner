@@ -1,0 +1,7 @@
+caseId,caseType,requestedTargets,targetingMode,candidateCount,selectedProbeCount,exactMinProbeCount,optimalityMatch,requiredCoverageUnits,coveredCoverageUnits,uncoveredTargets,status,riskWorstMarginMm,runtimeSec
+case_01_single_vpm,single-region target,"[""VPM""]",single_hemisphere,1,1,1,True,1,1,[],ok,0.075693,18.880495
+case_02_nearby_hippocampal,nearby multi-region target,"[""CA1"", ""CA3"", ""DG""]",single_hemisphere,9,1,1,True,3,3,[],ok,0.060409,57.256033
+case_03_separated_two_probe,separated multi-region target,"[""CA1"", ""VPM"", ""VISp"", ""MOs""]",single_hemisphere,10,2,,False,4,3,"[""VISp""]",partial,-0.075,44.598523
+case_04_distributed_three_probe,distributed targets,"[""CA1"", ""VPM"", ""VISp"", ""MOs"", ""SSp""]",single_hemisphere,16,2,,False,5,4,"[""VISp""]",partial,-0.075,54.395242
+case_05_bilateral_distributed_four_probe,bilateral / distributed targets,"[""CA1"", ""VPM"", ""VISp"", ""MOs""]",bilateral_symmetric,10,3,,False,8,4,[],partial,-0.075,20.318529
+case_06_depth_limited_fail_closed,infeasible targets,"[""VPM""]",single_hemisphere,0,0,,False,1,0,"[""VPM""]",fail_closed,,0.218333

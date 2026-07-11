@@ -1,0 +1,137 @@
+{
+  "one_target_one_probe": {
+    "methodLabel": "one-target-one-probe\n",
+    "caseCount": 27,
+    "meanProbeCount": 2.888889,
+    "meanProbeCountCi95": [
+      2.333333,
+      3.444444
+    ],
+    "fullCoverageCaseRate": 1.0,
+    "fullCoverageCaseCountEquivalent": 27.0,
+    "meanCoverageRate": 1.0,
+    "totalUncoveredCoverageUnits": 0.0,
+    "meanHardViolationRate": 0.048148,
+    "minimumInternalRiskMarginMm": null,
+    "internalRiskEvidenceCaseCount": 0,
+    "meanRuntimeSec": 25.021483,
+    "meanProbeCountDeltaVsReference": 0.777778,
+    "meanProbeCountDeltaCi95": [
+      0.444444,
+      1.111111
+    ],
+    "meanCoverageDeltaVsReference": 0.0,
+    "meanCoverageDeltaCi95": [
+      0.0,
+      0.0
+    ]
+  },
+  "greedy_grouping": {
+    "methodLabel": "greedy grouping\n",
+    "caseCount": 27,
+    "meanProbeCount": 2.296296,
+    "meanProbeCountCi95": [
+      1.814815,
+      2.777778
+    ],
+    "fullCoverageCaseRate": 1.0,
+    "fullCoverageCaseCountEquivalent": 27.0,
+    "meanCoverageRate": 1.0,
+    "totalUncoveredCoverageUnits": 0.0,
+    "meanHardViolationRate": 0.0,
+    "minimumInternalRiskMarginMm": null,
+    "internalRiskEvidenceCaseCount": 0,
+    "meanRuntimeSec": 25.02887,
+    "meanProbeCountDeltaVsReference": 0.185185,
+    "meanProbeCountDeltaCi95": [
+      0.037037,
+      0.333333
+    ],
+    "meanCoverageDeltaVsReference": 0.0,
+    "meanCoverageDeltaCi95": [
+      0.0,
+      0.0
+    ]
+  },
+  "random_feasible": {
+    "methodLabel": "random feasible selection\n",
+    "caseCount": 27,
+    "meanProbeCount": 2.337037,
+    "meanProbeCountCi95": [
+      1.901852,
+      2.814815
+    ],
+    "fullCoverageCaseRate": 1.0,
+    "fullCoverageCaseCountEquivalent": 27.0,
+    "meanCoverageRate": 1.0,
+    "totalUncoveredCoverageUnits": 0.0,
+    "meanHardViolationRate": 0.001543,
+    "minimumInternalRiskMarginMm": null,
+    "internalRiskEvidenceCaseCount": 0,
+    "meanRuntimeSec": 25.029784,
+    "meanProbeCountDeltaVsReference": 0.225926,
+    "meanProbeCountDeltaCi95": [
+      0.111111,
+      0.35
+    ],
+    "meanCoverageDeltaVsReference": 0.0,
+    "meanCoverageDeltaCi95": [
+      0.0,
+      0.0
+    ]
+  },
+  "coverage_first_greedy": {
+    "methodLabel": "coverage-first greedy\n",
+    "caseCount": 27,
+    "meanProbeCount": 2.111111,
+    "meanProbeCountCi95": [
+      1.740741,
+      2.518519
+    ],
+    "fullCoverageCaseRate": 1.0,
+    "fullCoverageCaseCountEquivalent": 27.0,
+    "meanCoverageRate": 1.0,
+    "totalUncoveredCoverageUnits": 0.0,
+    "meanHardViolationRate": 0.0,
+    "minimumInternalRiskMarginMm": null,
+    "internalRiskEvidenceCaseCount": 0,
+    "meanRuntimeSec": 25.029316,
+    "meanProbeCountDeltaVsReference": 0.0,
+    "meanProbeCountDeltaCi95": [
+      0.0,
+      0.0
+    ],
+    "meanCoverageDeltaVsReference": 0.0,
+    "meanCoverageDeltaCi95": [
+      0.0,
+      0.0
+    ]
+  },
+  "probeplanner": {
+    "methodLabel": "ProbePlanner\n",
+    "caseCount": 27,
+    "meanProbeCount": 2.111111,
+    "meanProbeCountCi95": [
+      1.703704,
+      2.518519
+    ],
+    "fullCoverageCaseRate": 1.0,
+    "fullCoverageCaseCountEquivalent": 27.0,
+    "meanCoverageRate": 1.0,
+    "totalUncoveredCoverageUnits": 0.0,
+    "meanHardViolationRate": 0.0,
+    "minimumInternalRiskMarginMm": null,
+    "internalRiskEvidenceCaseCount": 0,
+    "meanRuntimeSec": 25.020855,
+    "meanProbeCountDeltaVsReference": 0.0,
+    "meanProbeCountDeltaCi95": [
+      0.0,
+      0.0
+    ],
+    "meanCoverageDeltaVsReference": 0.0,
+    "meanCoverageDeltaCi95": [
+      0.0,
+      0.0
+    ]
+  }
+}

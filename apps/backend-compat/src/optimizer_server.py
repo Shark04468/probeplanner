@@ -1,10 +1,11 @@
-﻿"""
+"""
 BCI Probe Trajectory Optimizer  ?Flask Backend
 ================================================
 Provides precise voxel-level brain region coverage using Allen CCFv3 annotation data.
 
 Installation (one-time):
-    pip install flask flask-cors allensdk numpy requests
+    pip install -r apps/backend-compat/requirements.txt
+    # Optional legacy AllenSDK mode: pip install -r apps/backend-compat/requirements-legacy.txt
 
 First run downloads annotation_25.nrrd (~110 MB) automatically.
 
@@ -33,7 +34,6 @@ import json
 import math
 import re
 import time
-import pickle
 import platform
 import subprocess
 import queue
@@ -1702,6 +1702,7 @@ DEFAULT_CONSTRAINT_MODES = {
     "minClearance": "enforce",
     "lambdaBoundary": "enforce",
     "brainBounds": "enforce",
+    "continuousRiskDistance": "enforce",
     "hemisphere": "warn",
 }
 
@@ -2119,11 +2120,29 @@ RISK_THRESHOLD_TEMPLATES = {
 }
 RISK_THRESHOLD_TEMPLATE_DEFAULT = "balanced"
 BOUNDARY_RISK_THRESHOLD_FLOORS_MM = {
+    "default": 0.01,
+    "vessel": 0.01,
+    "ventricle": 0.01,
+    "sulcus": 0.01,
+    "skull": 0.01,
     "cortex_outside": 0.05,
     "brain_surface": 0.05,
     "drilling_surface": 0.05,
 }
-ENTRY_CORRIDOR_RISK_CLASSES = {"cortex_outside", "brain_surface", "drilling_surface"}
+ENTRY_CORRIDOR_RISK_CLASSES = {
+    "skull",
+    "cortex_outside",
+    "brain_surface",
+    "drilling_surface",
+}
+INTERNAL_AVOIDANCE_RISK_CLASSES = {
+    "vessel",
+    "ventricle",
+    "sulcus",
+    "user_exclusion",
+    "user_defined_exclusion",
+    "no_go",
+}
 ENTRY_CORRIDOR_ALLOWANCE_MM = float(os.getenv("PROBEPLANNER_ENTRY_CORRIDOR_ALLOWANCE_MM", "0.90"))
 AUTO_AVOID_ENABLED_DEFAULT = True
 AUTO_AVOID_COARSE_STEP_UM_DEFAULT = 50.0
@@ -2184,6 +2203,14 @@ CANDIDATE_REFINE_STEP_UM_DEFAULT = float(
 )
 CANDIDATE_REFINE_FRACTION_DEFAULT = float(
     os.getenv("PROBEPLANNER_CANDIDATE_REFINE_FRACTION", "0.20") or 0.20
+)
+CANDIDATE_TARGET_DIVERSITY_SEEDS_DEFAULT = max(
+    1,
+    int(os.getenv("PROBEPLANNER_CANDIDATE_TARGET_DIVERSITY_SEEDS", "8") or 8),
+)
+CANDIDATE_TARGET_ENTRY_VARIANTS_DEFAULT = max(
+    1,
+    int(os.getenv("PROBEPLANNER_CANDIDATE_TARGET_ENTRY_VARIANTS", "3") or 3),
 )
 SCORE_EARLY_STOP_ENABLED_DEFAULT = str(
     os.getenv("PROBEPLANNER_SCORE_EARLY_STOP_ENABLED", "true")
@@ -2489,7 +2516,7 @@ def _reset_planner_regions():
 def _region_index_cache_path(atlas_mode, atlas_hash):
     mode = str(atlas_mode or "allen_sdk").strip().lower() or "allen_sdk"
     digest = str(atlas_hash or "unknown").strip().lower() or "unknown"
-    return REGION_INDEX_CACHE_DIR / f"{mode}_{digest[:20]}_region_index.pkl"
+    return REGION_INDEX_CACHE_DIR / f"{mode}_{digest[:20]}_region_index.json"
 
 
 def _load_region_index_cache(atlas_mode, atlas_hash):
@@ -2499,8 +2526,8 @@ def _load_region_index_cache(atlas_mode, atlas_hash):
     if not cache_path.exists():
         return None
     try:
-        with cache_path.open("rb") as fh:
-            payload = pickle.load(fh)
+        with cache_path.open("r", encoding="utf-8") as fh:
+            payload = json.load(fh)
         if not isinstance(payload, dict):
             return None
         if str(payload.get("atlasHash") or "") != str(atlas_hash or ""):
@@ -2548,8 +2575,10 @@ def _save_region_index_cache(atlas_mode, atlas_hash, planner_seed, structure_see
     }
     try:
         cache_path.parent.mkdir(parents=True, exist_ok=True)
-        with cache_path.open("wb") as fh:
-            pickle.dump(payload, fh, protocol=pickle.HIGHEST_PROTOCOL)
+        tmp_path = cache_path.with_suffix(cache_path.suffix + ".tmp")
+        with tmp_path.open("w", encoding="utf-8") as fh:
+            json.dump(payload, fh, separators=(",", ":"), sort_keys=True)
+        tmp_path.replace(cache_path)
         return str(cache_path)
     except Exception as exc:
         log.warning(f"Failed to write region index cache ({cache_path}): {exc}")
@@ -4713,12 +4742,13 @@ def _compute_probe_risk_diagnostics(
 
 def _continuous_risk_policy(constraint_modes):
     explicit_mode = isinstance(constraint_modes, dict) and "continuousRiskDistance" in constraint_modes
-    # continuousRiskDistance is a high-sensitivity model constraint. Omitted
-    # values stay warn-compatible for older clients; explicit enforce from the
-    # UI/API must fail closed when the risk model cannot produce measurements.
-    requested = constraint_modes.get("continuousRiskDistance", "warn")
+    # continuousRiskDistance is a high-sensitivity model constraint. Missing
+    # values fail closed by default; legacy/demo clients must explicitly request
+    # warn/off if they need non-blocking risk diagnostics.
+    requested = constraint_modes.get("continuousRiskDistance", "enforce")
     if requested not in CONSTRAINT_MODES:
         requested = "enforce"
+    strict_requested = requested == "enforce"
 
     with risk_model_lock:
         summary = deepcopy(risk_model_summary)
@@ -4749,25 +4779,25 @@ def _continuous_risk_policy(constraint_modes):
             or str(summary.get("sdfBuildState") or "").strip().lower() in ("building", "initializing", "loading")
         )
     )
-    if risk_initializing and not explicit_mode:
+    if risk_initializing and not explicit_mode and not strict_requested:
         downgraded = bool(requested == "enforce")
         effective = "warn" if requested == "enforce" else requested
         reason = "risk_model_initializing"
-    elif risk_initializing and explicit_mode:
+    elif risk_initializing:
         downgraded = False
         effective = requested
-        reason = "risk_model_initializing_explicit_mode"
-    elif not risk_enabled and not explicit_mode:
+        reason = "risk_model_initializing_explicit_mode" if explicit_mode else "risk_model_initializing_default_enforce"
+    elif not risk_enabled and not explicit_mode and not strict_requested:
         downgraded = bool(requested != "off")
         effective = "off"
         reason = "risk_model_disabled"
-    elif not risk_enabled and explicit_mode:
+    elif not risk_enabled:
         downgraded = False
         effective = requested
-        reason = "risk_model_disabled_explicit_mode"
+        reason = "risk_model_disabled_explicit_mode" if explicit_mode else "risk_model_disabled_default_enforce"
     else:
         source_limited = bool(
-            keyword_only and not explicit_mode and not ALLOW_KEYWORD_ONLY_RISK_ENFORCE
+            keyword_only and not explicit_mode and not strict_requested and not ALLOW_KEYWORD_ONLY_RISK_ENFORCE
         )
         downgraded = bool(
             requested == "enforce"
@@ -4779,6 +4809,8 @@ def _continuous_risk_policy(constraint_modes):
             if source_limited
             else "strict_override"
             if requested == "enforce" and keyword_only and (explicit_mode or ALLOW_KEYWORD_ONLY_RISK_ENFORCE)
+            else "default_enforce"
+            if requested == "enforce" and keyword_only
             else "default"
         )
     return {
@@ -4788,7 +4820,9 @@ def _continuous_risk_policy(constraint_modes):
         "downgraded": downgraded,
         "explicitMode": bool(explicit_mode),
         "reason": reason,
-        "sourceLimited": bool(keyword_only and not explicit_mode and not ALLOW_KEYWORD_ONLY_RISK_ENFORCE),
+        "sourceLimited": bool(
+            keyword_only and not explicit_mode and not strict_requested and not ALLOW_KEYWORD_ONLY_RISK_ENFORCE
+        ),
         "riskModelEnabled": risk_enabled,
         "riskModelSources": sorted(sources),
         "externalRiskSources": external_sources,
@@ -7157,7 +7191,7 @@ def load_atlas():
     except ImportError:
         atlas_error = (
             "allensdk not installed for allen_sdk mode. "
-            "Run: pip install allensdk numpy flask flask-cors requests"
+            "Run: pip install -r apps/backend-compat/requirements-legacy.txt"
         )
         _set_atlas_load_state(
             state="error",
@@ -7645,6 +7679,56 @@ def mri_surface_mesh_lod_proxy(layer):
 
 #        Voxel coverage engine                                                                                                             
 
+def _sample_trajectory_path_indices(
+    ap_mm,
+    ml_mm,
+    theta_deg,
+    phi_deg,
+    depth_um,
+    skull_tilt_deg=0.0,
+    step_um=25.0,
+):
+    """Return ordered CCF voxel indices with their physical insertion depths.
+
+    Unlike the legacy voxel-only sampler, this keeps duplicate voxel samples and
+    appends the exact physical tip.  The depth vector therefore remains valid
+    for oblique trajectories, whose rounded voxel indices are not one-to-one
+    with fixed 25 um insertion steps.
+    """
+    tilt_rad = float(skull_tilt_deg) * math.pi / 180.0
+    dv_corr_um = -float(ap_mm) * math.tan(tilt_rad) * 1000.0
+
+    theta_rad = float(theta_deg) * math.pi / 180.0
+    phi_rad = float(phi_deg) * math.pi / 180.0
+    direction = np.array(
+        [
+            math.sin(theta_rad) * math.cos(phi_rad),
+            math.cos(theta_rad),
+            math.sin(theta_rad) * math.sin(phi_rad),
+        ],
+        dtype=np.float64,
+    )
+    entry_ccf = np.array(
+        [
+            BREGMA_UM[0] - float(ap_mm) * 1000.0,
+            BREGMA_UM[1] + dv_corr_um,
+            BREGMA_UM[2] + float(ml_mm) * 1000.0,
+        ],
+        dtype=np.float64,
+    )
+    total_depth_um = max(0.0, float(depth_um))
+    sample_step_um = max(1e-6, float(step_um))
+    depths_um = np.arange(0.0, total_depth_um + 1e-9, sample_step_um, dtype=np.float64)
+    if depths_um.size == 0:
+        depths_um = np.array([0.0], dtype=np.float64)
+    if total_depth_um - float(depths_um[-1]) > 1e-6:
+        depths_um = np.append(depths_um, total_depth_um)
+
+    points = entry_ccf[None, :] + depths_um[:, None] * direction[None, :]
+    indices = np.rint(points / float(VOXEL_SIZE_UM)).astype(np.int64)
+    return [tuple(int(value) for value in row) for row in indices], [float(value) for value in depths_um]
+
+
 def sample_trajectory_voxels(ap_mm, ml_mm, theta_deg, phi_deg, depth_um,
                               skull_tilt_deg=0.0, step_um=25.0):
     """
@@ -7652,37 +7736,20 @@ def sample_trajectory_voxels(ap_mm, ml_mm, theta_deg, phi_deg, depth_um,
 
     [FIX-1] All arithmetic done in CCFv3  m space  ?no mid-loop sign conversion.
     """
-    tilt_rad  = skull_tilt_deg * math.pi / 180.0
-    dv_corr_um = -ap_mm * math.tan(tilt_rad) * 1000.0
+    path_indices, _ = _sample_trajectory_path_indices(
+        ap_mm,
+        ml_mm,
+        theta_deg,
+        phi_deg,
+        depth_um,
+        skull_tilt_deg=skull_tilt_deg,
+        step_um=step_um,
+    )
 
-    theta_rad = theta_deg * math.pi / 180.0
-    phi_rad   = phi_deg   * math.pi / 180.0
-
-    dir_x = math.sin(theta_rad) * math.cos(phi_rad)
-    dir_y = math.cos(theta_rad)
-    dir_z = math.sin(theta_rad) * math.sin(phi_rad)
-
-    entry_ccf = np.array([
-        BREGMA_UM[0] - ap_mm * 1000.0,
-        BREGMA_UM[1] + dv_corr_um,
-        BREGMA_UM[2] + ml_mm * 1000.0,
-    ], dtype=np.float64)
-
-    max_depth = (ATLAS_SHAPE[1] * VOXEL_SIZE_UM) - BREGMA_UM[1] - 50.0
-    effective_depth = min(depth_um, max_depth)
-    n_steps = int(effective_depth / step_um) + 1
-
-    # Keep depth order for trajectory profiling while still deduplicating voxel hits.
+    # Preserve the public voxel-only contract for legacy coverage callers.
     voxels = []
     seen = set()
-    for i_step in range(n_steps):
-        d_um = i_step * step_um
-        ccf_x = entry_ccf[0] + dir_x * d_um
-        ccf_y = entry_ccf[1] + dir_y * d_um
-        ccf_z = entry_ccf[2] + dir_z * d_um
-        vi = int(round(ccf_x / VOXEL_SIZE_UM))
-        vj = int(round(ccf_y / VOXEL_SIZE_UM))
-        vk = int(round(ccf_z / VOXEL_SIZE_UM))
+    for vi, vj, vk in path_indices:
         if not voxel_in_bounds(vi, vj, vk):
             continue
         key = (vi, vj, vk)
@@ -7751,10 +7818,20 @@ def _brain_mask_path_summary_from_voxels(
     if atlas_annotation is None or not traj_voxels:
         return {"available": False, "passed": True}
     try:
-        ii = np.array([v[0] for v in traj_voxels], dtype=np.int32)
-        jj = np.array([v[1] for v in traj_voxels], dtype=np.int32)
-        kk = np.array([v[2] for v in traj_voxels], dtype=np.int32)
-        labels = np.asarray(atlas_annotation[ii, jj, kk], dtype=np.int64)
+        ii = np.array([v[0] for v in traj_voxels], dtype=np.int64)
+        jj = np.array([v[1] for v in traj_voxels], dtype=np.int64)
+        kk = np.array([v[2] for v in traj_voxels], dtype=np.int64)
+        valid = (
+            (ii >= 0)
+            & (ii < int(atlas_annotation.shape[0]))
+            & (jj >= 0)
+            & (jj < int(atlas_annotation.shape[1]))
+            & (kk >= 0)
+            & (kk < int(atlas_annotation.shape[2]))
+        )
+        labels = np.zeros(ii.shape, dtype=np.int64)
+        if bool(np.any(valid)):
+            labels[valid] = np.asarray(atlas_annotation[ii[valid], jj[valid], kk[valid]], dtype=np.int64)
     except Exception:
         return {"available": False, "passed": True}
 
@@ -7781,7 +7858,10 @@ def _brain_mask_path_summary_from_voxels(
     tip_inside = bool(inside[-1])
     inside_after_entry = inside[first_inside:]
     inside_ratio_after_entry = float(np.mean(inside_after_entry)) if inside_after_entry.size else 0.0
-    inside_span = inside[first_inside:last_inside + 1] if last_inside >= first_inside else inside_after_entry
+    # Audit the complete post-entry path, including a terminal excursion after
+    # the final in-brain sample. The previous span stopped at `last_inside`,
+    # which could report a zero outside gap even when the tip was outside.
+    inside_span = inside_after_entry
 
     max_outside_gap_vox = 0
     max_outside_gap_start_rel = None
@@ -7867,7 +7947,7 @@ def _candidate_brain_mask_path_summary(candidate, *, step_um=25.0):
     phi = float(candidate.get("phi_deg", 0.0))
     depth_um = float(candidate.get("depthUm_corrected", candidate.get("depthUm", 0.0)))
     skull_tilt = float(candidate.get("skullTiltDeg", 0.0))
-    traj_voxels = sample_trajectory_voxels_cached(
+    traj_voxels, _ = _sample_trajectory_path_indices(
         ap,
         ml,
         theta,
@@ -7932,7 +8012,7 @@ def voxel_overlap_count(traj_voxels, structure_id):
     return int(np.isin(probe_ids, list(desc)).sum())
 
 
-def compute_trajectory_profile(traj_voxels, target_structure_ids, step_um=25.0):
+def compute_trajectory_profile(traj_voxels, target_structure_ids, step_um=25.0, sample_depths_um=None):
     """
     [NEW]            overed / n_voxels / coverage_frac /
     entry_depth_um / exit_depth_um / channel_span_um / voxel_score
@@ -7949,6 +8029,16 @@ def compute_trajectory_profile(traj_voxels, target_structure_ids, step_um=25.0):
     kk = np.array([v[2] for v in traj_voxels], dtype=np.int32)
     probe_labels = atlas_annotation[ii, jj, kk]
     ml_um = kk.astype(np.float64) * VOXEL_SIZE_UM - BREGMA_UM[2]
+    depths_um = None
+    if sample_depths_um is not None:
+        try:
+            trial_depths = np.asarray(sample_depths_um, dtype=np.float64)
+            if trial_depths.shape == ii.shape and bool(np.all(np.isfinite(trial_depths))):
+                depths_um = trial_depths
+        except Exception:
+            depths_um = None
+    if depths_um is None:
+        depths_um = np.arange(ii.size, dtype=np.float64) * float(step_um)
 
     result = {}
     for sid in target_structure_ids:
@@ -7969,6 +8059,8 @@ def compute_trajectory_profile(traj_voxels, target_structure_ids, step_um=25.0):
         hit_indices   = np.where(mask)[0]
         entry_step    = int(hit_indices[0])
         exit_step     = int(hit_indices[-1])
+        entry_depth_um = float(depths_um[entry_step])
+        exit_depth_um = float(depths_um[exit_step])
         left_voxels = int(np.logical_and(mask, ml_um <= 0).sum())
         right_voxels = int(np.logical_and(mask, ml_um > 0).sum())
         covered_sides = []
@@ -7981,9 +8073,9 @@ def compute_trajectory_profile(traj_voxels, target_structure_ids, step_um=25.0):
             "covered":         True,
             "n_voxels":        n_hit,
             "coverage_frac":   round(coverage_frac, 5),
-            "entry_depth_um":  int(entry_step * step_um),
-            "exit_depth_um":   int(exit_step  * step_um),
-            "channel_span_um": int((exit_step - entry_step) * step_um),
+            "entry_depth_um":  round(entry_depth_um, 6),
+            "exit_depth_um":   round(exit_depth_um, 6),
+            "channel_span_um": round(max(0.0, exit_depth_um - entry_depth_um), 6),
             "voxel_score":     round(math.sqrt(coverage_frac), 6),
             "left_voxels":     left_voxels,
             "right_voxels":    right_voxels,
@@ -7991,6 +8083,253 @@ def compute_trajectory_profile(traj_voxels, target_structure_ids, step_um=25.0):
         }
 
     return result
+
+
+def _candidate_endpoint_target_summary(candidate, target_ids):
+    """Summarize terminal target membership and post-target insertion length."""
+    if atlas_annotation is None:
+        return {
+            "available": False,
+            "tipLabelId": None,
+            "tipInRequestedTarget": False,
+            "tipTargetKeys": [],
+            "lastTargetExitDepthUm": None,
+            "overshootAfterLastTargetUm": None,
+        }
+
+    target_ids = {
+        str(key): int(value)
+        for key, value in (target_ids or {}).items()
+        if value is not None
+    }
+    ap = float(candidate.get("ap_mm_corrected", candidate.get("ap_mm", 0.0)))
+    ml = float(candidate.get("ml_mm_corrected", candidate.get("ml_mm", 0.0)))
+    theta = float(candidate.get("theta_deg", 0.0))
+    phi = float(candidate.get("phi_deg", 0.0))
+    depth_um = max(0.0, float(candidate.get("depthUm_corrected", candidate.get("depthUm", 0.0)) or 0.0))
+    skull_tilt = float(candidate.get("skullTiltDeg", 0.0))
+    try:
+        voxels, depths_um = _sample_trajectory_path_indices(
+            ap,
+            ml,
+            theta,
+            phi,
+            depth_um,
+            skull_tilt_deg=skull_tilt,
+            step_um=25.0,
+        )
+        labels = []
+        for idx in voxels:
+            labels.append(int(atlas_annotation[idx]) if voxel_in_bounds(*idx) else 0)
+    except Exception:
+        voxels, depths_um, labels = [], [], []
+
+    target_descendants = {
+        key: descendant_ids.get(sid, frozenset([sid]))
+        for key, sid in target_ids.items()
+    }
+    tip_label = int(labels[-1]) if labels else None
+    tip_target_keys = [
+        key for key, descendants in target_descendants.items()
+        if tip_label is not None and tip_label in descendants
+    ]
+    terminal_depths = [
+        float(depth)
+        for depth, label in zip(depths_um, labels)
+        if any(int(label) in descendants for descendants in target_descendants.values())
+    ]
+    last_exit_um = max(terminal_depths, default=None)
+    overshoot_um = max(0.0, depth_um - last_exit_um) if last_exit_um is not None else None
+    return {
+        "available": True,
+        "tipLabelId": tip_label,
+        "tipInRequestedTarget": bool(tip_target_keys),
+        "tipTargetKeys": sorted(tip_target_keys),
+        "lastTargetExitDepthUm": round(float(last_exit_um), 6) if last_exit_um is not None else None,
+        "overshootAfterLastTargetUm": round(float(overshoot_um), 6) if overshoot_um is not None else None,
+        "endpointSamplingStepUm": 25.0,
+    }
+
+
+def _build_unified_probe_audit(probe, target_keys, params):
+    """Build one non-contradictory containment, endpoint, and risk audit."""
+    target_ids = {
+        str(key): int(PLANNER_REGIONS[key]["id"])
+        for key in (target_keys or [])
+        if key in PLANNER_REGIONS and PLANNER_REGIONS[key].get("id") is not None
+    }
+    brain = _candidate_brain_mask_path_summary(probe, step_um=25.0)
+    endpoint = _candidate_endpoint_target_summary(probe, target_ids)
+    risk_diag = probe.get("riskDiagnostics") if isinstance(probe.get("riskDiagnostics"), dict) else {}
+    class_min = risk_diag.get("classMinDistanceMm") if isinstance(risk_diag.get("classMinDistanceMm"), dict) else {}
+    class_threshold = risk_diag.get("classThresholdMm") if isinstance(risk_diag.get("classThresholdMm"), dict) else {}
+    thresholds = sanitize_risk_thresholds(
+        params.get("riskThresholdsMm"),
+        default_mm=float(params.get("minRiskDistanceMm", MIN_RISK_DISTANCE_MM_DEFAULT)),
+    )
+
+    completeness = risk_model_summary.get("riskLayerCompleteness")
+    completeness_known = isinstance(completeness, dict) and bool(completeness)
+    internal_rows = {}
+    unavailable_internal = []
+    available_internal = []
+    violations = []
+    for risk_class in sorted(INTERNAL_AVOIDANCE_RISK_CLASSES):
+        layer = completeness.get(risk_class) if completeness_known else None
+        usable = bool(layer.get("usable")) if isinstance(layer, dict) else risk_class in class_min
+        if not usable:
+            unavailable_internal.append(risk_class)
+            internal_rows[risk_class] = {
+                "status": (layer or {}).get("status", "unavailable") if isinstance(layer, dict) else "unavailable",
+                "available": False,
+                "distanceMm": None,
+                "thresholdMm": None,
+                "marginMm": None,
+            }
+            continue
+        available_internal.append(risk_class)
+        distance = _as_float_or_none(class_min.get(risk_class))
+        threshold = _as_float_or_none(class_threshold.get(risk_class))
+        if threshold is None:
+            threshold = float(resolve_risk_threshold_mm(thresholds, risk_class))
+        margin = float(distance - threshold) if distance is not None else None
+        if margin is not None and margin < -1e-9:
+            violations.append(risk_class)
+        internal_rows[risk_class] = {
+            "status": "ready" if distance is not None else "diagnostic_missing",
+            "available": True,
+            "distanceMm": round(float(distance), 6) if distance is not None else None,
+            "thresholdMm": round(float(threshold), 6),
+            "marginMm": round(float(margin), 6) if margin is not None else None,
+        }
+
+    internal_margins = [
+        float(row["marginMm"])
+        for row in internal_rows.values()
+        if row.get("available") and row.get("marginMm") is not None
+    ]
+    missing_diagnostics = [
+        risk_class
+        for risk_class in available_internal
+        if internal_rows[risk_class].get("marginMm") is None
+    ]
+    brain_passed = bool(brain.get("available") and brain.get("passed"))
+    entry_layers = {}
+    for risk_class in sorted(ENTRY_CORRIDOR_RISK_CLASSES):
+        layer = completeness.get(risk_class) if completeness_known else None
+        available = bool(layer.get("usable")) if isinstance(layer, dict) else risk_class in class_min
+        entry_layers[risk_class] = {
+            "available": available,
+            "status": (layer or {}).get("status", "ready" if available else "unavailable")
+            if isinstance(layer, dict)
+            else ("ready" if available else "unavailable"),
+            "minimumDistanceMm": round(float(class_min[risk_class]), 6)
+            if available and _as_float_or_none(class_min.get(risk_class)) is not None
+            else None,
+        }
+    if not brain_passed:
+        entry_status = "failed_post_entry_containment"
+    elif any(item["available"] for item in entry_layers.values()):
+        entry_status = "allowed_entry_surface_semantics"
+    else:
+        entry_status = "entry_surface_layers_unavailable"
+
+    overshoot_um = _as_float_or_none(endpoint.get("overshootAfterLastTargetUm"))
+    return {
+        "brainContainmentPassed": brain_passed,
+        "tipInTarget": bool(endpoint.get("tipInRequestedTarget")),
+        "distalOvershootMm": round(float(overshoot_um) / 1000.0, 6)
+        if overshoot_um is not None
+        else None,
+        "internalRiskViolationCount": int(len(violations)),
+        "minimumInternalRiskMarginMm": round(float(min(internal_margins)), 6)
+        if internal_margins
+        else None,
+        "entrySurfaceCrossingStatus": entry_status,
+        "brainContainmentAudit": brain,
+        "targetEndpointAudit": endpoint,
+        "internalRiskAudit": {
+            "claimStatus": (
+                "complete"
+                if available_internal and not unavailable_internal and not missing_diagnostics
+                else "partial"
+                if available_internal
+                else "unavailable"
+            ),
+            "availableClasses": available_internal,
+            "unavailableClasses": unavailable_internal,
+            "missingDiagnosticClasses": missing_diagnostics,
+            "violationClasses": violations,
+            "classes": internal_rows,
+        },
+        "entrySurfaceAudit": {
+            "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry",
+            "classes": entry_layers,
+        },
+    }
+
+
+def _candidate_target_ids(candidate):
+    return {
+        str(key): int(PLANNER_REGIONS[key]["id"])
+        for key in (candidate.get("coveredRegions") or [])
+        if key in PLANNER_REGIONS and PLANNER_REGIONS[key].get("id") is not None
+    }
+
+
+def _trim_candidate_to_target_tip(
+    candidate,
+    *,
+    target_ids,
+    params,
+    constraint_modes,
+    correction_factors,
+    probe_radius_um,
+):
+    """Retain all covered targets but stop at the final target-label sample."""
+    endpoint = _candidate_endpoint_target_summary(candidate, target_ids)
+    terminal_depth_um = endpoint.get("lastTargetExitDepthUm")
+    if terminal_depth_um is None:
+        return None
+    try:
+        depth_scale = float((correction_factors or DEFAULT_CORRECTION_FACTORS).get("dv", 1.0))
+    except Exception:
+        return None
+
+    # The endpoint summary samples the exact physical tip as well as regular
+    # 25 um samples. Rebuilding at the final in-target depth therefore makes
+    # insertion depth a decision variable without treating a deduplicated
+    # voxel-array index as a physical distance.
+    current_depth_um = float(terminal_depth_um)
+    for _ in range(3):
+        raw_depth_um = current_depth_um / max(abs(depth_scale), 1e-9)
+        if raw_depth_um <= 1e-6:
+            return None
+        trimmed = _build_candidate_from_geometry(
+            base_probe=candidate,
+            ap_mm=float(candidate.get("ap_mm", 0.0)),
+            ml_mm=float(candidate.get("ml_mm", 0.0)),
+            theta_deg=float(candidate.get("theta_deg", 0.0)),
+            phi_deg=float(candidate.get("phi_deg", 0.0)),
+            depth_um=raw_depth_um,
+            target_ids=target_ids,
+            params=params,
+            constraint_modes=constraint_modes,
+            correction_factors=correction_factors,
+            probe_radius_um=probe_radius_um,
+            source_tag=f"{candidate.get('source', 'grid')}:target_tip",
+        )
+        if trimmed is None:
+            return None
+        summary = _candidate_endpoint_target_summary(trimmed, target_ids)
+        if bool(summary.get("tipInRequestedTarget")) and float(summary.get("overshootAfterLastTargetUm") or 0.0) <= 1e-6:
+            trimmed["endpointTargeting"] = summary
+            return trimmed
+        next_depth_um = summary.get("lastTargetExitDepthUm")
+        if next_depth_um is None or float(next_depth_um) >= current_depth_um - 1e-6:
+            return None
+        current_depth_um = float(next_depth_um)
+    return None
 
 
 def _probe_direction_unit(theta_deg, phi_deg):
@@ -8780,7 +9119,14 @@ def _set_runtime_thread_budget(workers):
     os.environ["OPENBLAS_NUM_THREADS"] = str(threads)
     os.environ["NUMEXPR_MAX_THREADS"] = str(threads)
     try:
-        import numexpr as _ne  # pragma: no cover - optional
+        import contextlib
+        import io
+
+        # Optional accelerator only; some local NumPy 2.x environments still
+        # have NumExpr wheels compiled against NumPy 1.x and print ABI errors
+        # to stderr during import before raising.
+        with contextlib.redirect_stderr(io.StringIO()):
+            import numexpr as _ne  # pragma: no cover - optional
         _ne.set_num_threads(threads)
     except Exception:
         pass
@@ -9223,6 +9569,15 @@ def _candidate_passes_single_enforced_constraints(
         if brain_mask_summary.get("available") and not brain_mask_summary.get("passed", True):
             return False, "brainBounds", brain_mask_summary
 
+    endpoint_policy = str(params.get("targetEndpointPolicy", "trajectory_intersects")).strip().lower()
+    if endpoint_policy == "tip_in_target":
+        endpoint_summary = _candidate_endpoint_target_summary(candidate, _candidate_target_ids(candidate))
+        candidate["endpointTargeting"] = endpoint_summary
+        if not bool(endpoint_summary.get("tipInRequestedTarget")):
+            return False, "targetEndpoint", endpoint_summary
+        if float(endpoint_summary.get("overshootAfterLastTargetUm") or 0.0) > 1e-6:
+            return False, "targetEndpoint", endpoint_summary
+
     if constraint_modes.get("hemisphere") == "enforce" and has_hemisphere_mismatch(candidate):
         return False, "hemisphere", None
 
@@ -9283,15 +9638,37 @@ def _build_candidate_from_geometry(
         if tip_ap < TIP_POST_LIMIT_MM or tip_dv > MAX_DV_MM:
             return None
 
-    traj_voxels = sample_trajectory_voxels_cached(ap_corr, ml_corr, theta, phi, dep_corr, skull_tilt, step_um=25.0)
-    if not traj_voxels:
+    path_indices, path_depths_um = _sample_trajectory_path_indices(
+        ap_corr,
+        ml_corr,
+        theta,
+        phi,
+        dep_corr,
+        skull_tilt_deg=skull_tilt,
+        step_um=25.0,
+    )
+    if not path_indices:
         return None
     if constraint_modes.get("brainBounds") == "enforce":
-        brain_mask_summary = _brain_mask_path_summary_from_voxels(traj_voxels, step_um=25.0)
+        brain_mask_summary = _brain_mask_path_summary_from_voxels(path_indices, step_um=25.0)
         if brain_mask_summary.get("available") and not brain_mask_summary.get("passed", True):
             return None
 
-    profile = compute_trajectory_profile(traj_voxels, list(target_ids.values()), step_um=25.0)
+    valid_path = [
+        (voxel, depth)
+        for voxel, depth in zip(path_indices, path_depths_um)
+        if voxel_in_bounds(*voxel)
+    ]
+    traj_voxels = [voxel for voxel, _ in valid_path]
+    traj_depths_um = [depth for _, depth in valid_path]
+    if not traj_voxels:
+        return None
+    profile = compute_trajectory_profile(
+        traj_voxels,
+        list(target_ids.values()),
+        step_um=25.0,
+        sample_depths_um=traj_depths_um,
+    )
     entry_um_arr = np.array(entry, dtype=float)
     tip_um_arr = np.array(tip, dtype=float)
     covered_keys = [
@@ -9900,6 +10277,74 @@ def _strict_fallback_decomposition(
     summary["infeasibleTargetsDetailed"] = deepcopy(summary["nearestFeasibleAdjustments"])
     return list(selected), sorted(target_set - _covered_targets_from_selected(selected, target_keys)), summary
 
+def _candidate_reference_stability(candidate, params):
+    references = params.get("stabilityReferenceTrajectories", []) or []
+    if not bool(params.get("stabilityTieBreakerEnabled", False)) or not references:
+        return {"available": False, "score": 0.0, "cost": 0.0}
+
+    entry = candidate.get("entry_xyz")
+    tip = candidate.get("tip_xyz")
+    if not isinstance(entry, (list, tuple, np.ndarray)) or len(entry) != 3:
+        return {"available": False, "score": 0.0, "cost": 0.0}
+    if not isinstance(tip, (list, tuple, np.ndarray)) or len(tip) != 3:
+        return {"available": False, "score": 0.0, "cost": 0.0}
+    try:
+        entry_arr = np.asarray(entry, dtype=np.float64)
+        tip_arr = np.asarray(tip, dtype=np.float64)
+    except Exception:
+        return {"available": False, "score": 0.0, "cost": 0.0}
+    direction = tip_arr - entry_arr
+    direction_norm = float(np.linalg.norm(direction))
+    if direction_norm <= 1e-9:
+        return {"available": False, "score": 0.0, "cost": 0.0}
+    direction /= direction_norm
+
+    entry_weight = float(params.get("stabilityEntryWeight", 1.0))
+    tip_weight = float(params.get("stabilityTipWeight", 1.0))
+    angle_weight = float(params.get("stabilityAngleWeight", 1.0))
+    best = None
+    for index, reference in enumerate(references):
+        if not isinstance(reference, dict):
+            continue
+        ref_entry = reference.get("entryCcfUm")
+        ref_tip = reference.get("tipCcfUm")
+        if not isinstance(ref_entry, (list, tuple)) or len(ref_entry) != 3:
+            continue
+        if not isinstance(ref_tip, (list, tuple)) or len(ref_tip) != 3:
+            continue
+        try:
+            ref_entry_arr = np.asarray(ref_entry, dtype=np.float64)
+            ref_tip_arr = np.asarray(ref_tip, dtype=np.float64)
+        except Exception:
+            continue
+        ref_direction = ref_tip_arr - ref_entry_arr
+        ref_norm = float(np.linalg.norm(ref_direction))
+        if ref_norm <= 1e-9:
+            continue
+        ref_direction /= ref_norm
+        entry_mm = float(np.linalg.norm(entry_arr - ref_entry_arr) / 1000.0)
+        tip_mm = float(np.linalg.norm(tip_arr - ref_tip_arr) / 1000.0)
+        cosine = float(np.clip(np.dot(direction, ref_direction), -1.0, 1.0))
+        angular_deg = float(math.degrees(math.acos(cosine)))
+        cost = (
+            entry_weight * entry_mm
+            + tip_weight * tip_mm
+            + angle_weight * (angular_deg / 10.0)
+        )
+        row = {
+            "available": True,
+            "referenceIndex": int(index),
+            "entryDisplacementMm": round(entry_mm, 6),
+            "tipDisplacementMm": round(tip_mm, 6),
+            "angularChangeDeg": round(angular_deg, 6),
+            "cost": float(cost),
+            "score": float(1.0 / (1.0 + max(0.0, cost))),
+        }
+        if best is None or float(row["cost"]) < float(best["cost"]):
+            best = row
+    return best or {"available": False, "score": 0.0, "cost": 0.0}
+
+
 def _compute_candidate_objectives(candidate, target_keys, params):
     targets = set(target_keys or [])
     covered = set(candidate.get("coveredRegions", []) or [])
@@ -10155,6 +10600,15 @@ def _compute_candidate_objectives(candidate, target_keys, params):
         if not bool(drcc_metrics.get("feasible", False)):
             explain_score *= 0.45
 
+    stability = _candidate_reference_stability(candidate, params)
+    stability_penalty = 0.0
+    if stability.get("available") and bool(params.get("stabilityTieBreakerEnabled", False)):
+        stability_penalty = float(params.get("stabilityReferenceWeight", 0.05)) * float(
+            stability.get("cost", 0.0)
+        )
+        explain_score -= stability_penalty
+    weighted["stability"] = -float(stability_penalty)
+
     return {
         "scores": {
             "coverage": round(coverage_score, 6),
@@ -10185,11 +10639,20 @@ def _compute_candidate_objectives(candidate, target_keys, params):
                 6,
             ),
             "robustEarlyStopped": bool(robust_early_stopped),
+            "referenceStability": round(float(stability.get("score", 0.0)), 6),
+            "referenceStabilityCost": round(float(stability.get("cost", 0.0)), 6)
+            if stability.get("available")
+            else None,
+            "referenceEntryDisplacementMm": stability.get("entryDisplacementMm"),
+            "referenceTipDisplacementMm": stability.get("tipDisplacementMm"),
+            "referenceAngularChangeDeg": stability.get("angularChangeDeg"),
+            "referenceTrajectoryIndex": stability.get("referenceIndex"),
         },
         "weighted": {
             "coverage": round(weighted["coverage"], 6),
             "safety": round(weighted["safety"], 6),
             "angle": round(weighted["angle"], 6),
+            "stability": round(weighted["stability"], 6),
         },
         "explainScore": round(explain_score, 6),
         "safetyMarginMm": round(safety_margin_mm, 6),
@@ -10218,12 +10681,24 @@ def _build_explain_summary(candidate):
         f"pen={scores.get('riskPenalty', 0):.3f}), "
         f"Angle={scores.get('angle', 0):.3f} "
         f"(w {weighted.get('angle', 0):.3f}), "
-        f"Robust={float(robust or 0):.3f}"
+        f"Robust={float(robust or 0):.3f}, "
+        f"ReferenceStability={float(scores.get('referenceStability', 0.0) or 0.0):.3f} "
+        f"(w {float(weighted.get('stability', 0.0) or 0.0):.3f})"
         f"{drcc_txt}"
     )
 
 
 def _objective_context_signature(target_keys, params):
+    stability_refs = []
+    for ref in params.get("stabilityReferenceTrajectories", []) or []:
+        if not isinstance(ref, dict):
+            continue
+        stability_refs.append(
+            (
+                tuple(round(float(v), 3) for v in (ref.get("entryCcfUm") or [])),
+                tuple(round(float(v), 3) for v in (ref.get("tipCcfUm") or [])),
+            )
+        )
     return (
         tuple(sorted(set(target_keys or []))),
         str(params.get("algorithm", "greedy")),
@@ -10246,6 +10721,12 @@ def _objective_context_signature(target_keys, params):
         round(float(params.get("objectiveCoverageWeight", 0.5)), 6),
         round(float(params.get("objectiveSafetyWeight", 0.3)), 6),
         round(float(params.get("objectiveAngleWeight", 0.2)), 6),
+        bool(params.get("stabilityTieBreakerEnabled", False)),
+        round(float(params.get("stabilityReferenceWeight", 0.05)), 6),
+        round(float(params.get("stabilityEntryWeight", 1.0)), 6),
+        round(float(params.get("stabilityTipWeight", 1.0)), 6),
+        round(float(params.get("stabilityAngleWeight", 1.0)), 6),
+        tuple(stability_refs),
     )
 
 
@@ -11213,6 +11694,8 @@ def generate_candidates_voxel(
     )
 
     def _depth_variants(base_depth_um):
+        if not bool(params.get("depthOptimizationEnabled", True)):
+            return [float(depth_um)]
         base = float(max(500.0, min(float(base_depth_um), float(depth_um))))
         vals = [base]
         if constraint_modes.get("brainBounds") == "enforce":
@@ -11263,6 +11746,43 @@ def generate_candidates_voxel(
             ml += grid_mm
         ap += grid_mm
     _emit_progress(180.0)
+    n_global_grid = len(raw_specs)
+
+    # A global lattice changes phase as a target set expands.  That can omit a
+    # valid entry point that was reachable in a single-target request, even
+    # though the point is still inside the combined search box.  Add compact
+    # Target-anchored lattices must be generated for every request, including
+    # single-target planning.  Otherwise a target can be reachable only after
+    # adding an unrelated target because this candidate family was previously
+    # gated on the target-set cardinality.
+    n_target_local_grid = 0
+    for target_key, region in regions.items():
+        local_ap = float(region["ap"]) - margin
+        local_ap_max = float(region["ap"]) + margin
+        while local_ap <= local_ap_max + 1e-9:
+            ap_eval = local_ap * corr["ap"] + corr["apShift"]
+            if constraint_modes.get("lambdaBoundary") == "enforce" and ap_eval < LAMBDA_AP_MM:
+                local_ap += grid_mm
+                continue
+            local_ml = float(region["ml"]) - margin
+            local_ml_max = float(region["ml"]) + margin
+            while local_ml <= local_ml_max + 1e-9:
+                for theta, phi in angle_dirs:
+                    if theta <= max_angle:
+                        for dep in _depth_variants(depth_um):
+                            raw_specs.append(
+                                (
+                                    round(local_ap, 3),
+                                    round(local_ml, 3),
+                                    theta,
+                                    phi,
+                                    dep,
+                                    f"target_grid_{target_key}",
+                                )
+                            )
+                            n_target_local_grid += 1
+                local_ml += grid_mm
+            local_ap += grid_mm
     n_grid = len(raw_specs)
 
     pca_specs = generate_atlas_guided_candidates(target_keys, params, max_angle)
@@ -11278,11 +11798,59 @@ def generate_candidates_voxel(
         raw_specs.append((round(s["ap_mm"], 3), round(s["ml_mm"], 3),
                           round(s["theta_deg"], 1), round(s["phi_deg"], 1),
                           round(s["depthUm"]), s.get("_source", "pair")))
+
+    n_reference_specs = 0
+    if bool(params.get("stabilityTieBreakerEnabled", False)):
+        ap_scale = float(corr.get("ap", 1.0) or 1.0)
+        ml_scale = float(corr.get("ml", 1.0) or 1.0)
+        dv_scale = float(corr.get("dv", 1.0) or 1.0)
+        for ref_index, reference in enumerate(params.get("stabilityReferenceTrajectories", []) or []):
+            try:
+                ref_entry = np.asarray(reference["entryCcfUm"], dtype=np.float64)
+                ref_tip = np.asarray(reference["tipCcfUm"], dtype=np.float64)
+                direction = ref_tip - ref_entry
+                physical_depth_um = float(np.linalg.norm(direction))
+                if physical_depth_um <= 1e-6:
+                    continue
+                direction /= physical_depth_um
+                theta = float(math.degrees(math.acos(float(np.clip(direction[1], -1.0, 1.0)))))
+                phi = float(math.degrees(math.atan2(direction[2], direction[0])) % 360.0)
+                if theta > max_angle + 2.0:
+                    continue
+                ap_corrected = float((BREGMA_UM[0] - ref_entry[0]) / 1000.0)
+                ml_corrected = float((ref_entry[2] - BREGMA_UM[2]) / 1000.0)
+                ap_raw = (ap_corrected - float(corr.get("apShift", 0.0))) / ap_scale
+                ml_raw = (ml_corrected - float(corr.get("mlShift", 0.0))) / ml_scale
+                depth_raw = min(float(depth_um), physical_depth_um / dv_scale)
+            except Exception:
+                continue
+            entry_offsets = (
+                (0.0, 0.0),
+                (-0.1, 0.0), (0.1, 0.0), (0.0, -0.1), (0.0, 0.1),
+                (-0.2, 0.0), (0.2, 0.0), (0.0, -0.2), (0.0, 0.2),
+                (-0.3, 0.0), (0.3, 0.0), (0.0, -0.3), (0.0, 0.3),
+            )
+            angle_offsets = ((0.0, 0.0), (-1.0, 0.0), (1.0, 0.0), (0.0, -10.0), (0.0, 10.0))
+            for delta_ap, delta_ml in entry_offsets:
+                for delta_theta, delta_phi in angle_offsets:
+                    theta_variant = max(0.0, min(max_angle, theta + delta_theta))
+                    phi_variant = (phi + delta_phi) % 360.0
+                    raw_specs.append(
+                        (
+                            round(ap_raw + delta_ap, 3),
+                            round(ml_raw + delta_ml, 3),
+                            round(theta_variant, 1),
+                            round(phi_variant, 1),
+                            round(depth_raw, 1),
+                            f"stability_reference_{ref_index}",
+                        )
+                    )
+                    n_reference_specs += 1
     _emit_progress(420.0)
 
     log.info(
-        f"Candidate specs: grid={n_grid} + pca={len(pca_specs)} "
-        f"+ pair={len(pair_specs)} = {len(raw_specs)} total"
+        f"Candidate specs: grid={n_global_grid} + targetLocal={n_target_local_grid} + pca={len(pca_specs)} "
+        f"+ pair={len(pair_specs)} + reference={n_reference_specs} = {len(raw_specs)} total"
     )
 
     seen_specs: set = set()
@@ -11297,8 +11865,11 @@ def generate_candidates_voxel(
         "specTotal": int(len(raw_specs)),
         "specDeduped": int(len(deduped)),
         "gridSpecs": int(n_grid),
+        "globalGridSpecs": int(n_global_grid),
+        "targetLocalGridSpecs": int(n_target_local_grid),
         "pcaSpecs": int(len(pca_specs)),
         "pairSpecs": int(len(pair_specs)),
+        "stabilityReferenceSpecs": int(n_reference_specs),
         "depthVariantCount": int(max(1, len(_depth_variants(depth_um)))),
         "depthVariantsUm": [float(v) for v in _depth_variants(depth_um)],
     }
@@ -11402,16 +11973,22 @@ def generate_candidates_voxel(
             if not _bounds_ok(ap_corr, dep_corr, direction, dv_corr):
                 _bump_coarse_reject("bounds")
                 return None
-            traj_voxels = sample_trajectory_voxels_cached(
-                ap_corr, ml_corr, theta, phi, dep_corr, skull_tilt, step_um=coarse_step_um
+            path_indices, path_depths_um = _sample_trajectory_path_indices(
+                ap_corr,
+                ml_corr,
+                theta,
+                phi,
+                dep_corr,
+                skull_tilt_deg=skull_tilt,
+                step_um=coarse_step_um,
             )
-            if not traj_voxels:
+            if not path_indices:
                 _bump_coarse_reject("emptyTrajectory")
                 return None
             generation_brain_bounds_violation = None
             if constraint_modes.get("brainBounds") == "enforce":
                 brain_mask_summary = _brain_mask_path_summary_from_voxels(
-                    traj_voxels,
+                    path_indices,
                     step_um=coarse_step_um,
                 )
                 if brain_mask_summary.get("available") and not brain_mask_summary.get("passed", True):
@@ -11429,8 +12006,21 @@ def generate_candidates_voxel(
                     else:
                         _bump_coarse_reject("brainMaskRejected")
                         return None
+            valid_path = [
+                (voxel, depth)
+                for voxel, depth in zip(path_indices, path_depths_um)
+                if voxel_in_bounds(*voxel)
+            ]
+            traj_voxels = [voxel for voxel, _ in valid_path]
+            traj_depths_um = [depth for _, depth in valid_path]
+            if not traj_voxels:
+                _bump_coarse_reject("emptyTrajectory")
+                return None
             profile = compute_trajectory_profile(
-                traj_voxels, list(target_ids.values()), step_um=coarse_step_um
+                traj_voxels,
+                list(target_ids.values()),
+                step_um=coarse_step_um,
+                sample_depths_um=traj_depths_um,
             )
             covered_keys = [
                 k for k, sid in target_ids.items()
@@ -11457,7 +12047,7 @@ def generate_candidates_voxel(
                 "coveredKeys": covered_keys,
                 "coveredCount": int(len(covered_keys)),
                 "overlapScore": overlap_score,
-                "forced": bool(str(source).lower() != "grid"),
+                "forced": bool(str(source).lower().startswith(("pca_", "pair_"))),
                 "brainBoundsGenerationViolation": generation_brain_bounds_violation,
             }
         except Exception:
@@ -11511,16 +12101,60 @@ def generate_candidates_voxel(
 
     forced_idxs = {int(r["idx"]) for r in coarse_rows if bool(r.get("forced"))}
     per_target_best = {}
+    target_diversity_seeds = int(
+        max(1, params.get("candidateTargetDiversitySeeds", CANDIDATE_TARGET_DIVERSITY_SEEDS_DEFAULT))
+    )
+    target_entry_variants = int(
+        max(1, params.get("candidateTargetEntryVariants", CANDIDATE_TARGET_ENTRY_VARIANTS_DEFAULT))
+    )
+    target_diversity_counts = {}
+    target_entry_variant_counts = {}
     for key in target_ids.keys():
         rows = [r for r in coarse_rows if key in (r.get("coveredKeys") or [])]
         if not rows:
+            target_diversity_counts[key] = 0
             continue
-        best_row = max(
+        ranked_target_rows = sorted(
             rows,
-            key=lambda r: (int(r.get("coveredCount", 0)), float(r.get("overlapScore", 0.0)), -int(r.get("idx", 10**9))),
+            key=lambda r: (
+                int(r.get("coveredCount", 0)),
+                float(r.get("overlapScore", 0.0)),
+                -int(r.get("idx", 10**9)),
+            ),
+            reverse=True,
         )
-        per_target_best[key] = int(best_row["idx"])
-    forced_idxs |= set(per_target_best.values())
+        per_target_best[key] = int(ranked_target_rows[0]["idx"])
+        diversity_rows = ranked_target_rows[:target_diversity_seeds]
+        forced_idxs |= {int(row["idx"]) for row in diversity_rows}
+        target_diversity_counts[key] = int(len(diversity_rows))
+
+        # Preserve several angle/depth variants for every target-local entry
+        # point.  A high-overlap ray at one entry can violate the MRI-derived
+        # risk layers while a nearby angular variant is safe; collapsing them
+        # before fine evaluation makes a joint multi-probe solution disappear.
+        local_groups = {}
+        local_source = f"target_grid_{key}"
+        for row in rows:
+            spec = row.get("spec") or ()
+            if len(spec) < 6 or str(spec[5]) != local_source:
+                continue
+            entry_key = (round(float(spec[0]), 4), round(float(spec[1]), 4))
+            local_groups.setdefault(entry_key, []).append(row)
+        added_for_target = 0
+        for group_rows in local_groups.values():
+            ranked_group = sorted(
+                group_rows,
+                key=lambda r: (
+                    int(r.get("coveredCount", 0)),
+                    float(r.get("overlapScore", 0.0)),
+                    -int(r.get("idx", 10**9)),
+                ),
+                reverse=True,
+            )
+            selected_group = ranked_group[:target_entry_variants]
+            forced_idxs |= {int(row["idx"]) for row in selected_group}
+            added_for_target += len(selected_group)
+        target_entry_variant_counts[key] = int(added_for_target)
 
     ranked_rows = sorted(
         coarse_rows,
@@ -11548,16 +12182,22 @@ def generate_candidates_voxel(
             if not _bounds_ok(ap_corr, dep_corr, direction, dv_corr):
                 _bump_refine_reject("bounds")
                 return None
-            traj_voxels = sample_trajectory_voxels_cached(
-                ap_corr, ml_corr, theta, phi, dep_corr, skull_tilt, step_um=refine_step_um
+            path_indices, path_depths_um = _sample_trajectory_path_indices(
+                ap_corr,
+                ml_corr,
+                theta,
+                phi,
+                dep_corr,
+                skull_tilt_deg=skull_tilt,
+                step_um=refine_step_um,
             )
-            if not traj_voxels:
+            if not path_indices:
                 _bump_refine_reject("emptyTrajectory")
                 return None
             brain_mask_summary = None
             if constraint_modes.get("brainBounds") == "enforce":
                 brain_mask_summary = _brain_mask_path_summary_from_voxels(
-                    traj_voxels,
+                    path_indices,
                     step_um=refine_step_um,
                 )
                 if brain_mask_summary.get("available") and not brain_mask_summary.get("passed", True):
@@ -11569,8 +12209,21 @@ def generate_candidates_voxel(
                     return None
             entry_um_arr = np.asarray(entry, dtype=np.float64)
             tip_um_arr = np.asarray(tip, dtype=np.float64)
+            valid_path = [
+                (voxel, depth)
+                for voxel, depth in zip(path_indices, path_depths_um)
+                if voxel_in_bounds(*voxel)
+            ]
+            traj_voxels = [voxel for voxel, _ in valid_path]
+            traj_depths_um = [depth for _, depth in valid_path]
+            if not traj_voxels:
+                _bump_refine_reject("emptyTrajectory")
+                return None
             profile = compute_trajectory_profile(
-                traj_voxels, list(target_ids.values()), step_um=refine_step_um
+                traj_voxels,
+                list(target_ids.values()),
+                step_um=refine_step_um,
+                sample_depths_um=traj_depths_um,
             )
             covered_keys = [
                 k for k, sid in target_ids.items()
@@ -11693,6 +12346,58 @@ def generate_candidates_voxel(
         cand["id"] = int(cand_id)
         candidates.append(cand)
 
+    endpoint_policy = str(params.get("targetEndpointPolicy", "trajectory_intersects")).strip().lower()
+    if endpoint_policy == "tip_in_target":
+        trimmed_candidates = []
+        seen_trimmed = set()
+        for cand in candidates:
+            if bool(params.get("depthOptimizationEnabled", True)):
+                trimmed = _trim_candidate_to_target_tip(
+                    cand,
+                    target_ids=target_ids,
+                    params=params,
+                    constraint_modes=constraint_modes,
+                    correction_factors=corr,
+                    probe_radius_um=probe_radius_um,
+                )
+            else:
+                endpoint = _candidate_endpoint_target_summary(cand, target_ids)
+                trimmed = cand if bool(endpoint.get("tipInRequestedTarget")) else None
+                if trimmed is not None:
+                    trimmed["endpointTargeting"] = endpoint
+            if trimmed is None:
+                continue
+            signature = _candidate_signature(trimmed)
+            if signature in seen_trimmed:
+                continue
+            seen_trimmed.add(signature)
+            trimmed_candidates.append(trimmed)
+        candidates = trimmed_candidates
+        for cand_id, cand in enumerate(candidates):
+            cand["id"] = int(cand_id)
+        candidate_gen_summary["targetEndpointPolicy"] = "tip_in_target"
+        candidate_gen_summary["endpointTrimmedCount"] = int(len(candidates))
+        candidate_gen_summary["depthOptimizationEnabled"] = bool(
+            params.get("depthOptimizationEnabled", True)
+        )
+    else:
+        candidate_gen_summary["targetEndpointPolicy"] = "trajectory_intersects"
+
+    candidate_gen_summary["targetDiversitySeedsPerTarget"] = int(target_diversity_seeds)
+    candidate_gen_summary["targetDiversityForcedSpecCount"] = int(
+        sum(target_diversity_counts.values())
+    )
+    candidate_gen_summary["targetDiversitySeedCounts"] = {
+        str(key): int(count) for key, count in target_diversity_counts.items()
+    }
+    candidate_gen_summary["targetEntryVariantsPerLocalEntry"] = int(target_entry_variants)
+    candidate_gen_summary["targetEntryVariantForcedSpecCount"] = int(
+        sum(target_entry_variant_counts.values())
+    )
+    candidate_gen_summary["targetEntryVariantSeedCounts"] = {
+        str(key): int(count) for key, count in target_entry_variant_counts.items()
+    }
+
     log.info(
         f"Candidate pipeline: specs={len(deduped)} coarseKept={len(coarse_rows)} "
         f"refined={len(chosen_rows)} final={len(candidates)} workers={worker_count}"
@@ -11754,7 +12459,12 @@ def greedy_optimize(target_keys, candidates, min_clearance, min_entry):
             bucket = str(prefilter.get("bucket") or "unknown").strip().lower()
             bucket_priority = {"feasible": 2, "unknown": 1, "near": 0}.get(bucket, -1)
             risk_margin = float(prefilter.get("worstMarginMm", -1e9) or -1e9)
-            score_tuple = (bucket_priority, n_new, -rank, voxels, score, risk_margin)
+            if bool(c.get("objectiveScores", {}).get("referenceStabilityCost") is not None):
+                # In stability mode the final weighted objective is the
+                # tie-breaker among equal coverage/risk-rank candidates.
+                score_tuple = (bucket_priority, n_new, -rank, score, voxels, risk_margin)
+            else:
+                score_tuple = (bucket_priority, n_new, -rank, voxels, score, risk_margin)
 
             if (
                 best_tuple is None
@@ -13620,6 +14330,8 @@ def _payload_for_deterministic_hash(payload):
         "replayOf",
         "lastSeen",
         "updatedAt",
+        "plannerExecutionBackend",
+        "nativeEngineBypassReason",
     }
 
     def _strip(value):
@@ -14639,6 +15351,39 @@ def _normalize_repair_preferred_candidate(raw):
     return out or None
 
 
+def _normalize_stability_reference_trajectories(raw):
+    if raw in (None, ""):
+        return []
+    if not isinstance(raw, list):
+        raise ContractError("params.stabilityReferenceTrajectories must be an array")
+    if len(raw) > 16:
+        raise ContractError("params.stabilityReferenceTrajectories supports at most 16 probes")
+    output = []
+    for index, item in enumerate(raw):
+        if not isinstance(item, dict):
+            raise ContractError(
+                f"params.stabilityReferenceTrajectories[{index}] must be an object"
+            )
+        row = {}
+        for source_key, output_key in (("entryCcfUm", "entryCcfUm"), ("tipCcfUm", "tipCcfUm")):
+            value = item.get(source_key)
+            if not isinstance(value, (list, tuple)) or len(value) != 3:
+                raise ContractError(
+                    f"params.stabilityReferenceTrajectories[{index}].{source_key} must be [x,y,z]"
+                )
+            row[output_key] = [
+                _require_number(
+                    f"params.stabilityReferenceTrajectories[{index}].{source_key}[{axis}]",
+                    value[axis],
+                    minimum=-100000.0,
+                    maximum=100000.0,
+                )
+                for axis in range(3)
+            ]
+        output.append(row)
+    return output
+
+
 def _normalize_optimize_payload(raw_body):
     body = _require_dict("requestBody", raw_body)
     target_keys = _validate_target_keys(body.get("targetKeys"))
@@ -14658,6 +15403,16 @@ def _normalize_optimize_payload(raw_body):
     if objective_preset not in ("balanced", "coverage_first", "safety_first", "angle_first"):
         raise ContractError("params.objectivePreset must be one of balanced/coverage_first/safety_first/angle_first")
     targeting_mode = _normalize_targeting_mode(params_in.get("targetingMode", "single_hemisphere"))
+    target_endpoint_policy = str(
+        params_in.get("targetEndpointPolicy", "trajectory_intersects")
+    ).strip().lower()
+    if target_endpoint_policy not in ("trajectory_intersects", "tip_in_target"):
+        raise ContractError(
+            "params.targetEndpointPolicy must be trajectory_intersects or tip_in_target"
+        )
+    stability_references = _normalize_stability_reference_trajectories(
+        params_in.get("stabilityReferenceTrajectories", [])
+    )
     uncertainty_calib = params_in.get("uncertaintyCalibration", {})
     if uncertainty_calib in (None, ""):
         uncertainty_calib = {}
@@ -14771,6 +15526,11 @@ def _normalize_optimize_payload(raw_body):
             "params.skullTiltDeg", params_in.get("skullTiltDeg", 0), minimum=-30, maximum=30
         ),
         "targetingMode": targeting_mode,
+        "targetEndpointPolicy": target_endpoint_policy,
+        "depthOptimizationEnabled": _coerce_bool(
+            params_in.get("depthOptimizationEnabled", True)
+        ),
+        "includeCandidatePreview": _coerce_bool(params_in.get("includeCandidatePreview", False)),
         "bilateral": _coerce_bool(params_in.get("bilateral", False)),
         "coverageBoost": _coerce_bool(params_in.get("coverageBoost", False)),
         "robustOptimization": _coerce_bool(params_in.get("robustOptimization", True)),
@@ -14835,6 +15595,41 @@ def _normalize_optimize_payload(raw_body):
         ),
         "objectiveAngleWeight": _require_number(
             "params.objectiveAngleWeight", params_in.get("objectiveAngleWeight", 0.2), minimum=0, maximum=2
+        ),
+        "stabilityTieBreakerEnabled": _coerce_bool(
+            params_in.get("stabilityTieBreakerEnabled", False)
+        ),
+        "stabilityReferenceWeight": _require_number(
+            "params.stabilityReferenceWeight",
+            params_in.get("stabilityReferenceWeight", 0.05),
+            minimum=0.0,
+            maximum=2.0,
+        ),
+        "stabilityEntryWeight": _require_number(
+            "params.stabilityEntryWeight",
+            params_in.get("stabilityEntryWeight", 1.0),
+            minimum=0.0,
+            maximum=10.0,
+        ),
+        "stabilityTipWeight": _require_number(
+            "params.stabilityTipWeight",
+            params_in.get("stabilityTipWeight", 1.0),
+            minimum=0.0,
+            maximum=10.0,
+        ),
+        "stabilityAngleWeight": _require_number(
+            "params.stabilityAngleWeight",
+            params_in.get("stabilityAngleWeight", 1.0),
+            minimum=0.0,
+            maximum=10.0,
+        ),
+        "stabilityReferenceTrajectories": stability_references,
+        "stabilityReferenceProbeCount": _require_number(
+            "params.stabilityReferenceProbeCount",
+            params_in.get("stabilityReferenceProbeCount", len(stability_references)),
+            minimum=0,
+            maximum=16,
+            integer=True,
         ),
         "objectiveRiskPrimary": _coerce_bool(
             params_in.get("objectiveRiskPrimary", OBJECTIVE_RISK_PRIMARY_DEFAULT)
@@ -14908,6 +15703,20 @@ def _normalize_optimize_payload(raw_body):
             params_in.get("candidateRefineFraction", CANDIDATE_REFINE_FRACTION_DEFAULT),
             minimum=0.05,
             maximum=1.0,
+        ),
+        "candidateTargetDiversitySeeds": _require_number(
+            "params.candidateTargetDiversitySeeds",
+            params_in.get("candidateTargetDiversitySeeds", CANDIDATE_TARGET_DIVERSITY_SEEDS_DEFAULT),
+            minimum=1,
+            maximum=64,
+            integer=True,
+        ),
+        "candidateTargetEntryVariants": _require_number(
+            "params.candidateTargetEntryVariants",
+            params_in.get("candidateTargetEntryVariants", CANDIDATE_TARGET_ENTRY_VARIANTS_DEFAULT),
+            minimum=1,
+            maximum=12,
+            integer=True,
         ),
         "scoreEarlyStopEnabled": _coerce_bool(
             params_in.get("scoreEarlyStopEnabled", SCORE_EARLY_STOP_ENABLED_DEFAULT)
@@ -18770,6 +19579,8 @@ def _run_optimize_pipeline(raw_body, task_id=None):
                 probe["minSafetyDistanceMm"] = round(float(min_risk_distance), 6)
             probe["safetyDistanceModel"] = deepcopy(risk_model_summary)
 
+        probe.update(_build_unified_probe_audit(probe, target_keys, params))
+
         unc_metrics = _compute_probe_uncertainty_metrics(probe, target_keys, params)
         if unc_metrics is not None:
             probe["coverageConfidence"] = {
@@ -18858,6 +19669,12 @@ def _run_optimize_pipeline(raw_body, task_id=None):
             "safetyThresholdMm": statistical_safety.get("thresholdMm"),
             "pass": statistical_safety.get("pass"),
             "failureReason": statistical_safety.get("failureReason"),
+            "brainContainmentPassed": probe.get("brainContainmentPassed"),
+            "tipInTarget": probe.get("tipInTarget"),
+            "distalOvershootMm": probe.get("distalOvershootMm"),
+            "internalRiskViolationCount": probe.get("internalRiskViolationCount"),
+            "minimumInternalRiskMarginMm": probe.get("minimumInternalRiskMarginMm"),
+            "entrySurfaceCrossingStatus": probe.get("entrySurfaceCrossingStatus"),
             "safetyPassProbabilityGuaranteed": (
                 (probe.get("selectiveConformal") or {}).get("probabilityGuaranteed")
                 if isinstance(probe.get("selectiveConformal"), dict)
@@ -19076,6 +19893,7 @@ def _run_optimize_pipeline(raw_body, task_id=None):
         "solverRuntimePolicy": result.get("solverRuntimePolicy", solver_runtime_policy),
         "candidateCount": len(candidates),
         "candidateUniverseCount": len(candidate_universe),
+        "candidatePreview": deepcopy(candidates) if bool(params.get("includeCandidatePreview", False)) else None,
         "autoAvoidPrefilter": auto_avoid_prefilter_summary,
         "autoRepairSummary": auto_repair_summary,
         "repairPreferenceSummary": repair_preference_summary,
@@ -20988,11 +21806,99 @@ def _normalize_native_engine_payload(engine_payload, body):
             "targetKeys": fallback_keys,
         })
         payload["degradationNotices"] = notices
+    params = body.get("params") if isinstance(body.get("params"), dict) else {}
+    probe_params = body.get("probeParams") if isinstance(body.get("probeParams"), dict) else {}
+    constraint_modes = body.get("constraintModes") if isinstance(body.get("constraintModes"), dict) else DEFAULT_CONSTRAINT_MODES
+    correction_factors = body.get("correctionFactors") if isinstance(body.get("correctionFactors"), dict) else DEFAULT_CORRECTION_FACTORS
+    correction_unc = body.get("correctionUncertainty") if isinstance(body.get("correctionUncertainty"), dict) else {}
+    payload.setdefault("riskThresholdTemplate", str(params.get("riskThresholdTemplate", RISK_THRESHOLD_TEMPLATE_DEFAULT)))
+    payload.setdefault("riskThresholdsMm", deepcopy(params.get("riskThresholdsMm") or {}))
+    payload.setdefault("minRiskDistanceMm", float(params.get("minRiskDistanceMm", MIN_RISK_DISTANCE_MM_DEFAULT)))
+    payload.setdefault("correctionApplied", bool(body.get("correctionApplied", False)))
+    payload.setdefault("correctionFactors", deepcopy(correction_factors))
+    payload.setdefault("correctionUncertainty", deepcopy(correction_unc))
+    selected_for_correction = payload.get("selected") if isinstance(payload.get("selected"), list) else []
+    for probe in selected_for_correction:
+        if not isinstance(probe, dict):
+            continue
+        try:
+            raw_ap = float(probe.get("ap_mm", 0.0) or 0.0)
+            raw_ml = float(probe.get("ml_mm", 0.0) or 0.0)
+            raw_dv = float(probe.get("entryDvCorr_mm", 0.0) or 0.0)
+            corr_ap, corr_ml, corr_dv = _apply_correction(raw_ap, raw_ml, raw_dv, correction_factors)
+            probe["ap_mm_corrected"] = round(corr_ap, 5)
+            probe["ml_mm_corrected"] = round(corr_ml, 5)
+            probe["entryDvCorr_mm_corrected"] = round(corr_dv, 5)
+            interval = _build_coordinate_error_interval(raw_ap, raw_ml, raw_dv, correction_unc)
+            if interval is not None:
+                probe["errorInterval"] = interval
+        except Exception:
+            continue
+    unified_audit_checked = 0
+    unified_audit_errors = []
+    target_keys = [str(key) for key in (body.get("targetKeys") or [])]
+    for probe_index, probe in enumerate(selected_for_correction):
+        if not isinstance(probe, dict):
+            continue
+        if all(
+            key in probe
+            for key in (
+                "brainContainmentPassed",
+                "tipInTarget",
+                "distalOvershootMm",
+                "internalRiskViolationCount",
+                "entrySurfaceCrossingStatus",
+            )
+        ):
+            unified_audit_checked += 1
+            continue
+        if not atlas_loaded:
+            probe.update({
+                "brainContainmentPassed": None,
+                "tipInTarget": None,
+                "distalOvershootMm": None,
+                "internalRiskViolationCount": None,
+                "minimumInternalRiskMarginMm": None,
+                "entrySurfaceCrossingStatus": "audit_unavailable",
+                "brainContainmentAudit": {"available": False, "reason": "compat_atlas_not_loaded"},
+                "targetEndpointAudit": {"available": False, "reason": "compat_atlas_not_loaded"},
+                "internalRiskAudit": {
+                    "claimStatus": "unavailable",
+                    "availableClasses": [],
+                    "unavailableClasses": sorted(INTERNAL_AVOIDANCE_RISK_CLASSES),
+                    "missingDiagnosticClasses": [],
+                    "violationClasses": [],
+                    "classes": {},
+                },
+                "entrySurfaceAudit": {
+                    "semantics": "audit unavailable because compatibility atlas is not loaded",
+                    "classes": {},
+                },
+            })
+            continue
+        try:
+            risk_diag = _compute_probe_risk_diagnostics(
+                probe,
+                step_um=RISK_DIAG_STEP_UM,
+                threshold_mm=float(params.get("minRiskDistanceMm", MIN_RISK_DISTANCE_MM_DEFAULT)),
+                threshold_by_class=params.get("riskThresholdsMm"),
+                cvar_alpha=float(params.get("drccCvarAlpha", DRCC_CVAR_ALPHA_DEFAULT)),
+            )
+            if isinstance(risk_diag, dict):
+                probe["riskDiagnostics"] = risk_diag
+            probe.update(_build_unified_probe_audit(probe, target_keys, params))
+            unified_audit_checked += 1
+        except Exception as exc:
+            unified_audit_errors.append({"probeIdx": probe_index, "error": str(exc)})
+            probe.setdefault("brainContainmentPassed", None)
+            probe.setdefault("tipInTarget", None)
+            probe.setdefault("distalOvershootMm", None)
+            probe.setdefault("internalRiskViolationCount", None)
+            probe.setdefault("minimumInternalRiskMarginMm", None)
+            probe.setdefault("entrySurfaceCrossingStatus", "audit_error")
+            probe.setdefault("internalRiskAudit", {"claimStatus": "unavailable"})
     try:
         selected = payload.get("selected") if isinstance(payload.get("selected"), list) else []
-        params = body.get("params") if isinstance(body.get("params"), dict) else {}
-        probe_params = body.get("probeParams") if isinstance(body.get("probeParams"), dict) else {}
-        constraint_modes = body.get("constraintModes") if isinstance(body.get("constraintModes"), dict) else DEFAULT_CONSTRAINT_MODES
         safety_issues = _collect_safety_issues(
             selected,
             params,
@@ -21010,6 +21916,15 @@ def _normalize_native_engine_payload(engine_payload, body):
             "issueCount": int(len(safety_issues)),
             "blockingCount": int(len(blocking)),
             "source": "flask_compat_post_native_audit",
+            "unifiedProbeAuditCount": int(unified_audit_checked),
+            "unifiedProbeAuditUnavailableCount": int(
+                sum(
+                    1
+                    for probe in selected
+                    if isinstance(probe, dict) and probe.get("brainContainmentPassed") is None
+                )
+            ),
+            "unifiedProbeAuditErrors": unified_audit_errors,
         }
         breakdown = payload.get("candidateStageBreakdown")
         if not isinstance(breakdown, dict):
@@ -21116,6 +22031,7 @@ def api_optimize():
     task_id = None
     try:
         body = _request_json_object(required=True)
+        effective_request_payload = body
         task_id = _resolve_task_id(body)
         _set_planning_runtime_state(
             status=TASK_STATE_RUNNING,
@@ -21136,7 +22052,14 @@ def api_optimize():
                 code="schema_validation_error",
             )
         if _native_engine_service_enabled():
-            params = body.get("params") if isinstance(body.get("params"), dict) else {}
+            _update_task_progress(task_id, "payload_normalized", 0.08, "Request payload normalized")
+            _check_task_cancelled(task_id, "payload_normalized")
+            engine_body = _normalize_optimize_payload(body)
+            effective_request_payload = engine_body
+            _update_task_progress(task_id, "quality_gate_check", 0.12, "Checking reconstruction quality gate")
+            _check_task_cancelled(task_id, "quality_gate_check")
+            _enforce_reconstruction_quality_gate()
+            params = engine_body.get("params") if isinstance(engine_body.get("params"), dict) else {}
             if (
                 str(params.get("algorithm") or "").strip().lower() == "drcc"
                 and str(params.get("drccSolver") or "").strip().lower() == "misocp"
@@ -21150,16 +22073,41 @@ def api_optimize():
                     status_code=400,
                     code="unsupported_native_drcc_solver",
                 )
-            response_payload = _run_native_engine_service_pipeline(body, task_id=task_id)
+            requires_strict_python_contract = (
+                str(params.get("targetEndpointPolicy") or "trajectory_intersects").strip().lower()
+                == "tip_in_target"
+                or bool(params.get("stabilityTieBreakerEnabled"))
+            )
+            if requires_strict_python_contract:
+                if not atlas_loaded:
+                    _ensure_atlas_loader(force_retry=False)
+                    with atlas_lock:
+                        load_snapshot = deepcopy(atlas_load_state)
+                    raise ContractError(
+                        "Atlas is not ready for strict endpoint/stability planning",
+                        details=[str(load_snapshot.get("message") or "Atlas loading is still in progress")],
+                        status_code=503,
+                        code="atlas_not_ready",
+                        extra={"atlasLoad": load_snapshot},
+                    )
+                response_payload = _run_optimize_pipeline(body, task_id=task_id)
+                response_payload["plannerExecutionBackend"] = "python_strict_contract"
+                response_payload["nativeEngineBypassReason"] = (
+                    "tip_in_target_or_reference_stability_requires_latest_python_contract"
+                )
+            else:
+                response_payload = _run_native_engine_service_pipeline(engine_body, task_id=task_id)
+                response_payload["plannerExecutionBackend"] = "native_engine_service"
         else:
             response_payload = _run_optimize_pipeline(body, task_id=task_id)
+            response_payload["plannerExecutionBackend"] = "python_backend"
         _update_task_progress(task_id, "finalizing_payload", 0.965, "Finalizing optimization payload")
         response_payload["taskId"] = task_id
         response_payload["requestId"] = _request_id()
         response_payload["engineVersion"] = ENGINE_VERSION
-        _attach_payload_hashes(body, response_payload)
+        _attach_payload_hashes(effective_request_payload, response_payload)
         _update_task_progress(task_id, "hashing_payload", 0.985, "Computing response hashes")
-        _persist_replay_record(_request_id(), body, response_payload)
+        _persist_replay_record(_request_id(), effective_request_payload, response_payload)
         _update_task_progress(task_id, "responding", 0.995, "Sending optimization response")
         task_registry.finish(
             task_id,

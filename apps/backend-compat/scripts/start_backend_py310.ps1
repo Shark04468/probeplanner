@@ -5,6 +5,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot "port_guard.ps1")
 . (Join-Path $PSScriptRoot "path_defaults.ps1")
 if ((Get-Variable -Name ProjectRoot -ErrorAction SilentlyContinue) -and [string]::IsNullOrWhiteSpace($ProjectRoot)) { $ProjectRoot = Get-ProbePlannerBackendRoot }
 if ((Get-Variable -Name PythonExe -ErrorAction SilentlyContinue) -and [string]::IsNullOrWhiteSpace($PythonExe)) { $PythonExe = Get-ProbePlannerPython }
@@ -23,13 +24,7 @@ if (-not (Test-Path $PythonExe)) {
   throw "Python executable not found at $PythonExe"
 }
 
-$existing = netstat -ano | Select-String ":$Port\s+.*LISTENING" | ForEach-Object {
-  ($_ -split '\s+')[-1]
-} | Where-Object { $_ -match '^\d+$' } | Select-Object -Unique
-
-foreach ($procId in $existing) {
-  try { Stop-Process -Id ([int]$procId) -Force -ErrorAction SilentlyContinue } catch {}
-}
+Stop-ProbePlannerPortListeners -TargetPort $Port -ProjectRoot $ProjectRoot -ThrowOnForeign
 
 $stdout = Join-Path $ProjectRoot 'backend_live_stdout.log'
 $stderr = Join-Path $ProjectRoot 'backend_live_stderr.log'

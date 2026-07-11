@@ -1,0 +1,5 @@
+caseId,probeIndex,physicalLengthMm,tipInside,insideRatioAfterEntry,outsideSampleCount,maxOutsideGapMm,tipRegionId,tipRegionAcronym,tipInRequestedTarget,lastTargetIntersectionDepthMm,overshootAfterLastTargetMm,minDistanceToTargetCenterMm,strictPass
+case_01_single_vpm,1,4.075006,True,1.0,0,0.0,733,VPM,True,4.075006,0.0,1.855923,True
+case_02_merged_hippocampal,1,5.787026,True,1.0,0,0.0,463,CA3,True,5.787026,0.0,1.601292,True
+case_03_distributed_multitarget,1,4.075006,True,1.0,0,0.0,733,VPM,True,4.075006,0.0,1.855923,True
+case_03_distributed_multitarget,2,3.124985,True,1.0,0,0.0,1085,MOs6b,True,3.124985,0.0,1.572461,True

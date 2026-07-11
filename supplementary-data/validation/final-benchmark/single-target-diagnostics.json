@@ -1,0 +1,4683 @@
+{
+  "cases": [
+    {
+      "caseId": "single_ca1\n",
+      "caseType": "single-region-diagnostic\n",
+      "purpose": "Strict production-pipeline benchmark with independent probe audit.\n",
+      "requestedTargets": [
+        "CA1\n"
+      ],
+      "targetingMode": "single_hemisphere\n",
+      "expectedProbeCount": null,
+      "expectFailClosed": false,
+      "status": "ok\n",
+      "failureReason": null,
+      "error": null,
+      "errorCode": null,
+      "errorExtra": null,
+      "candidateCount": 15,
+      "selectedProbeCount": 1,
+      "exactMinProbeCount": 1,
+      "optimalityMatch": true,
+      "expectedMatch": true,
+      "requiredCoverageUnits": 1,
+      "coveredCoverageUnits": 1,
+      "coveredTokens": [
+        "CA1\n"
+      ],
+      "uncoveredTargets": [],
+      "uncoveredSides": [],
+      "sideCoverage": {
+        "CA1": {
+          "left": true,
+          "right": false
+        }
+      },
+      "runtimeSec": 14.462073,
+      "plannerRequest": {
+        "targetKeys": [
+          "CA1\n"
+        ],
+        "params": {
+          "algorithm": "greedy\n",
+          "targetingMode": "single_hemisphere\n",
+          "gridSpacing": 1200.0,
+          "angleStep": 10.0,
+          "maxAngle": 10.0,
+          "depthUm": 7600.0,
+          "candidateCoarseStepUm": 150.0,
+          "candidateRefineStepUm": 75.0,
+          "candidateRefineFraction": 0.12,
+          "computeWorkers": 2,
+          "candidateGenWorkers": 2,
+          "prefilterWorkers": 1,
+          "streamingPipelineEnabled": false,
+          "scoreEarlyStopEnabled": false,
+          "autoAvoidEnabled": true,
+          "robustOptimization": false,
+          "paretoEnabled": false,
+          "coverageBoost": false,
+          "objectivePreset": "balanced\n",
+          "minRiskDistanceMm": 0.05,
+          "minClearance": 1000.0,
+          "targetEndpointPolicy": "tip_in_target\n",
+          "includeCandidatePreview": true,
+          "strictFallbackDecompose": false
+        },
+        "probeParams": {
+          "depthUm": 7600.0,
+          "entrySpacingUm": 1200.0,
+          "shankWidthUm": 70.0,
+          "shanks": 1,
+          "shankPitchUm": 0.0,
+          "probeType": "np1\n"
+        },
+        "constraintModes": {
+          "maxAngle": "enforce\n",
+          "minEntrySpacing": "enforce\n",
+          "minClearance": "enforce\n",
+          "lambdaBoundary": "enforce\n",
+          "brainBounds": "enforce\n",
+          "hemisphere": "warn\n",
+          "continuousRiskDistance": "enforce\n"
+        }
+      },
+      "candidateGeneration": {
+        "specTotal": 3174,
+        "specDeduped": 1596,
+        "gridSpecs": 3120,
+        "globalGridSpecs": 1560,
+        "targetLocalGridSpecs": 1560,
+        "pcaSpecs": 9,
+        "pairSpecs": 0,
+        "depthVariantCount": 6,
+        "depthVariantsUm": [
+          7510.0,
+          3195.0,
+          3595.0,
+          3995.0,
+          4495.0,
+          5195.0
+        ],
+        "targetEndpointPolicy": "tip_in_target\n",
+        "endpointTrimmedCount": 15,
+        "targetDiversitySeedsPerTarget": 8,
+        "targetDiversityForcedSpecCount": 8,
+        "targetDiversitySeedCounts": {
+          "CA1": 8
+        },
+        "targetEntryVariantsPerLocalEntry": 3,
+        "targetEntryVariantForcedSpecCount": 0,
+        "targetEntryVariantSeedCounts": {
+          "CA1": 0
+        },
+        "workersUsed": 2,
+        "coarseKept": 377,
+        "refineSelected": 46,
+        "finalCount": 15,
+        "coarseStepUm": 150.0,
+        "refineStepUm": 75.0,
+        "refineFraction": 0.12,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 321,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 898
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "candidateStageBreakdown": {
+        "stages": [
+          {
+            "stage": "generated_specs\n",
+            "count": 1596,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "coarse_refine_kept\n",
+            "count": 15,
+            "droppedFromPrev": 1581,
+            "dropRatioFromPrev": 0.990602,
+            "reasons": [
+              {
+                "code": "noCoverage\n",
+                "count": 898,
+                "ratio": 0.736669
+              },
+              {
+                "code": "brainMaskRejected\n",
+                "count": 321,
+                "ratio": 0.263331
+              }
+            ]
+          },
+          {
+            "stage": "risk_prefilter_kept\n",
+            "count": 15,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "constraint_feasible_pool\n",
+            "count": 15,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "scored\n",
+            "count": 15,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "selected\n",
+            "count": 1,
+            "droppedFromPrev": 14,
+            "dropRatioFromPrev": 0.933333,
+            "reasons": [
+              {
+                "code": "solver_or_collision_filtered\n",
+                "count": 14,
+                "ratio": 0.933333
+              }
+            ]
+          }
+        ],
+        "prefilter": {
+          "enabled": true,
+          "keptMode": "feasible_only\n",
+          "feasibleCount": 15,
+          "nearCount": 0,
+          "rejectedCount": 0
+        },
+        "summary": {
+          "specTotal": 1596,
+          "refinedCount": 15,
+          "prefilterKept": 15,
+          "safePoolCount": 15,
+          "selectedCount": 1,
+          "solverCoverageLoss": 0
+        },
+        "candidateFunnelDiagnostics": {
+          "funnel": {
+            "generatedCandidates": 1596,
+            "afterBrainBounds": 1275,
+            "afterHemisphere": 1275,
+            "afterCoarseRisk": 1275,
+            "afterCoverage": 377,
+            "afterSpacing": 366,
+            "afterFineRisk": 366,
+            "selected": 1
+          },
+          "stages": [
+            {
+              "stage": "generatedCandidates\n",
+              "count": 1596,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterBrainBounds\n",
+              "count": 1275,
+              "droppedFromPrev": 321,
+              "dropRatioFromPrev": 0.201128,
+              "reasons": [
+                {
+                  "code": "out_of_brain\n",
+                  "count": 321,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterHemisphere\n",
+              "count": 1275,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoarseRisk\n",
+              "count": 1275,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoverage\n",
+              "count": 377,
+              "droppedFromPrev": 898,
+              "dropRatioFromPrev": 0.704314,
+              "reasons": [
+                {
+                  "code": "no_target_coverage\n",
+                  "count": 898,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterSpacing\n",
+              "count": 366,
+              "droppedFromPrev": 11,
+              "dropRatioFromPrev": 0.029178,
+              "reasons": [
+                {
+                  "code": "probe_spacing\n",
+                  "count": 11,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterFineRisk\n",
+              "count": 366,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "selected\n",
+              "count": 1,
+              "droppedFromPrev": 365,
+              "dropRatioFromPrev": 0.997268,
+              "reasons": []
+            }
+          ],
+          "rejectionCounts": {
+            "out_of_brain": 321,
+            "ventricle_hit": 0,
+            "angle_limit": 0,
+            "depth_limit": 0,
+            "no_target_coverage": 898,
+            "hemisphere_mismatch": 0,
+            "probe_spacing": 11,
+            "mri_quality_gate": 0,
+            "risk_distance": 0
+          },
+          "rejectionRatios": {
+            "out_of_brain": 0.260976,
+            "no_target_coverage": 0.730081,
+            "probe_spacing": 0.008943
+          },
+          "stepReasons": {
+            "afterBrainBounds": {
+              "out_of_brain": 321
+            },
+            "afterCoverage": {
+              "no_target_coverage": 898
+            },
+            "afterHemisphere": {
+              "hemisphere_mismatch": 0
+            },
+            "afterSpacing": {
+              "probe_spacing": 11
+            }
+          },
+          "feasibleFirstPolicy": {
+            "enabled": true,
+            "rankingOrder": [
+              "safety_feasible\n",
+              "coverage\n",
+              "entry_angle\n",
+              "depth\n",
+              "uncertainty\n"
+            ]
+          },
+          "scoreEvaluated": 15,
+          "strictFallback": {
+            "enabled": false,
+            "applied": false,
+            "safePoolCount": 0,
+            "infeasibleTargets": []
+          },
+          "abnormalFastZeroGuard": {
+            "triggered": false,
+            "likelyStage": null,
+            "message": null
+          }
+        }
+      },
+      "selectedProbes": [
+        {
+          "probeIndex": 1,
+          "source": "grid:target_tip\n",
+          "entryCcfUm": [
+            8128.0,
+            440.0,
+            3193.0
+          ],
+          "tipCcfUm": [
+            8579.1,
+            5556.1,
+            2411.8
+          ],
+          "entryPlannerMm": [
+            -2.728,
+            0.0,
+            -2.507
+          ],
+          "tipPlannerMm": [
+            -3.1791,
+            5.1161,
+            -3.2882
+          ],
+          "apMm": -2.728,
+          "mlMm": -2.507,
+          "thetaDeg": 10.0,
+          "phiDeg": 300.0,
+          "depthUm": 5195.0,
+          "coveredTargets": [
+            "CA1\n"
+          ],
+          "coveredTargetSides": {
+            "CA1": [
+              "left\n"
+            ]
+          },
+          "overlapVoxels": {
+            "CA1": 64
+          },
+          "minSafetyDistanceMm": 0.0,
+          "worstRiskMarginMm": -0.131529,
+          "riskMaxShortfallMm": 0.131529,
+          "riskClassMinDistanceMm": {
+            "skull": 0.407032,
+            "cortex_outside": -0.081529,
+            "brain_surface": -0.025,
+            "drilling_surface": 0.406859
+          },
+          "riskClassThresholdMm": {
+            "default": 0.05,
+            "vessel": 0.6,
+            "ventricle": 0.35,
+            "sulcus": 0.4,
+            "skull": 0.45,
+            "cortex_outside": 0.05,
+            "brain_surface": 0.05,
+            "drilling_surface": 0.05
+          },
+          "brainContainmentPassed": true,
+          "tipInTarget": true,
+          "distalOvershootMm": 0.0,
+          "internalRiskViolationCount": 0,
+          "minimumInternalRiskMarginMm": null,
+          "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+          "brainContainmentAudit": {
+            "available": true,
+            "passed": true,
+            "reason": "ok\n",
+            "tipInside": true,
+            "firstInsideIndex": 3,
+            "lastInsideIndex": 208,
+            "insideCount": 206,
+            "sampleCount": 209,
+            "insideRatio": 0.985646,
+            "insideRatioAfterEntry": 1.0,
+            "stepUm": 25.0,
+            "outsideGapUmThreshold": 300.0,
+            "outsideGapVoxThreshold": 12,
+            "maxOutsideGapVox": 0,
+            "maxOutsideGapUm": 0.0,
+            "maxOutsideGapStartIndex": null,
+            "maxOutsideGapEndIndex": null,
+            "maxOutsideGapSegmentMm": null
+          },
+          "targetEndpointAudit": {
+            "available": true,
+            "tipLabelId": 382,
+            "tipInRequestedTarget": true,
+            "tipTargetKeys": [
+              "CA1\n"
+            ],
+            "lastTargetExitDepthUm": 5195.0,
+            "overshootAfterLastTargetUm": 0.0,
+            "endpointSamplingStepUm": 25.0
+          },
+          "internalRiskAudit": {
+            "claimStatus": "unavailable\n",
+            "availableClasses": [],
+            "unavailableClasses": [
+              "no_go\n",
+              "sulcus\n",
+              "user_defined_exclusion\n",
+              "user_exclusion\n",
+              "ventricle\n",
+              "vessel\n"
+            ],
+            "missingDiagnosticClasses": [],
+            "violationClasses": [],
+            "classes": {
+              "no_go": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "sulcus": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_defined_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "ventricle": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "vessel": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              }
+            }
+          },
+          "entrySurfaceAudit": {
+            "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+            "classes": {
+              "brain_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": -0.025
+              },
+              "cortex_outside": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": -0.072426
+              },
+              "drilling_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.416953
+              },
+              "skull": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.41712
+              }
+            }
+          }
+        }
+      ],
+      "stageDiagnostics": {
+        "rawCandidateCount": 1596,
+        "brainMaskPassedCount": 1275,
+        "tipInTargetPassedCount": 15,
+        "riskEnforcedPassedCount": 15,
+        "selectedProbeCount": 1,
+        "uncoveredTargets": [],
+        "failClosedReason": null,
+        "targetLocalGridSpecs": 1560,
+        "globalGridSpecs": 1560,
+        "pcaSpecs": 9,
+        "pairSpecs": 0,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 321,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 898
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "independentAudit": {
+        "probeCount": 1,
+        "fullCoverage": true,
+        "allProbesStrictPass": true,
+        "allReportedFieldsMatch": true,
+        "probes": [
+          {
+            "probeIndex": 1,
+            "strictAuditPassed": true,
+            "reportedMatchesIndependent": true,
+            "brainContainmentPassed": true,
+            "tipInTarget": true,
+            "distalOvershootMm": 0.0,
+            "internalRiskViolationCount": 0,
+            "minimumInternalRiskMarginMm": null,
+            "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+            "internalRiskAudit": {
+              "claimStatus": "unavailable\n",
+              "availableClasses": [],
+              "unavailableClasses": [
+                "no_go\n",
+                "sulcus\n",
+                "user_defined_exclusion\n",
+                "user_exclusion\n",
+                "ventricle\n",
+                "vessel\n"
+              ],
+              "missingDiagnosticClasses": [],
+              "violationClasses": [],
+              "classes": {
+                "no_go": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "sulcus": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_defined_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "ventricle": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "vessel": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                }
+              }
+            },
+            "entrySurfaceAudit": {
+              "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+              "classes": {
+                "brain_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": -0.025
+                },
+                "cortex_outside": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": -0.081529
+                },
+                "drilling_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.406859
+                },
+                "skull": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.407032
+                }
+              }
+            }
+          }
+        ]
+      },
+      "eligibleForManifest": true
+    },
+    {
+      "caseId": "single_ca3\n",
+      "caseType": "single-region-diagnostic\n",
+      "purpose": "Strict production-pipeline benchmark with independent probe audit.\n",
+      "requestedTargets": [
+        "CA3\n"
+      ],
+      "targetingMode": "single_hemisphere\n",
+      "expectedProbeCount": null,
+      "expectFailClosed": false,
+      "status": "ok\n",
+      "failureReason": null,
+      "error": null,
+      "errorCode": null,
+      "errorExtra": null,
+      "candidateCount": 25,
+      "selectedProbeCount": 1,
+      "exactMinProbeCount": 1,
+      "optimalityMatch": true,
+      "expectedMatch": true,
+      "requiredCoverageUnits": 1,
+      "coveredCoverageUnits": 1,
+      "coveredTokens": [
+        "CA3\n"
+      ],
+      "uncoveredTargets": [],
+      "uncoveredSides": [],
+      "sideCoverage": {
+        "CA3": {
+          "left": true,
+          "right": false
+        }
+      },
+      "runtimeSec": 23.252339,
+      "plannerRequest": {
+        "targetKeys": [
+          "CA3\n"
+        ],
+        "params": {
+          "algorithm": "greedy\n",
+          "targetingMode": "single_hemisphere\n",
+          "gridSpacing": 1200.0,
+          "angleStep": 10.0,
+          "maxAngle": 10.0,
+          "depthUm": 7600.0,
+          "candidateCoarseStepUm": 150.0,
+          "candidateRefineStepUm": 75.0,
+          "candidateRefineFraction": 0.12,
+          "computeWorkers": 2,
+          "candidateGenWorkers": 2,
+          "prefilterWorkers": 1,
+          "streamingPipelineEnabled": false,
+          "scoreEarlyStopEnabled": false,
+          "autoAvoidEnabled": true,
+          "robustOptimization": false,
+          "paretoEnabled": false,
+          "coverageBoost": false,
+          "objectivePreset": "balanced\n",
+          "minRiskDistanceMm": 0.05,
+          "minClearance": 1000.0,
+          "targetEndpointPolicy": "tip_in_target\n",
+          "includeCandidatePreview": true,
+          "strictFallbackDecompose": false
+        },
+        "probeParams": {
+          "depthUm": 7600.0,
+          "entrySpacingUm": 1200.0,
+          "shankWidthUm": 70.0,
+          "shanks": 1,
+          "shankPitchUm": 0.0,
+          "probeType": "np1\n"
+        },
+        "constraintModes": {
+          "maxAngle": "enforce\n",
+          "minEntrySpacing": "enforce\n",
+          "minClearance": "enforce\n",
+          "lambdaBoundary": "enforce\n",
+          "brainBounds": "enforce\n",
+          "hemisphere": "warn\n",
+          "continuousRiskDistance": "enforce\n"
+        }
+      },
+      "candidateGeneration": {
+        "specTotal": 3174,
+        "specDeduped": 1596,
+        "gridSpecs": 3120,
+        "globalGridSpecs": 1560,
+        "targetLocalGridSpecs": 1560,
+        "pcaSpecs": 9,
+        "pairSpecs": 0,
+        "depthVariantCount": 6,
+        "depthVariantsUm": [
+          7510.0,
+          3787.0,
+          4187.0,
+          4587.0,
+          5087.0,
+          5787.0
+        ],
+        "targetEndpointPolicy": "tip_in_target\n",
+        "endpointTrimmedCount": 25,
+        "targetDiversitySeedsPerTarget": 8,
+        "targetDiversityForcedSpecCount": 8,
+        "targetDiversitySeedCounts": {
+          "CA3": 8
+        },
+        "targetEntryVariantsPerLocalEntry": 3,
+        "targetEntryVariantForcedSpecCount": 0,
+        "targetEntryVariantSeedCounts": {
+          "CA3": 0
+        },
+        "workersUsed": 2,
+        "coarseKept": 292,
+        "refineSelected": 36,
+        "finalCount": 25,
+        "coarseStepUm": 150.0,
+        "refineStepUm": 75.0,
+        "refineFraction": 0.12,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 299,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 1005
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "candidateStageBreakdown": {
+        "stages": [
+          {
+            "stage": "generated_specs\n",
+            "count": 1596,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "coarse_refine_kept\n",
+            "count": 25,
+            "droppedFromPrev": 1571,
+            "dropRatioFromPrev": 0.984336,
+            "reasons": [
+              {
+                "code": "noCoverage\n",
+                "count": 1005,
+                "ratio": 0.770706
+              },
+              {
+                "code": "brainMaskRejected\n",
+                "count": 299,
+                "ratio": 0.229294
+              }
+            ]
+          },
+          {
+            "stage": "risk_prefilter_kept\n",
+            "count": 25,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "constraint_feasible_pool\n",
+            "count": 25,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "scored\n",
+            "count": 25,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "selected\n",
+            "count": 1,
+            "droppedFromPrev": 24,
+            "dropRatioFromPrev": 0.96,
+            "reasons": [
+              {
+                "code": "solver_or_collision_filtered\n",
+                "count": 24,
+                "ratio": 0.96
+              }
+            ]
+          }
+        ],
+        "prefilter": {
+          "enabled": true,
+          "keptMode": "feasible_only\n",
+          "feasibleCount": 25,
+          "nearCount": 0,
+          "rejectedCount": 0
+        },
+        "summary": {
+          "specTotal": 1596,
+          "refinedCount": 25,
+          "prefilterKept": 25,
+          "safePoolCount": 25,
+          "selectedCount": 1,
+          "solverCoverageLoss": 0
+        },
+        "candidateFunnelDiagnostics": {
+          "funnel": {
+            "generatedCandidates": 1596,
+            "afterBrainBounds": 1297,
+            "afterHemisphere": 1297,
+            "afterCoarseRisk": 1297,
+            "afterCoverage": 292,
+            "afterSpacing": 278,
+            "afterFineRisk": 278,
+            "selected": 1
+          },
+          "stages": [
+            {
+              "stage": "generatedCandidates\n",
+              "count": 1596,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterBrainBounds\n",
+              "count": 1297,
+              "droppedFromPrev": 299,
+              "dropRatioFromPrev": 0.187343,
+              "reasons": [
+                {
+                  "code": "out_of_brain\n",
+                  "count": 299,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterHemisphere\n",
+              "count": 1297,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoarseRisk\n",
+              "count": 1297,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoverage\n",
+              "count": 292,
+              "droppedFromPrev": 1005,
+              "dropRatioFromPrev": 0.774865,
+              "reasons": [
+                {
+                  "code": "no_target_coverage\n",
+                  "count": 1005,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterSpacing\n",
+              "count": 278,
+              "droppedFromPrev": 14,
+              "dropRatioFromPrev": 0.047945,
+              "reasons": [
+                {
+                  "code": "probe_spacing\n",
+                  "count": 14,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterFineRisk\n",
+              "count": 278,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "selected\n",
+              "count": 1,
+              "droppedFromPrev": 277,
+              "dropRatioFromPrev": 0.996403,
+              "reasons": []
+            }
+          ],
+          "rejectionCounts": {
+            "out_of_brain": 299,
+            "ventricle_hit": 0,
+            "angle_limit": 0,
+            "depth_limit": 0,
+            "no_target_coverage": 1005,
+            "hemisphere_mismatch": 0,
+            "probe_spacing": 14,
+            "mri_quality_gate": 0,
+            "risk_distance": 0
+          },
+          "rejectionRatios": {
+            "out_of_brain": 0.226859,
+            "no_target_coverage": 0.762519,
+            "probe_spacing": 0.010622
+          },
+          "stepReasons": {
+            "afterBrainBounds": {
+              "out_of_brain": 299
+            },
+            "afterCoverage": {
+              "no_target_coverage": 1005
+            },
+            "afterHemisphere": {
+              "hemisphere_mismatch": 0
+            },
+            "afterSpacing": {
+              "probe_spacing": 14
+            }
+          },
+          "feasibleFirstPolicy": {
+            "enabled": true,
+            "rankingOrder": [
+              "safety_feasible\n",
+              "coverage\n",
+              "entry_angle\n",
+              "depth\n",
+              "uncertainty\n"
+            ]
+          },
+          "scoreEvaluated": 25,
+          "strictFallback": {
+            "enabled": false,
+            "applied": false,
+            "safePoolCount": 0,
+            "infeasibleTargets": []
+          },
+          "abnormalFastZeroGuard": {
+            "triggered": false,
+            "likelyStage": null,
+            "message": null
+          }
+        }
+      },
+      "selectedProbes": [
+        {
+          "probeIndex": 1,
+          "source": "grid:target_tip\n",
+          "entryCcfUm": [
+            7781.0,
+            440.0,
+            3193.0
+          ],
+          "tipCcfUm": [
+            7781.0,
+            4994.7,
+            2389.9
+          ],
+          "entryPlannerMm": [
+            -2.381,
+            0.0,
+            -2.507
+          ],
+          "tipPlannerMm": [
+            -2.381,
+            4.5547,
+            -3.3101
+          ],
+          "apMm": -2.381,
+          "mlMm": -2.507,
+          "thetaDeg": 10.0,
+          "phiDeg": 270.0,
+          "depthUm": 4625.0,
+          "coveredTargets": [
+            "CA3\n"
+          ],
+          "coveredTargetSides": {
+            "CA3": [
+              "left\n"
+            ]
+          },
+          "overlapVoxels": {
+            "CA3": 91
+          },
+          "minSafetyDistanceMm": 0.0,
+          "worstRiskMarginMm": -0.13606800000000002,
+          "riskMaxShortfallMm": 0.136068,
+          "riskClassMinDistanceMm": {
+            "skull": 0.447132,
+            "cortex_outside": -0.086068,
+            "brain_surface": -0.025,
+            "drilling_surface": 0.446974
+          },
+          "riskClassThresholdMm": {
+            "default": 0.05,
+            "vessel": 0.6,
+            "ventricle": 0.35,
+            "sulcus": 0.4,
+            "skull": 0.45,
+            "cortex_outside": 0.05,
+            "brain_surface": 0.05,
+            "drilling_surface": 0.05
+          },
+          "brainContainmentPassed": true,
+          "tipInTarget": true,
+          "distalOvershootMm": 0.0,
+          "internalRiskViolationCount": 0,
+          "minimumInternalRiskMarginMm": null,
+          "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+          "brainContainmentAudit": {
+            "available": true,
+            "passed": true,
+            "reason": "ok\n",
+            "tipInside": true,
+            "firstInsideIndex": 3,
+            "lastInsideIndex": 185,
+            "insideCount": 183,
+            "sampleCount": 186,
+            "insideRatio": 0.983871,
+            "insideRatioAfterEntry": 1.0,
+            "stepUm": 25.0,
+            "outsideGapUmThreshold": 300.0,
+            "outsideGapVoxThreshold": 12,
+            "maxOutsideGapVox": 0,
+            "maxOutsideGapUm": 0.0,
+            "maxOutsideGapStartIndex": null,
+            "maxOutsideGapEndIndex": null,
+            "maxOutsideGapSegmentMm": null
+          },
+          "targetEndpointAudit": {
+            "available": true,
+            "tipLabelId": 463,
+            "tipInRequestedTarget": true,
+            "tipTargetKeys": [
+              "CA3\n"
+            ],
+            "lastTargetExitDepthUm": 4625.0,
+            "overshootAfterLastTargetUm": 0.0,
+            "endpointSamplingStepUm": 25.0
+          },
+          "internalRiskAudit": {
+            "claimStatus": "unavailable\n",
+            "availableClasses": [],
+            "unavailableClasses": [
+              "no_go\n",
+              "sulcus\n",
+              "user_defined_exclusion\n",
+              "user_exclusion\n",
+              "ventricle\n",
+              "vessel\n"
+            ],
+            "missingDiagnosticClasses": [],
+            "violationClasses": [],
+            "classes": {
+              "no_go": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "sulcus": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_defined_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "ventricle": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "vessel": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              }
+            }
+          },
+          "entrySurfaceAudit": {
+            "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+            "classes": {
+              "brain_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": -0.025
+              },
+              "cortex_outside": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": -0.075
+              },
+              "drilling_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.456591
+              },
+              "skull": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.456734
+              }
+            }
+          }
+        }
+      ],
+      "stageDiagnostics": {
+        "rawCandidateCount": 1596,
+        "brainMaskPassedCount": 1297,
+        "tipInTargetPassedCount": 25,
+        "riskEnforcedPassedCount": 25,
+        "selectedProbeCount": 1,
+        "uncoveredTargets": [],
+        "failClosedReason": null,
+        "targetLocalGridSpecs": 1560,
+        "globalGridSpecs": 1560,
+        "pcaSpecs": 9,
+        "pairSpecs": 0,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 299,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 1005
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "independentAudit": {
+        "probeCount": 1,
+        "fullCoverage": true,
+        "allProbesStrictPass": true,
+        "allReportedFieldsMatch": true,
+        "probes": [
+          {
+            "probeIndex": 1,
+            "strictAuditPassed": true,
+            "reportedMatchesIndependent": true,
+            "brainContainmentPassed": true,
+            "tipInTarget": true,
+            "distalOvershootMm": 0.0,
+            "internalRiskViolationCount": 0,
+            "minimumInternalRiskMarginMm": null,
+            "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+            "internalRiskAudit": {
+              "claimStatus": "unavailable\n",
+              "availableClasses": [],
+              "unavailableClasses": [
+                "no_go\n",
+                "sulcus\n",
+                "user_defined_exclusion\n",
+                "user_exclusion\n",
+                "ventricle\n",
+                "vessel\n"
+              ],
+              "missingDiagnosticClasses": [],
+              "violationClasses": [],
+              "classes": {
+                "no_go": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "sulcus": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_defined_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "ventricle": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "vessel": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                }
+              }
+            },
+            "entrySurfaceAudit": {
+              "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+              "classes": {
+                "brain_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": -0.025
+                },
+                "cortex_outside": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": -0.086068
+                },
+                "drilling_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.446974
+                },
+                "skull": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.447132
+                }
+              }
+            }
+          }
+        ]
+      },
+      "eligibleForManifest": true
+    },
+    {
+      "caseId": "single_dg\n",
+      "caseType": "single-region-diagnostic\n",
+      "purpose": "Strict production-pipeline benchmark with independent probe audit.\n",
+      "requestedTargets": [
+        "DG\n"
+      ],
+      "targetingMode": "single_hemisphere\n",
+      "expectedProbeCount": null,
+      "expectFailClosed": false,
+      "status": "ok\n",
+      "failureReason": null,
+      "error": null,
+      "errorCode": null,
+      "errorExtra": null,
+      "candidateCount": 37,
+      "selectedProbeCount": 1,
+      "exactMinProbeCount": 1,
+      "optimalityMatch": true,
+      "expectedMatch": true,
+      "requiredCoverageUnits": 1,
+      "coveredCoverageUnits": 1,
+      "coveredTokens": [
+        "DG\n"
+      ],
+      "uncoveredTargets": [],
+      "uncoveredSides": [],
+      "sideCoverage": {
+        "DG": {
+          "left": false,
+          "right": true
+        }
+      },
+      "runtimeSec": 20.610297,
+      "plannerRequest": {
+        "targetKeys": [
+          "DG\n"
+        ],
+        "params": {
+          "algorithm": "greedy\n",
+          "targetingMode": "single_hemisphere\n",
+          "gridSpacing": 1200.0,
+          "angleStep": 10.0,
+          "maxAngle": 10.0,
+          "depthUm": 7600.0,
+          "candidateCoarseStepUm": 150.0,
+          "candidateRefineStepUm": 75.0,
+          "candidateRefineFraction": 0.12,
+          "computeWorkers": 2,
+          "candidateGenWorkers": 2,
+          "prefilterWorkers": 1,
+          "streamingPipelineEnabled": false,
+          "scoreEarlyStopEnabled": false,
+          "autoAvoidEnabled": true,
+          "robustOptimization": false,
+          "paretoEnabled": false,
+          "coverageBoost": false,
+          "objectivePreset": "balanced\n",
+          "minRiskDistanceMm": 0.05,
+          "minClearance": 1000.0,
+          "targetEndpointPolicy": "tip_in_target\n",
+          "includeCandidatePreview": true,
+          "strictFallbackDecompose": false
+        },
+        "probeParams": {
+          "depthUm": 7600.0,
+          "entrySpacingUm": 1200.0,
+          "shankWidthUm": 70.0,
+          "shanks": 1,
+          "shankPitchUm": 0.0,
+          "probeType": "np1\n"
+        },
+        "constraintModes": {
+          "maxAngle": "enforce\n",
+          "minEntrySpacing": "enforce\n",
+          "minClearance": "enforce\n",
+          "lambdaBoundary": "enforce\n",
+          "brainBounds": "enforce\n",
+          "hemisphere": "warn\n",
+          "continuousRiskDistance": "enforce\n"
+        }
+      },
+      "candidateGeneration": {
+        "specTotal": 3174,
+        "specDeduped": 1596,
+        "gridSpecs": 3120,
+        "globalGridSpecs": 1560,
+        "targetLocalGridSpecs": 1560,
+        "pcaSpecs": 9,
+        "pairSpecs": 0,
+        "depthVariantCount": 6,
+        "depthVariantsUm": [
+          7510.0,
+          3325.0,
+          3725.0,
+          4125.0,
+          4625.0,
+          5325.0
+        ],
+        "targetEndpointPolicy": "tip_in_target\n",
+        "endpointTrimmedCount": 37,
+        "targetDiversitySeedsPerTarget": 8,
+        "targetDiversityForcedSpecCount": 8,
+        "targetDiversitySeedCounts": {
+          "DG": 8
+        },
+        "targetEntryVariantsPerLocalEntry": 3,
+        "targetEntryVariantForcedSpecCount": 0,
+        "targetEntryVariantSeedCounts": {
+          "DG": 0
+        },
+        "workersUsed": 2,
+        "coarseKept": 360,
+        "refineSelected": 44,
+        "finalCount": 37,
+        "coarseStepUm": 150.0,
+        "refineStepUm": 75.0,
+        "refineFraction": 0.12,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 320,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 916
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "candidateStageBreakdown": {
+        "stages": [
+          {
+            "stage": "generated_specs\n",
+            "count": 1596,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "coarse_refine_kept\n",
+            "count": 37,
+            "droppedFromPrev": 1559,
+            "dropRatioFromPrev": 0.976817,
+            "reasons": [
+              {
+                "code": "noCoverage\n",
+                "count": 916,
+                "ratio": 0.7411
+              },
+              {
+                "code": "brainMaskRejected\n",
+                "count": 320,
+                "ratio": 0.2589
+              }
+            ]
+          },
+          {
+            "stage": "risk_prefilter_kept\n",
+            "count": 37,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "constraint_feasible_pool\n",
+            "count": 37,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "scored\n",
+            "count": 37,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "selected\n",
+            "count": 1,
+            "droppedFromPrev": 36,
+            "dropRatioFromPrev": 0.972973,
+            "reasons": [
+              {
+                "code": "solver_or_collision_filtered\n",
+                "count": 36,
+                "ratio": 0.972973
+              }
+            ]
+          }
+        ],
+        "prefilter": {
+          "enabled": true,
+          "keptMode": "feasible_only\n",
+          "feasibleCount": 37,
+          "nearCount": 0,
+          "rejectedCount": 0
+        },
+        "summary": {
+          "specTotal": 1596,
+          "refinedCount": 37,
+          "prefilterKept": 37,
+          "safePoolCount": 37,
+          "selectedCount": 1,
+          "solverCoverageLoss": 0
+        },
+        "candidateFunnelDiagnostics": {
+          "funnel": {
+            "generatedCandidates": 1596,
+            "afterBrainBounds": 1276,
+            "afterHemisphere": 1276,
+            "afterCoarseRisk": 1276,
+            "afterCoverage": 360,
+            "afterSpacing": 342,
+            "afterFineRisk": 342,
+            "selected": 1
+          },
+          "stages": [
+            {
+              "stage": "generatedCandidates\n",
+              "count": 1596,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterBrainBounds\n",
+              "count": 1276,
+              "droppedFromPrev": 320,
+              "dropRatioFromPrev": 0.200501,
+              "reasons": [
+                {
+                  "code": "out_of_brain\n",
+                  "count": 320,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterHemisphere\n",
+              "count": 1276,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoarseRisk\n",
+              "count": 1276,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoverage\n",
+              "count": 360,
+              "droppedFromPrev": 916,
+              "dropRatioFromPrev": 0.717868,
+              "reasons": [
+                {
+                  "code": "no_target_coverage\n",
+                  "count": 916,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterSpacing\n",
+              "count": 342,
+              "droppedFromPrev": 18,
+              "dropRatioFromPrev": 0.05,
+              "reasons": [
+                {
+                  "code": "probe_spacing\n",
+                  "count": 18,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterFineRisk\n",
+              "count": 342,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "selected\n",
+              "count": 1,
+              "droppedFromPrev": 341,
+              "dropRatioFromPrev": 0.997076,
+              "reasons": []
+            }
+          ],
+          "rejectionCounts": {
+            "out_of_brain": 320,
+            "ventricle_hit": 0,
+            "angle_limit": 0,
+            "depth_limit": 0,
+            "no_target_coverage": 916,
+            "hemisphere_mismatch": 0,
+            "probe_spacing": 18,
+            "mri_quality_gate": 0,
+            "risk_distance": 0
+          },
+          "rejectionRatios": {
+            "out_of_brain": 0.255183,
+            "no_target_coverage": 0.730463,
+            "probe_spacing": 0.014354
+          },
+          "stepReasons": {
+            "afterBrainBounds": {
+              "out_of_brain": 320
+            },
+            "afterCoverage": {
+              "no_target_coverage": 916
+            },
+            "afterHemisphere": {
+              "hemisphere_mismatch": 0
+            },
+            "afterSpacing": {
+              "probe_spacing": 18
+            }
+          },
+          "feasibleFirstPolicy": {
+            "enabled": true,
+            "rankingOrder": [
+              "safety_feasible\n",
+              "coverage\n",
+              "entry_angle\n",
+              "depth\n",
+              "uncertainty\n"
+            ]
+          },
+          "scoreEvaluated": 37,
+          "strictFallback": {
+            "enabled": false,
+            "applied": false,
+            "safePoolCount": 0,
+            "infeasibleTargets": []
+          },
+          "abnormalFastZeroGuard": {
+            "triggered": false,
+            "likelyStage": null,
+            "message": null
+          }
+        }
+      },
+      "selectedProbes": [
+        {
+          "probeIndex": 1,
+          "source": "grid:target_tip\n",
+          "entryCcfUm": [
+            8160.0,
+            440.0,
+            7993.0
+          ],
+          "tipCcfUm": [
+            8904.4,
+            5314.8,
+            8422.8
+          ],
+          "entryPlannerMm": [
+            -2.76,
+            0.0,
+            2.293
+          ],
+          "tipPlannerMm": [
+            -3.5044,
+            4.8748,
+            2.7228
+          ],
+          "apMm": -2.76,
+          "mlMm": 2.293,
+          "thetaDeg": 10.0,
+          "phiDeg": 30.0,
+          "depthUm": 4950.0,
+          "coveredTargets": [
+            "DG\n"
+          ],
+          "coveredTargetSides": {
+            "DG": [
+              "right\n"
+            ]
+          },
+          "overlapVoxels": {
+            "DG": 90
+          },
+          "minSafetyDistanceMm": 0.120057,
+          "worstRiskMarginMm": -0.329943,
+          "riskMaxShortfallMm": 0.0,
+          "riskClassMinDistanceMm": {
+            "skull": 0.120057,
+            "cortex_outside": 0.241014,
+            "brain_surface": -0.025,
+            "drilling_surface": 0.119962
+          },
+          "riskClassThresholdMm": {
+            "default": 0.05,
+            "vessel": 0.6,
+            "ventricle": 0.35,
+            "sulcus": 0.4,
+            "skull": 0.45,
+            "cortex_outside": 0.05,
+            "brain_surface": 0.05,
+            "drilling_surface": 0.05
+          },
+          "brainContainmentPassed": true,
+          "tipInTarget": true,
+          "distalOvershootMm": 0.0,
+          "internalRiskViolationCount": 0,
+          "minimumInternalRiskMarginMm": null,
+          "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+          "brainContainmentAudit": {
+            "available": true,
+            "passed": true,
+            "reason": "ok\n",
+            "tipInside": true,
+            "firstInsideIndex": 0,
+            "lastInsideIndex": 198,
+            "insideCount": 199,
+            "sampleCount": 199,
+            "insideRatio": 1.0,
+            "insideRatioAfterEntry": 1.0,
+            "stepUm": 25.0,
+            "outsideGapUmThreshold": 300.0,
+            "outsideGapVoxThreshold": 12,
+            "maxOutsideGapVox": 0,
+            "maxOutsideGapUm": 0.0,
+            "maxOutsideGapStartIndex": null,
+            "maxOutsideGapEndIndex": null,
+            "maxOutsideGapSegmentMm": null
+          },
+          "targetEndpointAudit": {
+            "available": true,
+            "tipLabelId": 10703,
+            "tipInRequestedTarget": true,
+            "tipTargetKeys": [
+              "DG\n"
+            ],
+            "lastTargetExitDepthUm": 4950.0,
+            "overshootAfterLastTargetUm": 0.0,
+            "endpointSamplingStepUm": 25.0
+          },
+          "internalRiskAudit": {
+            "claimStatus": "unavailable\n",
+            "availableClasses": [],
+            "unavailableClasses": [
+              "no_go\n",
+              "sulcus\n",
+              "user_defined_exclusion\n",
+              "user_exclusion\n",
+              "ventricle\n",
+              "vessel\n"
+            ],
+            "missingDiagnosticClasses": [],
+            "violationClasses": [],
+            "classes": {
+              "no_go": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "sulcus": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_defined_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "ventricle": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "vessel": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              }
+            }
+          },
+          "entrySurfaceAudit": {
+            "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+            "classes": {
+              "brain_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": -0.025
+              },
+              "cortex_outside": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.241014
+              },
+              "drilling_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.108605
+              },
+              "skull": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.109515
+              }
+            }
+          }
+        }
+      ],
+      "stageDiagnostics": {
+        "rawCandidateCount": 1596,
+        "brainMaskPassedCount": 1276,
+        "tipInTargetPassedCount": 37,
+        "riskEnforcedPassedCount": 37,
+        "selectedProbeCount": 1,
+        "uncoveredTargets": [],
+        "failClosedReason": null,
+        "targetLocalGridSpecs": 1560,
+        "globalGridSpecs": 1560,
+        "pcaSpecs": 9,
+        "pairSpecs": 0,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 320,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 916
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "independentAudit": {
+        "probeCount": 1,
+        "fullCoverage": true,
+        "allProbesStrictPass": true,
+        "allReportedFieldsMatch": true,
+        "probes": [
+          {
+            "probeIndex": 1,
+            "strictAuditPassed": true,
+            "reportedMatchesIndependent": true,
+            "brainContainmentPassed": true,
+            "tipInTarget": true,
+            "distalOvershootMm": 0.0,
+            "internalRiskViolationCount": 0,
+            "minimumInternalRiskMarginMm": null,
+            "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+            "internalRiskAudit": {
+              "claimStatus": "unavailable\n",
+              "availableClasses": [],
+              "unavailableClasses": [
+                "no_go\n",
+                "sulcus\n",
+                "user_defined_exclusion\n",
+                "user_exclusion\n",
+                "ventricle\n",
+                "vessel\n"
+              ],
+              "missingDiagnosticClasses": [],
+              "violationClasses": [],
+              "classes": {
+                "no_go": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "sulcus": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_defined_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "ventricle": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "vessel": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                }
+              }
+            },
+            "entrySurfaceAudit": {
+              "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+              "classes": {
+                "brain_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": -0.025
+                },
+                "cortex_outside": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.241014
+                },
+                "drilling_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.119962
+                },
+                "skull": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.120057
+                }
+              }
+            }
+          }
+        ]
+      },
+      "eligibleForManifest": true
+    },
+    {
+      "caseId": "single_visp\n",
+      "caseType": "single-region-diagnostic\n",
+      "purpose": "Strict production-pipeline benchmark with independent probe audit.\n",
+      "requestedTargets": [
+        "VISp\n"
+      ],
+      "targetingMode": "single_hemisphere\n",
+      "expectedProbeCount": null,
+      "expectFailClosed": false,
+      "status": "ok\n",
+      "failureReason": null,
+      "error": null,
+      "errorCode": null,
+      "errorExtra": null,
+      "candidateCount": 18,
+      "selectedProbeCount": 1,
+      "exactMinProbeCount": 1,
+      "optimalityMatch": true,
+      "expectedMatch": true,
+      "requiredCoverageUnits": 1,
+      "coveredCoverageUnits": 1,
+      "coveredTokens": [
+        "VISp\n"
+      ],
+      "uncoveredTargets": [],
+      "uncoveredSides": [],
+      "sideCoverage": {
+        "VISp": {
+          "left": true,
+          "right": false
+        }
+      },
+      "runtimeSec": 11.144997,
+      "plannerRequest": {
+        "targetKeys": [
+          "VISp\n"
+        ],
+        "params": {
+          "algorithm": "greedy\n",
+          "targetingMode": "single_hemisphere\n",
+          "gridSpacing": 1200.0,
+          "angleStep": 10.0,
+          "maxAngle": 10.0,
+          "depthUm": 7600.0,
+          "candidateCoarseStepUm": 150.0,
+          "candidateRefineStepUm": 75.0,
+          "candidateRefineFraction": 0.12,
+          "computeWorkers": 2,
+          "candidateGenWorkers": 2,
+          "prefilterWorkers": 1,
+          "streamingPipelineEnabled": false,
+          "scoreEarlyStopEnabled": false,
+          "autoAvoidEnabled": true,
+          "robustOptimization": false,
+          "paretoEnabled": false,
+          "coverageBoost": false,
+          "objectivePreset": "balanced\n",
+          "minRiskDistanceMm": 0.05,
+          "minClearance": 1000.0,
+          "targetEndpointPolicy": "tip_in_target\n",
+          "includeCandidatePreview": true,
+          "strictFallbackDecompose": false
+        },
+        "probeParams": {
+          "depthUm": 7600.0,
+          "entrySpacingUm": 1200.0,
+          "shankWidthUm": 70.0,
+          "shanks": 1,
+          "shankPitchUm": 0.0,
+          "probeType": "np1\n"
+        },
+        "constraintModes": {
+          "maxAngle": "enforce\n",
+          "minEntrySpacing": "enforce\n",
+          "minClearance": "enforce\n",
+          "lambdaBoundary": "enforce\n",
+          "brainBounds": "enforce\n",
+          "hemisphere": "warn\n",
+          "continuousRiskDistance": "enforce\n"
+        }
+      },
+      "candidateGeneration": {
+        "specTotal": 2394,
+        "specDeduped": 1206,
+        "gridSpecs": 2340,
+        "globalGridSpecs": 1170,
+        "targetLocalGridSpecs": 1170,
+        "pcaSpecs": 9,
+        "pairSpecs": 0,
+        "depthVariantCount": 6,
+        "depthVariantsUm": [
+          7510.0,
+          1260.0,
+          1660.0,
+          2060.0,
+          2560.0,
+          3260.0
+        ],
+        "targetEndpointPolicy": "tip_in_target\n",
+        "endpointTrimmedCount": 18,
+        "targetDiversitySeedsPerTarget": 8,
+        "targetDiversityForcedSpecCount": 8,
+        "targetDiversitySeedCounts": {
+          "VISp": 8
+        },
+        "targetEntryVariantsPerLocalEntry": 3,
+        "targetEntryVariantForcedSpecCount": 0,
+        "targetEntryVariantSeedCounts": {
+          "VISp": 0
+        },
+        "workersUsed": 2,
+        "coarseKept": 259,
+        "refineSelected": 32,
+        "finalCount": 18,
+        "coarseStepUm": 150.0,
+        "refineStepUm": 75.0,
+        "refineFraction": 0.12,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 20,
+          "brainMaskRejected": 216,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 711
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "candidateStageBreakdown": {
+        "stages": [
+          {
+            "stage": "generated_specs\n",
+            "count": 1206,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "coarse_refine_kept\n",
+            "count": 18,
+            "droppedFromPrev": 1188,
+            "dropRatioFromPrev": 0.985075,
+            "reasons": [
+              {
+                "code": "noCoverage\n",
+                "count": 711,
+                "ratio": 0.750792
+              },
+              {
+                "code": "brainMaskRejected\n",
+                "count": 216,
+                "ratio": 0.228089
+              },
+              {
+                "code": "brainMaskNoIntersection\n",
+                "count": 20,
+                "ratio": 0.021119
+              }
+            ]
+          },
+          {
+            "stage": "risk_prefilter_kept\n",
+            "count": 18,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "constraint_feasible_pool\n",
+            "count": 18,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "scored\n",
+            "count": 18,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "selected\n",
+            "count": 1,
+            "droppedFromPrev": 17,
+            "dropRatioFromPrev": 0.944444,
+            "reasons": [
+              {
+                "code": "solver_or_collision_filtered\n",
+                "count": 17,
+                "ratio": 0.944444
+              }
+            ]
+          }
+        ],
+        "prefilter": {
+          "enabled": true,
+          "keptMode": "feasible_only\n",
+          "feasibleCount": 18,
+          "nearCount": 0,
+          "rejectedCount": 0
+        },
+        "summary": {
+          "specTotal": 1206,
+          "refinedCount": 18,
+          "prefilterKept": 18,
+          "safePoolCount": 18,
+          "selectedCount": 1,
+          "solverCoverageLoss": 0
+        },
+        "candidateFunnelDiagnostics": {
+          "funnel": {
+            "generatedCandidates": 1206,
+            "afterBrainBounds": 970,
+            "afterHemisphere": 970,
+            "afterCoarseRisk": 970,
+            "afterCoverage": 259,
+            "afterSpacing": 247,
+            "afterFineRisk": 247,
+            "selected": 1
+          },
+          "stages": [
+            {
+              "stage": "generatedCandidates\n",
+              "count": 1206,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterBrainBounds\n",
+              "count": 970,
+              "droppedFromPrev": 236,
+              "dropRatioFromPrev": 0.195688,
+              "reasons": [
+                {
+                  "code": "out_of_brain\n",
+                  "count": 236,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterHemisphere\n",
+              "count": 970,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoarseRisk\n",
+              "count": 970,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoverage\n",
+              "count": 259,
+              "droppedFromPrev": 711,
+              "dropRatioFromPrev": 0.73299,
+              "reasons": [
+                {
+                  "code": "no_target_coverage\n",
+                  "count": 711,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterSpacing\n",
+              "count": 247,
+              "droppedFromPrev": 12,
+              "dropRatioFromPrev": 0.046332,
+              "reasons": [
+                {
+                  "code": "probe_spacing\n",
+                  "count": 12,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterFineRisk\n",
+              "count": 247,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "selected\n",
+              "count": 1,
+              "droppedFromPrev": 246,
+              "dropRatioFromPrev": 0.995951,
+              "reasons": []
+            }
+          ],
+          "rejectionCounts": {
+            "out_of_brain": 236,
+            "ventricle_hit": 0,
+            "angle_limit": 0,
+            "depth_limit": 0,
+            "no_target_coverage": 711,
+            "hemisphere_mismatch": 0,
+            "probe_spacing": 12,
+            "mri_quality_gate": 0,
+            "risk_distance": 0
+          },
+          "rejectionRatios": {
+            "out_of_brain": 0.24609,
+            "no_target_coverage": 0.741397,
+            "probe_spacing": 0.012513
+          },
+          "stepReasons": {
+            "afterBrainBounds": {
+              "out_of_brain": 236
+            },
+            "afterCoverage": {
+              "no_target_coverage": 711
+            },
+            "afterHemisphere": {
+              "hemisphere_mismatch": 0
+            },
+            "afterSpacing": {
+              "probe_spacing": 12
+            }
+          },
+          "feasibleFirstPolicy": {
+            "enabled": true,
+            "rankingOrder": [
+              "safety_feasible\n",
+              "coverage\n",
+              "entry_angle\n",
+              "depth\n",
+              "uncertainty\n"
+            ]
+          },
+          "scoreEvaluated": 18,
+          "strictFallback": {
+            "enabled": false,
+            "applied": false,
+            "safePoolCount": 0,
+            "infeasibleTargets": []
+          },
+          "abnormalFastZeroGuard": {
+            "triggered": false,
+            "likelyStage": null,
+            "message": null
+          }
+        }
+      },
+      "selectedProbes": [
+        {
+          "probeIndex": 1,
+          "source": "grid:target_tip\n",
+          "entryCcfUm": [
+            9168.0,
+            440.0,
+            3192.0
+          ],
+          "tipCcfUm": [
+            9168.0,
+            1892.6,
+            2935.9
+          ],
+          "entryPlannerMm": [
+            -3.768,
+            0.0,
+            -2.508
+          ],
+          "tipPlannerMm": [
+            -3.768,
+            1.4526,
+            -2.7641
+          ],
+          "apMm": -3.768,
+          "mlMm": -2.508,
+          "thetaDeg": 10.0,
+          "phiDeg": 270.0,
+          "depthUm": 1475.0,
+          "coveredTargets": [
+            "VISp\n"
+          ],
+          "coveredTargetSides": {
+            "VISp": [
+              "left\n"
+            ]
+          },
+          "overlapVoxels": {
+            "VISp": 50
+          },
+          "minSafetyDistanceMm": 0.093469,
+          "worstRiskMarginMm": -0.35653100000000004,
+          "riskMaxShortfallMm": 0.0,
+          "riskClassMinDistanceMm": {
+            "skull": 0.093469,
+            "cortex_outside": 0.093469,
+            "brain_surface": -0.011272,
+            "drilling_surface": 0.093408
+          },
+          "riskClassThresholdMm": {
+            "default": 0.05,
+            "vessel": 0.6,
+            "ventricle": 0.35,
+            "sulcus": 0.4,
+            "skull": 0.45,
+            "cortex_outside": 0.05,
+            "brain_surface": 0.05,
+            "drilling_surface": 0.05
+          },
+          "brainContainmentPassed": true,
+          "tipInTarget": true,
+          "distalOvershootMm": 0.0,
+          "internalRiskViolationCount": 0,
+          "minimumInternalRiskMarginMm": null,
+          "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+          "brainContainmentAudit": {
+            "available": true,
+            "passed": true,
+            "reason": "ok\n",
+            "tipInside": true,
+            "firstInsideIndex": 10,
+            "lastInsideIndex": 59,
+            "insideCount": 50,
+            "sampleCount": 60,
+            "insideRatio": 0.833333,
+            "insideRatioAfterEntry": 1.0,
+            "stepUm": 25.0,
+            "outsideGapUmThreshold": 300.0,
+            "outsideGapVoxThreshold": 12,
+            "maxOutsideGapVox": 0,
+            "maxOutsideGapUm": 0.0,
+            "maxOutsideGapStartIndex": null,
+            "maxOutsideGapEndIndex": null,
+            "maxOutsideGapSegmentMm": null
+          },
+          "targetEndpointAudit": {
+            "available": true,
+            "tipLabelId": 305,
+            "tipInRequestedTarget": true,
+            "tipTargetKeys": [
+              "VISp\n"
+            ],
+            "lastTargetExitDepthUm": 1475.0,
+            "overshootAfterLastTargetUm": 0.0,
+            "endpointSamplingStepUm": 25.0
+          },
+          "internalRiskAudit": {
+            "claimStatus": "unavailable\n",
+            "availableClasses": [],
+            "unavailableClasses": [
+              "no_go\n",
+              "sulcus\n",
+              "user_defined_exclusion\n",
+              "user_exclusion\n",
+              "ventricle\n",
+              "vessel\n"
+            ],
+            "missingDiagnosticClasses": [],
+            "violationClasses": [],
+            "classes": {
+              "no_go": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "sulcus": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_defined_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "ventricle": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "vessel": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              }
+            }
+          },
+          "entrySurfaceAudit": {
+            "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+            "classes": {
+              "brain_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": -0.025
+              },
+              "cortex_outside": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.093469
+              },
+              "drilling_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.093408
+              },
+              "skull": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.093469
+              }
+            }
+          }
+        }
+      ],
+      "stageDiagnostics": {
+        "rawCandidateCount": 1206,
+        "brainMaskPassedCount": 970,
+        "tipInTargetPassedCount": 18,
+        "riskEnforcedPassedCount": 18,
+        "selectedProbeCount": 1,
+        "uncoveredTargets": [],
+        "failClosedReason": null,
+        "targetLocalGridSpecs": 1170,
+        "globalGridSpecs": 1170,
+        "pcaSpecs": 9,
+        "pairSpecs": 0,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 20,
+          "brainMaskRejected": 216,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 711
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "independentAudit": {
+        "probeCount": 1,
+        "fullCoverage": true,
+        "allProbesStrictPass": true,
+        "allReportedFieldsMatch": true,
+        "probes": [
+          {
+            "probeIndex": 1,
+            "strictAuditPassed": true,
+            "reportedMatchesIndependent": true,
+            "brainContainmentPassed": true,
+            "tipInTarget": true,
+            "distalOvershootMm": 0.0,
+            "internalRiskViolationCount": 0,
+            "minimumInternalRiskMarginMm": null,
+            "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+            "internalRiskAudit": {
+              "claimStatus": "unavailable\n",
+              "availableClasses": [],
+              "unavailableClasses": [
+                "no_go\n",
+                "sulcus\n",
+                "user_defined_exclusion\n",
+                "user_exclusion\n",
+                "ventricle\n",
+                "vessel\n"
+              ],
+              "missingDiagnosticClasses": [],
+              "violationClasses": [],
+              "classes": {
+                "no_go": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "sulcus": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_defined_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "ventricle": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "vessel": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                }
+              }
+            },
+            "entrySurfaceAudit": {
+              "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+              "classes": {
+                "brain_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": -0.011272
+                },
+                "cortex_outside": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.093469
+                },
+                "drilling_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.093408
+                },
+                "skull": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.093469
+                }
+              }
+            }
+          }
+        ]
+      },
+      "eligibleForManifest": true
+    },
+    {
+      "caseId": "single_ssp\n",
+      "caseType": "single-region-diagnostic\n",
+      "purpose": "Strict production-pipeline benchmark with independent probe audit.\n",
+      "requestedTargets": [
+        "SSp\n"
+      ],
+      "targetingMode": "single_hemisphere\n",
+      "expectedProbeCount": null,
+      "expectFailClosed": false,
+      "status": "ok\n",
+      "failureReason": null,
+      "error": null,
+      "errorCode": null,
+      "errorExtra": null,
+      "candidateCount": 26,
+      "selectedProbeCount": 1,
+      "exactMinProbeCount": 1,
+      "optimalityMatch": true,
+      "expectedMatch": true,
+      "requiredCoverageUnits": 1,
+      "coveredCoverageUnits": 1,
+      "coveredTokens": [
+        "SSp\n"
+      ],
+      "uncoveredTargets": [],
+      "uncoveredSides": [],
+      "sideCoverage": {
+        "SSp": {
+          "left": true,
+          "right": false
+        }
+      },
+      "runtimeSec": 17.213756,
+      "plannerRequest": {
+        "targetKeys": [
+          "SSp\n"
+        ],
+        "params": {
+          "algorithm": "greedy\n",
+          "targetingMode": "single_hemisphere\n",
+          "gridSpacing": 1200.0,
+          "angleStep": 10.0,
+          "maxAngle": 10.0,
+          "depthUm": 7600.0,
+          "candidateCoarseStepUm": 150.0,
+          "candidateRefineStepUm": 75.0,
+          "candidateRefineFraction": 0.12,
+          "computeWorkers": 2,
+          "candidateGenWorkers": 2,
+          "prefilterWorkers": 1,
+          "streamingPipelineEnabled": false,
+          "scoreEarlyStopEnabled": false,
+          "autoAvoidEnabled": true,
+          "robustOptimization": false,
+          "paretoEnabled": false,
+          "coverageBoost": false,
+          "objectivePreset": "balanced\n",
+          "minRiskDistanceMm": 0.05,
+          "minClearance": 1000.0,
+          "targetEndpointPolicy": "tip_in_target\n",
+          "includeCandidatePreview": true,
+          "strictFallbackDecompose": false
+        },
+        "probeParams": {
+          "depthUm": 7600.0,
+          "entrySpacingUm": 1200.0,
+          "shankWidthUm": 70.0,
+          "shanks": 1,
+          "shankPitchUm": 0.0,
+          "probeType": "np1\n"
+        },
+        "constraintModes": {
+          "maxAngle": "enforce\n",
+          "minEntrySpacing": "enforce\n",
+          "minClearance": "enforce\n",
+          "lambdaBoundary": "enforce\n",
+          "brainBounds": "enforce\n",
+          "hemisphere": "warn\n",
+          "continuousRiskDistance": "enforce\n"
+        }
+      },
+      "candidateGeneration": {
+        "specTotal": 3954,
+        "specDeduped": 1986,
+        "gridSpecs": 3900,
+        "globalGridSpecs": 1950,
+        "targetLocalGridSpecs": 1950,
+        "pcaSpecs": 9,
+        "pairSpecs": 0,
+        "depthVariantCount": 6,
+        "depthVariantsUm": [
+          7510.0,
+          2118.0,
+          2518.0,
+          2918.0,
+          3418.0,
+          4118.0
+        ],
+        "targetEndpointPolicy": "tip_in_target\n",
+        "endpointTrimmedCount": 26,
+        "targetDiversitySeedsPerTarget": 8,
+        "targetDiversityForcedSpecCount": 8,
+        "targetDiversitySeedCounts": {
+          "SSp": 8
+        },
+        "targetEntryVariantsPerLocalEntry": 3,
+        "targetEntryVariantForcedSpecCount": 0,
+        "targetEntryVariantSeedCounts": {
+          "SSp": 0
+        },
+        "workersUsed": 2,
+        "coarseKept": 399,
+        "refineSelected": 48,
+        "finalCount": 26,
+        "coarseStepUm": 150.0,
+        "refineStepUm": 75.0,
+        "refineFraction": 0.12,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 375,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 1212
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "candidateStageBreakdown": {
+        "stages": [
+          {
+            "stage": "generated_specs\n",
+            "count": 1986,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "coarse_refine_kept\n",
+            "count": 26,
+            "droppedFromPrev": 1960,
+            "dropRatioFromPrev": 0.986908,
+            "reasons": [
+              {
+                "code": "noCoverage\n",
+                "count": 1212,
+                "ratio": 0.763705
+              },
+              {
+                "code": "brainMaskRejected\n",
+                "count": 375,
+                "ratio": 0.236295
+              }
+            ]
+          },
+          {
+            "stage": "risk_prefilter_kept\n",
+            "count": 26,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "constraint_feasible_pool\n",
+            "count": 26,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "scored\n",
+            "count": 26,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "selected\n",
+            "count": 1,
+            "droppedFromPrev": 25,
+            "dropRatioFromPrev": 0.961538,
+            "reasons": [
+              {
+                "code": "solver_or_collision_filtered\n",
+                "count": 25,
+                "ratio": 0.961538
+              }
+            ]
+          }
+        ],
+        "prefilter": {
+          "enabled": true,
+          "keptMode": "feasible_only\n",
+          "feasibleCount": 26,
+          "nearCount": 0,
+          "rejectedCount": 0
+        },
+        "summary": {
+          "specTotal": 1986,
+          "refinedCount": 26,
+          "prefilterKept": 26,
+          "safePoolCount": 26,
+          "selectedCount": 1,
+          "solverCoverageLoss": 0
+        },
+        "candidateFunnelDiagnostics": {
+          "funnel": {
+            "generatedCandidates": 1986,
+            "afterBrainBounds": 1611,
+            "afterHemisphere": 1611,
+            "afterCoarseRisk": 1611,
+            "afterCoverage": 399,
+            "afterSpacing": 381,
+            "afterFineRisk": 381,
+            "selected": 1
+          },
+          "stages": [
+            {
+              "stage": "generatedCandidates\n",
+              "count": 1986,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterBrainBounds\n",
+              "count": 1611,
+              "droppedFromPrev": 375,
+              "dropRatioFromPrev": 0.188822,
+              "reasons": [
+                {
+                  "code": "out_of_brain\n",
+                  "count": 375,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterHemisphere\n",
+              "count": 1611,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoarseRisk\n",
+              "count": 1611,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoverage\n",
+              "count": 399,
+              "droppedFromPrev": 1212,
+              "dropRatioFromPrev": 0.752328,
+              "reasons": [
+                {
+                  "code": "no_target_coverage\n",
+                  "count": 1212,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterSpacing\n",
+              "count": 381,
+              "droppedFromPrev": 18,
+              "dropRatioFromPrev": 0.045113,
+              "reasons": [
+                {
+                  "code": "probe_spacing\n",
+                  "count": 18,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterFineRisk\n",
+              "count": 381,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "selected\n",
+              "count": 1,
+              "droppedFromPrev": 380,
+              "dropRatioFromPrev": 0.997375,
+              "reasons": []
+            }
+          ],
+          "rejectionCounts": {
+            "out_of_brain": 375,
+            "ventricle_hit": 0,
+            "angle_limit": 0,
+            "depth_limit": 0,
+            "no_target_coverage": 1212,
+            "hemisphere_mismatch": 0,
+            "probe_spacing": 18,
+            "mri_quality_gate": 0,
+            "risk_distance": 0
+          },
+          "rejectionRatios": {
+            "out_of_brain": 0.233645,
+            "no_target_coverage": 0.75514,
+            "probe_spacing": 0.011215
+          },
+          "stepReasons": {
+            "afterBrainBounds": {
+              "out_of_brain": 375
+            },
+            "afterCoverage": {
+              "no_target_coverage": 1212
+            },
+            "afterHemisphere": {
+              "hemisphere_mismatch": 0
+            },
+            "afterSpacing": {
+              "probe_spacing": 18
+            }
+          },
+          "feasibleFirstPolicy": {
+            "enabled": true,
+            "rankingOrder": [
+              "safety_feasible\n",
+              "coverage\n",
+              "entry_angle\n",
+              "depth\n",
+              "uncertainty\n"
+            ]
+          },
+          "scoreEvaluated": 26,
+          "strictFallback": {
+            "enabled": false,
+            "applied": false,
+            "safePoolCount": 0,
+            "infeasibleTargets": []
+          },
+          "abnormalFastZeroGuard": {
+            "triggered": false,
+            "likelyStage": null,
+            "message": null
+          }
+        }
+      },
+      "selectedProbes": [
+        {
+          "probeIndex": 1,
+          "source": "grid:target_tip\n",
+          "entryCcfUm": [
+            4639.0,
+            440.0,
+            3193.0
+          ],
+          "tipCcfUm": [
+            4639.0,
+            4108.4,
+            2546.2
+          ],
+          "entryPlannerMm": [
+            0.761,
+            0.0,
+            -2.507
+          ],
+          "tipPlannerMm": [
+            0.761,
+            3.6684,
+            -3.1538
+          ],
+          "apMm": 0.761,
+          "mlMm": -2.507,
+          "thetaDeg": 10.0,
+          "phiDeg": 270.0,
+          "depthUm": 3725.0,
+          "coveredTargets": [
+            "SSp\n"
+          ],
+          "coveredTargetSides": {
+            "SSp": [
+              "left\n"
+            ]
+          },
+          "overlapVoxels": {
+            "SSp": 109
+          },
+          "minSafetyDistanceMm": 0.0,
+          "worstRiskMarginMm": -0.47500000000000003,
+          "riskMaxShortfallMm": 0.493574,
+          "riskClassMinDistanceMm": {
+            "skull": -0.025,
+            "cortex_outside": -0.224949,
+            "brain_surface": -0.025,
+            "drilling_surface": 0.0
+          },
+          "riskClassThresholdMm": {
+            "default": 0.05,
+            "vessel": 0.6,
+            "ventricle": 0.35,
+            "sulcus": 0.4,
+            "skull": 0.45,
+            "cortex_outside": 0.05,
+            "brain_surface": 0.05,
+            "drilling_surface": 0.05
+          },
+          "brainContainmentPassed": true,
+          "tipInTarget": true,
+          "distalOvershootMm": 0.0,
+          "internalRiskViolationCount": 0,
+          "minimumInternalRiskMarginMm": null,
+          "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+          "brainContainmentAudit": {
+            "available": true,
+            "passed": true,
+            "reason": "ok\n",
+            "tipInside": true,
+            "firstInsideIndex": 41,
+            "lastInsideIndex": 149,
+            "insideCount": 109,
+            "sampleCount": 150,
+            "insideRatio": 0.726667,
+            "insideRatioAfterEntry": 1.0,
+            "stepUm": 25.0,
+            "outsideGapUmThreshold": 300.0,
+            "outsideGapVoxThreshold": 12,
+            "maxOutsideGapVox": 0,
+            "maxOutsideGapUm": 0.0,
+            "maxOutsideGapStartIndex": null,
+            "maxOutsideGapEndIndex": null,
+            "maxOutsideGapSegmentMm": null
+          },
+          "targetEndpointAudit": {
+            "available": true,
+            "tipLabelId": 1102,
+            "tipInRequestedTarget": true,
+            "tipTargetKeys": [
+              "SSp\n"
+            ],
+            "lastTargetExitDepthUm": 3725.0,
+            "overshootAfterLastTargetUm": 0.0,
+            "endpointSamplingStepUm": 25.0
+          },
+          "internalRiskAudit": {
+            "claimStatus": "unavailable\n",
+            "availableClasses": [],
+            "unavailableClasses": [
+              "no_go\n",
+              "sulcus\n",
+              "user_defined_exclusion\n",
+              "user_exclusion\n",
+              "ventricle\n",
+              "vessel\n"
+            ],
+            "missingDiagnosticClasses": [],
+            "violationClasses": [],
+            "classes": {
+              "no_go": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "sulcus": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_defined_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "ventricle": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "vessel": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              }
+            }
+          },
+          "entrySurfaceAudit": {
+            "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+            "classes": {
+              "brain_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": -0.025
+              },
+              "cortex_outside": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": -0.222607
+              },
+              "drilling_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.0
+              },
+              "skull": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": -0.029142
+              }
+            }
+          }
+        }
+      ],
+      "stageDiagnostics": {
+        "rawCandidateCount": 1986,
+        "brainMaskPassedCount": 1611,
+        "tipInTargetPassedCount": 26,
+        "riskEnforcedPassedCount": 26,
+        "selectedProbeCount": 1,
+        "uncoveredTargets": [],
+        "failClosedReason": null,
+        "targetLocalGridSpecs": 1950,
+        "globalGridSpecs": 1950,
+        "pcaSpecs": 9,
+        "pairSpecs": 0,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 375,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 1212
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "independentAudit": {
+        "probeCount": 1,
+        "fullCoverage": true,
+        "allProbesStrictPass": true,
+        "allReportedFieldsMatch": true,
+        "probes": [
+          {
+            "probeIndex": 1,
+            "strictAuditPassed": true,
+            "reportedMatchesIndependent": true,
+            "brainContainmentPassed": true,
+            "tipInTarget": true,
+            "distalOvershootMm": 0.0,
+            "internalRiskViolationCount": 0,
+            "minimumInternalRiskMarginMm": null,
+            "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+            "internalRiskAudit": {
+              "claimStatus": "unavailable\n",
+              "availableClasses": [],
+              "unavailableClasses": [
+                "no_go\n",
+                "sulcus\n",
+                "user_defined_exclusion\n",
+                "user_exclusion\n",
+                "ventricle\n",
+                "vessel\n"
+              ],
+              "missingDiagnosticClasses": [],
+              "violationClasses": [],
+              "classes": {
+                "no_go": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "sulcus": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_defined_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "ventricle": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "vessel": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                }
+              }
+            },
+            "entrySurfaceAudit": {
+              "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+              "classes": {
+                "brain_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": -0.025
+                },
+                "cortex_outside": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": -0.224949
+                },
+                "drilling_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.0
+                },
+                "skull": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": -0.025
+                }
+              }
+            }
+          }
+        ]
+      },
+      "eligibleForManifest": true
+    },
+    {
+      "caseId": "single_vpm\n",
+      "caseType": "single-region-diagnostic\n",
+      "purpose": "Strict production-pipeline benchmark with independent probe audit.\n",
+      "requestedTargets": [
+        "VPM\n"
+      ],
+      "targetingMode": "single_hemisphere\n",
+      "expectedProbeCount": null,
+      "expectFailClosed": false,
+      "status": "ok\n",
+      "failureReason": null,
+      "error": null,
+      "errorCode": null,
+      "errorExtra": null,
+      "candidateCount": 12,
+      "selectedProbeCount": 1,
+      "exactMinProbeCount": 1,
+      "optimalityMatch": true,
+      "expectedMatch": true,
+      "requiredCoverageUnits": 1,
+      "coveredCoverageUnits": 1,
+      "coveredTokens": [
+        "VPM\n"
+      ],
+      "uncoveredTargets": [],
+      "uncoveredSides": [],
+      "sideCoverage": {
+        "VPM": {
+          "left": true,
+          "right": false
+        }
+      },
+      "runtimeSec": 18.484583,
+      "plannerRequest": {
+        "targetKeys": [
+          "VPM\n"
+        ],
+        "params": {
+          "algorithm": "greedy\n",
+          "targetingMode": "single_hemisphere\n",
+          "gridSpacing": 1200.0,
+          "angleStep": 10.0,
+          "maxAngle": 10.0,
+          "depthUm": 7600.0,
+          "candidateCoarseStepUm": 150.0,
+          "candidateRefineStepUm": 75.0,
+          "candidateRefineFraction": 0.12,
+          "computeWorkers": 2,
+          "candidateGenWorkers": 2,
+          "prefilterWorkers": 1,
+          "streamingPipelineEnabled": false,
+          "scoreEarlyStopEnabled": false,
+          "autoAvoidEnabled": true,
+          "robustOptimization": false,
+          "paretoEnabled": false,
+          "coverageBoost": false,
+          "objectivePreset": "balanced\n",
+          "minRiskDistanceMm": 0.05,
+          "minClearance": 1000.0,
+          "targetEndpointPolicy": "tip_in_target\n",
+          "includeCandidatePreview": true,
+          "strictFallbackDecompose": false
+        },
+        "probeParams": {
+          "depthUm": 7600.0,
+          "entrySpacingUm": 1200.0,
+          "shankWidthUm": 70.0,
+          "shanks": 1,
+          "shankPitchUm": 0.0,
+          "probeType": "np1\n"
+        },
+        "constraintModes": {
+          "maxAngle": "enforce\n",
+          "minEntrySpacing": "enforce\n",
+          "minClearance": "enforce\n",
+          "lambdaBoundary": "enforce\n",
+          "brainBounds": "enforce\n",
+          "hemisphere": "warn\n",
+          "continuousRiskDistance": "enforce\n"
+        }
+      },
+      "candidateGeneration": {
+        "specTotal": 3174,
+        "specDeduped": 1596,
+        "gridSpecs": 3120,
+        "globalGridSpecs": 1560,
+        "targetLocalGridSpecs": 1560,
+        "pcaSpecs": 9,
+        "pairSpecs": 0,
+        "depthVariantCount": 6,
+        "depthVariantsUm": [
+          7510.0,
+          4207.0,
+          4607.0,
+          5007.0,
+          5507.0,
+          6207.0
+        ],
+        "targetEndpointPolicy": "tip_in_target\n",
+        "endpointTrimmedCount": 12,
+        "targetDiversitySeedsPerTarget": 8,
+        "targetDiversityForcedSpecCount": 8,
+        "targetDiversitySeedCounts": {
+          "VPM": 8
+        },
+        "targetEntryVariantsPerLocalEntry": 3,
+        "targetEntryVariantForcedSpecCount": 0,
+        "targetEntryVariantSeedCounts": {
+          "VPM": 0
+        },
+        "workersUsed": 2,
+        "coarseKept": 102,
+        "refineSelected": 32,
+        "finalCount": 12,
+        "coarseStepUm": 150.0,
+        "refineStepUm": 75.0,
+        "refineFraction": 0.12,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 365,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 1129
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "candidateStageBreakdown": {
+        "stages": [
+          {
+            "stage": "generated_specs\n",
+            "count": 1596,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "coarse_refine_kept\n",
+            "count": 12,
+            "droppedFromPrev": 1584,
+            "dropRatioFromPrev": 0.992481,
+            "reasons": [
+              {
+                "code": "noCoverage\n",
+                "count": 1129,
+                "ratio": 0.755689
+              },
+              {
+                "code": "brainMaskRejected\n",
+                "count": 365,
+                "ratio": 0.244311
+              }
+            ]
+          },
+          {
+            "stage": "risk_prefilter_kept\n",
+            "count": 12,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "constraint_feasible_pool\n",
+            "count": 12,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "scored\n",
+            "count": 12,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "selected\n",
+            "count": 1,
+            "droppedFromPrev": 11,
+            "dropRatioFromPrev": 0.916667,
+            "reasons": [
+              {
+                "code": "solver_or_collision_filtered\n",
+                "count": 11,
+                "ratio": 0.916667
+              }
+            ]
+          }
+        ],
+        "prefilter": {
+          "enabled": true,
+          "keptMode": "feasible_only\n",
+          "feasibleCount": 12,
+          "nearCount": 0,
+          "rejectedCount": 0
+        },
+        "summary": {
+          "specTotal": 1596,
+          "refinedCount": 12,
+          "prefilterKept": 12,
+          "safePoolCount": 12,
+          "selectedCount": 1,
+          "solverCoverageLoss": 0
+        },
+        "candidateFunnelDiagnostics": {
+          "funnel": {
+            "generatedCandidates": 1596,
+            "afterBrainBounds": 1231,
+            "afterHemisphere": 1231,
+            "afterCoarseRisk": 1231,
+            "afterCoverage": 102,
+            "afterSpacing": 98,
+            "afterFineRisk": 98,
+            "selected": 1
+          },
+          "stages": [
+            {
+              "stage": "generatedCandidates\n",
+              "count": 1596,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterBrainBounds\n",
+              "count": 1231,
+              "droppedFromPrev": 365,
+              "dropRatioFromPrev": 0.228697,
+              "reasons": [
+                {
+                  "code": "out_of_brain\n",
+                  "count": 365,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterHemisphere\n",
+              "count": 1231,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoarseRisk\n",
+              "count": 1231,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoverage\n",
+              "count": 102,
+              "droppedFromPrev": 1129,
+              "dropRatioFromPrev": 0.917141,
+              "reasons": [
+                {
+                  "code": "no_target_coverage\n",
+                  "count": 1129,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterSpacing\n",
+              "count": 98,
+              "droppedFromPrev": 4,
+              "dropRatioFromPrev": 0.039216,
+              "reasons": [
+                {
+                  "code": "probe_spacing\n",
+                  "count": 4,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterFineRisk\n",
+              "count": 98,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "selected\n",
+              "count": 1,
+              "droppedFromPrev": 97,
+              "dropRatioFromPrev": 0.989796,
+              "reasons": []
+            }
+          ],
+          "rejectionCounts": {
+            "out_of_brain": 365,
+            "ventricle_hit": 0,
+            "angle_limit": 0,
+            "depth_limit": 0,
+            "no_target_coverage": 1129,
+            "hemisphere_mismatch": 0,
+            "probe_spacing": 4,
+            "mri_quality_gate": 0,
+            "risk_distance": 0
+          },
+          "rejectionRatios": {
+            "out_of_brain": 0.243658,
+            "no_target_coverage": 0.753672,
+            "probe_spacing": 0.00267
+          },
+          "stepReasons": {
+            "afterBrainBounds": {
+              "out_of_brain": 365
+            },
+            "afterCoverage": {
+              "no_target_coverage": 1129
+            },
+            "afterHemisphere": {
+              "hemisphere_mismatch": 0
+            },
+            "afterSpacing": {
+              "probe_spacing": 4
+            }
+          },
+          "feasibleFirstPolicy": {
+            "enabled": true,
+            "rankingOrder": [
+              "safety_feasible\n",
+              "coverage\n",
+              "entry_angle\n",
+              "depth\n",
+              "uncertainty\n"
+            ]
+          },
+          "scoreEvaluated": 12,
+          "strictFallback": {
+            "enabled": false,
+            "applied": false,
+            "safePoolCount": 0,
+            "infeasibleTargets": []
+          },
+          "abnormalFastZeroGuard": {
+            "triggered": false,
+            "likelyStage": null,
+            "message": null
+          }
+        }
+      },
+      "selectedProbes": [
+        {
+          "probeIndex": 1,
+          "source": "grid:target_tip\n",
+          "entryCcfUm": [
+            7163.0,
+            440.0,
+            3193.0
+          ],
+          "tipCcfUm": [
+            7163.0,
+            4699.3,
+            3944.0
+          ],
+          "entryPlannerMm": [
+            -1.763,
+            0.0,
+            -2.507
+          ],
+          "tipPlannerMm": [
+            -1.763,
+            4.2593,
+            -1.756
+          ],
+          "apMm": -1.763,
+          "mlMm": -2.507,
+          "thetaDeg": 10.0,
+          "phiDeg": 90.0,
+          "depthUm": 4325.0,
+          "coveredTargets": [
+            "VPM\n"
+          ],
+          "coveredTargetSides": {
+            "VPM": [
+              "left\n"
+            ]
+          },
+          "overlapVoxels": {
+            "VPM": 52
+          },
+          "minSafetyDistanceMm": 0.0,
+          "worstRiskMarginMm": -0.17114200000000002,
+          "riskMaxShortfallMm": 0.171142,
+          "riskClassMinDistanceMm": {
+            "skull": 0.293038,
+            "cortex_outside": -0.121142,
+            "brain_surface": 0.025,
+            "drilling_surface": 0.292656
+          },
+          "riskClassThresholdMm": {
+            "default": 0.05,
+            "vessel": 0.6,
+            "ventricle": 0.35,
+            "sulcus": 0.4,
+            "skull": 0.45,
+            "cortex_outside": 0.05,
+            "brain_surface": 0.05,
+            "drilling_surface": 0.05
+          },
+          "brainContainmentPassed": true,
+          "tipInTarget": true,
+          "distalOvershootMm": 0.0,
+          "internalRiskViolationCount": 0,
+          "minimumInternalRiskMarginMm": null,
+          "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+          "brainContainmentAudit": {
+            "available": true,
+            "passed": true,
+            "reason": "ok\n",
+            "tipInside": true,
+            "firstInsideIndex": 5,
+            "lastInsideIndex": 173,
+            "insideCount": 169,
+            "sampleCount": 174,
+            "insideRatio": 0.971264,
+            "insideRatioAfterEntry": 1.0,
+            "stepUm": 25.0,
+            "outsideGapUmThreshold": 300.0,
+            "outsideGapVoxThreshold": 12,
+            "maxOutsideGapVox": 0,
+            "maxOutsideGapUm": 0.0,
+            "maxOutsideGapStartIndex": null,
+            "maxOutsideGapEndIndex": null,
+            "maxOutsideGapSegmentMm": null
+          },
+          "targetEndpointAudit": {
+            "available": true,
+            "tipLabelId": 733,
+            "tipInRequestedTarget": true,
+            "tipTargetKeys": [
+              "VPM\n"
+            ],
+            "lastTargetExitDepthUm": 4325.0,
+            "overshootAfterLastTargetUm": 0.0,
+            "endpointSamplingStepUm": 25.0
+          },
+          "internalRiskAudit": {
+            "claimStatus": "unavailable\n",
+            "availableClasses": [],
+            "unavailableClasses": [
+              "no_go\n",
+              "sulcus\n",
+              "user_defined_exclusion\n",
+              "user_exclusion\n",
+              "ventricle\n",
+              "vessel\n"
+            ],
+            "missingDiagnosticClasses": [],
+            "violationClasses": [],
+            "classes": {
+              "no_go": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "sulcus": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_defined_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "ventricle": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "vessel": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              }
+            }
+          },
+          "entrySurfaceAudit": {
+            "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+            "classes": {
+              "brain_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": -0.025
+              },
+              "cortex_outside": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": -0.121142
+              },
+              "drilling_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.292656
+              },
+              "skull": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.293038
+              }
+            }
+          }
+        }
+      ],
+      "stageDiagnostics": {
+        "rawCandidateCount": 1596,
+        "brainMaskPassedCount": 1231,
+        "tipInTargetPassedCount": 12,
+        "riskEnforcedPassedCount": 12,
+        "selectedProbeCount": 1,
+        "uncoveredTargets": [],
+        "failClosedReason": null,
+        "targetLocalGridSpecs": 1560,
+        "globalGridSpecs": 1560,
+        "pcaSpecs": 9,
+        "pairSpecs": 0,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 365,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 1129
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "independentAudit": {
+        "probeCount": 1,
+        "fullCoverage": true,
+        "allProbesStrictPass": true,
+        "allReportedFieldsMatch": true,
+        "probes": [
+          {
+            "probeIndex": 1,
+            "strictAuditPassed": true,
+            "reportedMatchesIndependent": true,
+            "brainContainmentPassed": true,
+            "tipInTarget": true,
+            "distalOvershootMm": 0.0,
+            "internalRiskViolationCount": 0,
+            "minimumInternalRiskMarginMm": null,
+            "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+            "internalRiskAudit": {
+              "claimStatus": "unavailable\n",
+              "availableClasses": [],
+              "unavailableClasses": [
+                "no_go\n",
+                "sulcus\n",
+                "user_defined_exclusion\n",
+                "user_exclusion\n",
+                "ventricle\n",
+                "vessel\n"
+              ],
+              "missingDiagnosticClasses": [],
+              "violationClasses": [],
+              "classes": {
+                "no_go": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "sulcus": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_defined_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "ventricle": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "vessel": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                }
+              }
+            },
+            "entrySurfaceAudit": {
+              "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+              "classes": {
+                "brain_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.025
+                },
+                "cortex_outside": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": -0.121142
+                },
+                "drilling_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.292656
+                },
+                "skull": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.293038
+                }
+              }
+            }
+          }
+        ]
+      },
+      "eligibleForManifest": true
+    },
+    {
+      "caseId": "single_mos\n",
+      "caseType": "single-region-diagnostic\n",
+      "purpose": "Strict production-pipeline benchmark with independent probe audit.\n",
+      "requestedTargets": [
+        "MOs\n"
+      ],
+      "targetingMode": "single_hemisphere\n",
+      "expectedProbeCount": null,
+      "expectFailClosed": false,
+      "status": "ok\n",
+      "failureReason": null,
+      "error": null,
+      "errorCode": null,
+      "errorExtra": null,
+      "candidateCount": 30,
+      "selectedProbeCount": 1,
+      "exactMinProbeCount": 1,
+      "optimalityMatch": true,
+      "expectedMatch": true,
+      "requiredCoverageUnits": 1,
+      "coveredCoverageUnits": 1,
+      "coveredTokens": [
+        "MOs\n"
+      ],
+      "uncoveredTargets": [],
+      "uncoveredSides": [],
+      "sideCoverage": {
+        "MOs": {
+          "left": true,
+          "right": false
+        }
+      },
+      "runtimeSec": 13.097933,
+      "plannerRequest": {
+        "targetKeys": [
+          "MOs\n"
+        ],
+        "params": {
+          "algorithm": "greedy\n",
+          "targetingMode": "single_hemisphere\n",
+          "gridSpacing": 1200.0,
+          "angleStep": 10.0,
+          "maxAngle": 10.0,
+          "depthUm": 7600.0,
+          "candidateCoarseStepUm": 150.0,
+          "candidateRefineStepUm": 75.0,
+          "candidateRefineFraction": 0.12,
+          "computeWorkers": 2,
+          "candidateGenWorkers": 2,
+          "prefilterWorkers": 1,
+          "streamingPipelineEnabled": false,
+          "scoreEarlyStopEnabled": false,
+          "autoAvoidEnabled": true,
+          "robustOptimization": false,
+          "paretoEnabled": false,
+          "coverageBoost": false,
+          "objectivePreset": "balanced\n",
+          "minRiskDistanceMm": 0.05,
+          "minClearance": 1000.0,
+          "targetEndpointPolicy": "tip_in_target\n",
+          "includeCandidatePreview": true,
+          "strictFallbackDecompose": false
+        },
+        "probeParams": {
+          "depthUm": 7600.0,
+          "entrySpacingUm": 1200.0,
+          "shankWidthUm": 70.0,
+          "shanks": 1,
+          "shankPitchUm": 0.0,
+          "probeType": "np1\n"
+        },
+        "constraintModes": {
+          "maxAngle": "enforce\n",
+          "minEntrySpacing": "enforce\n",
+          "minClearance": "enforce\n",
+          "lambdaBoundary": "enforce\n",
+          "brainBounds": "enforce\n",
+          "hemisphere": "warn\n",
+          "continuousRiskDistance": "enforce\n"
+        }
+      },
+      "candidateGeneration": {
+        "specTotal": 3900,
+        "specDeduped": 1950,
+        "gridSpecs": 3900,
+        "globalGridSpecs": 1950,
+        "targetLocalGridSpecs": 1950,
+        "pcaSpecs": 0,
+        "pairSpecs": 0,
+        "depthVariantCount": 6,
+        "depthVariantsUm": [
+          7510.0,
+          2164.0,
+          2564.0,
+          2964.0,
+          3464.0,
+          4164.0
+        ],
+        "targetEndpointPolicy": "tip_in_target\n",
+        "endpointTrimmedCount": 30,
+        "targetDiversitySeedsPerTarget": 8,
+        "targetDiversityForcedSpecCount": 8,
+        "targetDiversitySeedCounts": {
+          "MOs": 8
+        },
+        "targetEntryVariantsPerLocalEntry": 3,
+        "targetEntryVariantForcedSpecCount": 0,
+        "targetEntryVariantSeedCounts": {
+          "MOs": 0
+        },
+        "workersUsed": 2,
+        "coarseKept": 535,
+        "refineSelected": 65,
+        "finalCount": 30,
+        "coarseStepUm": 150.0,
+        "refineStepUm": 75.0,
+        "refineFraction": 0.12,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 220,
+          "brainMaskRejected": 317,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 878
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "candidateStageBreakdown": {
+        "stages": [
+          {
+            "stage": "generated_specs\n",
+            "count": 1950,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "coarse_refine_kept\n",
+            "count": 30,
+            "droppedFromPrev": 1920,
+            "dropRatioFromPrev": 0.984615,
+            "reasons": [
+              {
+                "code": "noCoverage\n",
+                "count": 878,
+                "ratio": 0.620495
+              },
+              {
+                "code": "brainMaskRejected\n",
+                "count": 317,
+                "ratio": 0.224028
+              },
+              {
+                "code": "brainMaskNoIntersection\n",
+                "count": 220,
+                "ratio": 0.155477
+              }
+            ]
+          },
+          {
+            "stage": "risk_prefilter_kept\n",
+            "count": 30,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "constraint_feasible_pool\n",
+            "count": 30,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "scored\n",
+            "count": 30,
+            "droppedFromPrev": 0,
+            "dropRatioFromPrev": 0.0,
+            "reasons": []
+          },
+          {
+            "stage": "selected\n",
+            "count": 1,
+            "droppedFromPrev": 29,
+            "dropRatioFromPrev": 0.966667,
+            "reasons": [
+              {
+                "code": "solver_or_collision_filtered\n",
+                "count": 29,
+                "ratio": 0.966667
+              }
+            ]
+          }
+        ],
+        "prefilter": {
+          "enabled": true,
+          "keptMode": "feasible_only\n",
+          "feasibleCount": 30,
+          "nearCount": 0,
+          "rejectedCount": 0
+        },
+        "summary": {
+          "specTotal": 1950,
+          "refinedCount": 30,
+          "prefilterKept": 30,
+          "safePoolCount": 30,
+          "selectedCount": 1,
+          "solverCoverageLoss": 0
+        },
+        "candidateFunnelDiagnostics": {
+          "funnel": {
+            "generatedCandidates": 1950,
+            "afterBrainBounds": 1413,
+            "afterHemisphere": 1413,
+            "afterCoarseRisk": 1413,
+            "afterCoverage": 535,
+            "afterSpacing": 518,
+            "afterFineRisk": 518,
+            "selected": 1
+          },
+          "stages": [
+            {
+              "stage": "generatedCandidates\n",
+              "count": 1950,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterBrainBounds\n",
+              "count": 1413,
+              "droppedFromPrev": 537,
+              "dropRatioFromPrev": 0.275385,
+              "reasons": [
+                {
+                  "code": "out_of_brain\n",
+                  "count": 537,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterHemisphere\n",
+              "count": 1413,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoarseRisk\n",
+              "count": 1413,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "afterCoverage\n",
+              "count": 535,
+              "droppedFromPrev": 878,
+              "dropRatioFromPrev": 0.621373,
+              "reasons": [
+                {
+                  "code": "no_target_coverage\n",
+                  "count": 878,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterSpacing\n",
+              "count": 518,
+              "droppedFromPrev": 17,
+              "dropRatioFromPrev": 0.031776,
+              "reasons": [
+                {
+                  "code": "probe_spacing\n",
+                  "count": 17,
+                  "ratio": 1.0
+                }
+              ]
+            },
+            {
+              "stage": "afterFineRisk\n",
+              "count": 518,
+              "droppedFromPrev": 0,
+              "dropRatioFromPrev": 0.0,
+              "reasons": []
+            },
+            {
+              "stage": "selected\n",
+              "count": 1,
+              "droppedFromPrev": 517,
+              "dropRatioFromPrev": 0.998069,
+              "reasons": []
+            }
+          ],
+          "rejectionCounts": {
+            "out_of_brain": 537,
+            "ventricle_hit": 0,
+            "angle_limit": 0,
+            "depth_limit": 0,
+            "no_target_coverage": 878,
+            "hemisphere_mismatch": 0,
+            "probe_spacing": 17,
+            "mri_quality_gate": 0,
+            "risk_distance": 0
+          },
+          "rejectionRatios": {
+            "out_of_brain": 0.375,
+            "no_target_coverage": 0.613128,
+            "probe_spacing": 0.011872
+          },
+          "stepReasons": {
+            "afterBrainBounds": {
+              "out_of_brain": 537
+            },
+            "afterCoverage": {
+              "no_target_coverage": 878
+            },
+            "afterHemisphere": {
+              "hemisphere_mismatch": 0
+            },
+            "afterSpacing": {
+              "probe_spacing": 17
+            }
+          },
+          "feasibleFirstPolicy": {
+            "enabled": true,
+            "rankingOrder": [
+              "safety_feasible\n",
+              "coverage\n",
+              "entry_angle\n",
+              "depth\n",
+              "uncertainty\n"
+            ]
+          },
+          "scoreEvaluated": 30,
+          "strictFallback": {
+            "enabled": false,
+            "applied": false,
+            "safePoolCount": 0,
+            "infeasibleTargets": []
+          },
+          "abnormalFastZeroGuard": {
+            "triggered": false,
+            "likelyStage": null,
+            "message": null
+          }
+        }
+      },
+      "selectedProbes": [
+        {
+          "probeIndex": 1,
+          "source": "grid:target_tip\n",
+          "entryCcfUm": [
+            3704.0,
+            440.0,
+            4392.0
+          ],
+          "tipCcfUm": [
+            3704.0,
+            3517.5,
+            3849.3
+          ],
+          "entryPlannerMm": [
+            1.696,
+            0.0,
+            -1.308
+          ],
+          "tipPlannerMm": [
+            1.696,
+            3.0775,
+            -1.8507
+          ],
+          "apMm": 1.696,
+          "mlMm": -1.308,
+          "thetaDeg": 10.0,
+          "phiDeg": 270.0,
+          "depthUm": 3125.0,
+          "coveredTargets": [
+            "MOs\n"
+          ],
+          "coveredTargetSides": {
+            "MOs": [
+              "left\n"
+            ]
+          },
+          "overlapVoxels": {
+            "MOs": 90
+          },
+          "minSafetyDistanceMm": 0.565,
+          "worstRiskMarginMm": -0.07500000000000001,
+          "riskMaxShortfallMm": 0.0,
+          "riskClassMinDistanceMm": {
+            "skull": 0.565,
+            "cortex_outside": 0.565,
+            "brain_surface": -0.025,
+            "drilling_surface": 0.565
+          },
+          "riskClassThresholdMm": {
+            "default": 0.05,
+            "vessel": 0.6,
+            "ventricle": 0.35,
+            "sulcus": 0.4,
+            "skull": 0.45,
+            "cortex_outside": 0.05,
+            "brain_surface": 0.05,
+            "drilling_surface": 0.05
+          },
+          "brainContainmentPassed": true,
+          "tipInTarget": true,
+          "distalOvershootMm": 0.0,
+          "internalRiskViolationCount": 0,
+          "minimumInternalRiskMarginMm": null,
+          "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+          "brainContainmentAudit": {
+            "available": true,
+            "passed": true,
+            "reason": "ok\n",
+            "tipInside": true,
+            "firstInsideIndex": 36,
+            "lastInsideIndex": 125,
+            "insideCount": 90,
+            "sampleCount": 126,
+            "insideRatio": 0.714286,
+            "insideRatioAfterEntry": 1.0,
+            "stepUm": 25.0,
+            "outsideGapUmThreshold": 300.0,
+            "outsideGapVoxThreshold": 12,
+            "maxOutsideGapVox": 0,
+            "maxOutsideGapUm": 0.0,
+            "maxOutsideGapStartIndex": null,
+            "maxOutsideGapEndIndex": null,
+            "maxOutsideGapSegmentMm": null
+          },
+          "targetEndpointAudit": {
+            "available": true,
+            "tipLabelId": 1085,
+            "tipInRequestedTarget": true,
+            "tipTargetKeys": [
+              "MOs\n"
+            ],
+            "lastTargetExitDepthUm": 3125.0,
+            "overshootAfterLastTargetUm": 0.0,
+            "endpointSamplingStepUm": 25.0
+          },
+          "internalRiskAudit": {
+            "claimStatus": "unavailable\n",
+            "availableClasses": [],
+            "unavailableClasses": [
+              "no_go\n",
+              "sulcus\n",
+              "user_defined_exclusion\n",
+              "user_exclusion\n",
+              "ventricle\n",
+              "vessel\n"
+            ],
+            "missingDiagnosticClasses": [],
+            "violationClasses": [],
+            "classes": {
+              "no_go": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "sulcus": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_defined_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "user_exclusion": {
+                "status": "unavailable\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "ventricle": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              },
+              "vessel": {
+                "status": "configured_empty\n",
+                "available": false,
+                "distanceMm": null,
+                "thresholdMm": null,
+                "marginMm": null
+              }
+            }
+          },
+          "entrySurfaceAudit": {
+            "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+            "classes": {
+              "brain_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": -0.025
+              },
+              "cortex_outside": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.565
+              },
+              "drilling_surface": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.565
+              },
+              "skull": {
+                "available": true,
+                "status": "ready\n",
+                "minimumDistanceMm": 0.565
+              }
+            }
+          }
+        }
+      ],
+      "stageDiagnostics": {
+        "rawCandidateCount": 1950,
+        "brainMaskPassedCount": 1413,
+        "tipInTargetPassedCount": 30,
+        "riskEnforcedPassedCount": 30,
+        "selectedProbeCount": 1,
+        "uncoveredTargets": [],
+        "failClosedReason": null,
+        "targetLocalGridSpecs": 1950,
+        "globalGridSpecs": 1950,
+        "pcaSpecs": 0,
+        "pairSpecs": 0,
+        "coarseRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 220,
+          "brainMaskRejected": 317,
+          "brainMaskRecoverableKept": 0,
+          "noCoverage": 878
+        },
+        "refineRejectReasons": {
+          "bounds": 0,
+          "emptyTrajectory": 0,
+          "brainMaskNoIntersection": 0,
+          "brainMaskRejected": 0,
+          "noCoverage": 0,
+          "hemisphereMismatch": 0
+        }
+      },
+      "independentAudit": {
+        "probeCount": 1,
+        "fullCoverage": true,
+        "allProbesStrictPass": true,
+        "allReportedFieldsMatch": true,
+        "probes": [
+          {
+            "probeIndex": 1,
+            "strictAuditPassed": true,
+            "reportedMatchesIndependent": true,
+            "brainContainmentPassed": true,
+            "tipInTarget": true,
+            "distalOvershootMm": 0.0,
+            "internalRiskViolationCount": 0,
+            "minimumInternalRiskMarginMm": null,
+            "entrySurfaceCrossingStatus": "allowed_entry_surface_semantics\n",
+            "internalRiskAudit": {
+              "claimStatus": "unavailable\n",
+              "availableClasses": [],
+              "unavailableClasses": [
+                "no_go\n",
+                "sulcus\n",
+                "user_defined_exclusion\n",
+                "user_exclusion\n",
+                "ventricle\n",
+                "vessel\n"
+              ],
+              "missingDiagnosticClasses": [],
+              "violationClasses": [],
+              "classes": {
+                "no_go": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "sulcus": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_defined_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "user_exclusion": {
+                  "status": "unavailable\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "ventricle": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                },
+                "vessel": {
+                  "status": "configured_empty\n",
+                  "available": false,
+                  "distanceMm": null,
+                  "thresholdMm": null,
+                  "marginMm": null
+                }
+              }
+            },
+            "entrySurfaceAudit": {
+              "semantics": "crossing_allowed_only_at_entry; brain containment enforced after first entry\n",
+              "classes": {
+                "brain_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": -0.025
+                },
+                "cortex_outside": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.565
+                },
+                "drilling_surface": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.565
+                },
+                "skull": {
+                  "available": true,
+                  "status": "ready\n",
+                  "minimumDistanceMm": 0.565
+                }
+              }
+            }
+          }
+        ]
+      },
+      "eligibleForManifest": true
+    }
+  ]
+}

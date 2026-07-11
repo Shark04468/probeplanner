@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
-const fs = require('fs');
-const path = require('path');
-const { pathToFileURL } = require('url');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const SRC_ROOT = path.join(ROOT, 'src');
 

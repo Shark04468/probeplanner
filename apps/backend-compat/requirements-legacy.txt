@@ -1,0 +1,9 @@
+# Optional dependencies for legacy/non-native paths.
+#
+# allensdk is only required for the legacy AllenSDK atlas loader. It is not
+# compatible with the Python 3.12 native-compat test/audit environment.
+allensdk==2.16.2; python_version < "3.12"
+
+# cvxpy is only required for the legacy Python MISOCP/DRCC solver path. The
+# native engine fails closed for unsupported MISOCP mode.
+cvxpy==1.6.7; python_version < "3.12"

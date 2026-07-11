@@ -8,8 +8,8 @@ authors:
 repository-code: "https://github.com/Shark04467/probeplanner"
 url: "https://github.com/Shark04467/probeplanner"
 license: MIT
-version: "0.1.0-frontiers"
-date-released: "2026-05-31"
+version: "0.2.0-paper"
+date-released: "2026-07-11"
 keywords:
   - mouse brain atlas
   - Allen CCF

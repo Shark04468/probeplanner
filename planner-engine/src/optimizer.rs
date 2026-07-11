@@ -1,8 +1,8 @@
 use crate::{
     api::{OptimizeRequest, OptimizeResponse},
     atlas::{load_f32_npy_from_npz, MmapVolume, RegionLookup},
-    exact_branch_and_bound, greedy_select, sample_trajectory_voxels, BitSet, CandidateKernel,
-    ConflictPolicy, SdfGrid, TrajectorySpec, VoxelCoord, VoxelGridSpec,
+    exact_branch_and_bound_with_cancel, greedy_select_with_cancel, sample_trajectory_voxels,
+    BitSet, CandidateKernel, ConflictPolicy, SdfGrid, TrajectorySpec, VoxelCoord, VoxelGridSpec,
 };
 use serde_json::{json, Value};
 use std::{
@@ -21,12 +21,14 @@ pub struct PlannerEngineConfig {
     pub sdf_channel: Option<String>,
     pub layered_sdf_npy_paths: BTreeMap<String, String>,
     pub region_index_path: Option<String>,
+    pub label_stats_path: Option<String>,
 }
 
 #[derive(Clone, Debug)]
 pub struct PlannerCore {
     atlas: Option<Arc<NativeAtlas>>,
     target_cache: Arc<Mutex<HashMap<String, TargetModel>>>,
+    load_error: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -88,6 +90,9 @@ struct GeneratedCandidates {
     rejected_count: usize,
     rejection_reasons: BTreeMap<String, usize>,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct CandidateGenerationCancelled;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SolverKind {
@@ -219,7 +224,6 @@ impl SolverPlan {
 const TRAJECTORY_BITSET_BINS: usize = 16_384;
 const SDF_SCORING_STRIDE: usize = 4;
 const RISK_SDF_TRILINEAR_STEP_UM: f32 = 150.0;
-const ENTRY_CORRIDOR_RISK_SAMPLE_STRIDE: usize = 1;
 const VOXEL_SIZE_UM: f32 = 25.0;
 const MULTI_SHANK_PROFILE_STEP_UM: f32 = 75.0;
 const BREGMA_UM: [f32; 3] = [5400.0, 440.0, 5700.0];
@@ -240,6 +244,15 @@ const RISK_SDF_CHANNELS: &[(&str, &str)] = &[
     ("sulcus_sdf_mm", "sulcus"),
     ("brain_surface_sdf_mm", "brain_surface"),
     ("drilling_surface_sdf_mm", "drilling_surface"),
+];
+const REQUIRED_RISK_SDF_CLASSES: &[&str] = &[
+    "skull",
+    "cortex_outside",
+    "ventricle",
+    "vessel",
+    "sulcus",
+    "brain_surface",
+    "drilling_surface",
 ];
 const ENTRY_CORRIDOR_RISK_CLASSES: &[&str] = &[
     "cortex_outside",
@@ -267,6 +280,40 @@ struct AtlasTrajectoryProfile {
     min_sdf_distance_mm: Option<f32>,
     risk_distances_mm: BTreeMap<String, f32>,
     brain_bounds_summary: Option<BrainBoundsSummary>,
+}
+
+struct TrajectoryProfileInput<'a> {
+    voxels: &'a [VoxelCoord],
+    brain_bounds_voxels: &'a [VoxelCoord],
+    trajectories: &'a [TrajectorySpec],
+    risk_inflation_mm: f32,
+    step_um: f32,
+    targets: &'a [TargetModel],
+    target_lookup: &'a TargetLabelLookup,
+    sample_risk: bool,
+}
+
+struct CandidateScoreInput<'a> {
+    id: u32,
+    ap_mm: f32,
+    ml_mm: f32,
+    theta_deg: f32,
+    phi_deg: f32,
+    depth_um: f32,
+    step_um: f32,
+    targets: &'a [TargetModel],
+    coverage_radius_mm: f32,
+    aggregate_seed: bool,
+    atlas: Option<&'a NativeAtlas>,
+    target_lookup: &'a TargetLabelLookup,
+    constraints: &'a ConstraintPolicy,
+}
+
+#[derive(Clone, Debug)]
+pub struct RiskSdfReadiness {
+    pub ready: bool,
+    pub loaded_classes: Vec<String>,
+    pub missing_classes: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -474,11 +521,16 @@ impl ConstraintPolicy {
     fn from_request(request: &OptimizeRequest) -> Self {
         let algorithm_requested =
             string_param(&request.params, "algorithm", "greedy").to_ascii_lowercase();
-        let mut risk_thresholds_mm = balanced_risk_thresholds();
+        let risk_threshold_template =
+            string_param(&request.params, "riskThresholdTemplate", "balanced").to_ascii_lowercase();
+        let mut risk_thresholds_mm = risk_thresholds_for_template(&risk_threshold_template);
         let default_threshold = f32_param(
             &request.params,
             "minRiskDistanceMm",
-            MIN_RISK_DISTANCE_MM_DEFAULT,
+            risk_thresholds_mm
+                .get("default")
+                .copied()
+                .unwrap_or(MIN_RISK_DISTANCE_MM_DEFAULT),
         );
         risk_thresholds_mm.insert("default".to_string(), default_threshold);
         if let Some(map) = request
@@ -492,7 +544,11 @@ impl ConstraintPolicy {
                 }
             }
         }
-        enforce_boundary_risk_threshold_floors(&mut risk_thresholds_mm);
+        enforce_risk_threshold_floors(&mut risk_thresholds_mm);
+        let min_risk_distance_mm = risk_thresholds_mm
+            .get("default")
+            .copied()
+            .unwrap_or(MIN_RISK_DISTANCE_MM_DEFAULT);
         let shank_count = probe_shank_count(&request.probe_params);
         let shank_spacing_um = probe_shank_spacing_um(&request.probe_params, shank_count);
         let shank_offsets_um = shank_offsets_um(shank_count, shank_spacing_um);
@@ -512,7 +568,7 @@ impl ConstraintPolicy {
             continuous_risk_mode: constraint_mode(
                 &request.constraint_modes,
                 "continuousRiskDistance",
-                "warn",
+                "enforce",
             ),
             min_entry_spacing_mode: constraint_mode(
                 &request.constraint_modes,
@@ -537,7 +593,7 @@ impl ConstraintPolicy {
                 "allowFallbackTargetCoverage",
                 false,
             ),
-            min_risk_distance_mm: default_threshold,
+            min_risk_distance_mm,
             risk_thresholds_mm,
             algorithm_requested: algorithm_requested.clone(),
             drcc_enabled: algorithm_requested == "drcc"
@@ -622,6 +678,80 @@ impl LabelMoment {
             add_point(&mut self.negative_sum, point_mm);
         }
     }
+}
+
+fn value_usize(value: &Value, keys: &[&str]) -> Option<usize> {
+    keys.iter()
+        .find_map(|key| value.get(*key).and_then(Value::as_u64).map(|v| v as usize))
+}
+
+fn value_array3(value: &Value, keys: &[&str]) -> Option<[f64; 3]> {
+    for key in keys {
+        let Some(array) = value.get(*key).and_then(Value::as_array) else {
+            continue;
+        };
+        if array.len() != 3 {
+            continue;
+        }
+        let Some(x) = array[0].as_f64() else {
+            continue;
+        };
+        let Some(y) = array[1].as_f64() else {
+            continue;
+        };
+        let Some(z) = array[2].as_f64() else {
+            continue;
+        };
+        return Some([x, y, z]);
+    }
+    None
+}
+
+fn scaled_sum(point_mm: [f64; 3], count: usize) -> [f64; 3] {
+    let n = count as f64;
+    [point_mm[0] * n, point_mm[1] * n, point_mm[2] * n]
+}
+
+fn parse_label_moment(value: &Value) -> Option<LabelMoment> {
+    let total_count = value_usize(
+        value,
+        &[
+            "totalCount",
+            "count",
+            "voxelCount",
+            "nVoxels",
+            "volumeVoxels",
+        ],
+    )?;
+    if total_count == 0 {
+        return None;
+    }
+    let total_sum = value_array3(value, &["totalSum", "totalSumMm", "sumMm"]).or_else(|| {
+        value_array3(value, &["centerMm", "centroidMm", "meanMm"])
+            .map(|center| scaled_sum(center, total_count))
+    })?;
+    let positive_count = value_usize(value, &["positiveCount", "rightCount"]).unwrap_or(0);
+    let positive_sum = value_array3(value, &["positiveSum", "positiveSumMm", "rightSumMm"])
+        .or_else(|| {
+            value_array3(value, &["positiveCenterMm", "rightCenterMm"])
+                .map(|center| scaled_sum(center, positive_count))
+        })
+        .unwrap_or([0.0, 0.0, 0.0]);
+    let negative_count = value_usize(value, &["negativeCount", "leftCount"]).unwrap_or(0);
+    let negative_sum = value_array3(value, &["negativeSum", "negativeSumMm", "leftSumMm"])
+        .or_else(|| {
+            value_array3(value, &["negativeCenterMm", "leftCenterMm"])
+                .map(|center| scaled_sum(center, negative_count))
+        })
+        .unwrap_or([0.0, 0.0, 0.0]);
+    Some(LabelMoment {
+        total_count,
+        total_sum,
+        positive_count,
+        positive_sum,
+        negative_count,
+        negative_sum,
+    })
 }
 
 impl PlannerEngineConfig {
@@ -711,6 +841,13 @@ impl PlannerEngineConfig {
                     artifact_root.join("region_map.json"),
                 ],
             ),
+            label_stats_path: env_or_existing_any(
+                "PROBEPLANNER_LABEL_STATS_JSON",
+                &[
+                    artifact_root.join("native_label_stats.json"),
+                    artifact_root.join("label_stats.json"),
+                ],
+            ),
         }
     }
 }
@@ -762,8 +899,13 @@ impl NativeAtlas {
             [VOXEL_SIZE_UM, VOXEL_SIZE_UM, VOXEL_SIZE_UM],
             [0.0, 0.0, 0.0],
         )?;
-        let label_stats = Self::build_label_stats(&annotation);
         let regions = RegionLookup::from_json(region_path)?;
+        let label_stats = config
+            .label_stats_path
+            .as_deref()
+            .and_then(Self::load_label_stats)
+            .filter(|stats| !stats.is_empty())
+            .unwrap_or_else(|| Self::build_label_stats(&annotation));
         let sdf_npy = config.sdf_npy_path.as_deref().and_then(|path| {
             MmapVolume::open_npy(
                 path,
@@ -805,7 +947,13 @@ impl NativeAtlas {
 
     fn load_risk_sdfs(config: &PlannerEngineConfig) -> HashMap<String, SdfVolume> {
         let mut out = HashMap::new();
-        let allow_npz_fallback = env_bool("PROBEPLANNER_LOAD_LAYERED_SDF_FROM_NPZ", true);
+        let has_mmap_risk_channels = RISK_SDF_CHANNELS
+            .iter()
+            .any(|(channel, _)| config.layered_sdf_npy_paths.contains_key(*channel));
+        let allow_npz_fallback = env_bool(
+            "PROBEPLANNER_LOAD_LAYERED_SDF_FROM_NPZ",
+            !has_mmap_risk_channels,
+        );
         for (channel, class_name) in RISK_SDF_CHANNELS {
             if let Some(path) = config.layered_sdf_npy_paths.get(*channel) {
                 if let Ok(volume) = MmapVolume::open_npy(
@@ -837,6 +985,10 @@ impl NativeAtlas {
             }
         }
         out
+    }
+
+    fn risk_sdf_readiness(&self) -> RiskSdfReadiness {
+        risk_sdf_readiness_from_loaded_classes(self.risk_sdfs.keys().cloned().collect())
     }
 
     fn target_model(&self, key: &str, idx: usize) -> Option<TargetModel> {
@@ -914,16 +1066,63 @@ impl NativeAtlas {
         stats
     }
 
-    fn trajectory_profile(
-        &self,
-        voxels: &[VoxelCoord],
-        brain_bounds_voxels: &[VoxelCoord],
-        trajectories: &[TrajectorySpec],
-        risk_inflation_mm: f32,
-        step_um: f32,
-        targets: &[TargetModel],
-        target_lookup: &TargetLabelLookup,
-    ) -> AtlasTrajectoryProfile {
+    fn load_label_stats(path: &str) -> Option<HashMap<u32, LabelMoment>> {
+        let text = std::fs::read_to_string(path).ok()?;
+        let root: Value = serde_json::from_str(&text).ok()?;
+        let source = root
+            .get("labels")
+            .or_else(|| root.get("labelStats"))
+            .or_else(|| root.get("entries"))
+            .unwrap_or(&root);
+        let mut out = HashMap::new();
+        match source {
+            Value::Object(map) => {
+                for (key, value) in map {
+                    let Some(label) = key.parse::<u32>().ok().or_else(|| {
+                        value
+                            .get("id")
+                            .or_else(|| value.get("label"))
+                            .and_then(Value::as_u64)
+                            .map(|id| id as u32)
+                    }) else {
+                        continue;
+                    };
+                    if let Some(moment) = parse_label_moment(value) {
+                        out.insert(label, moment);
+                    }
+                }
+            }
+            Value::Array(entries) => {
+                for entry in entries {
+                    let Some(label) = entry
+                        .get("id")
+                        .or_else(|| entry.get("label"))
+                        .and_then(Value::as_u64)
+                        .map(|id| id as u32)
+                    else {
+                        continue;
+                    };
+                    if let Some(moment) = parse_label_moment(entry) {
+                        out.insert(label, moment);
+                    }
+                }
+            }
+            _ => {}
+        }
+        Some(out)
+    }
+
+    fn trajectory_profile(&self, input: TrajectoryProfileInput<'_>) -> AtlasTrajectoryProfile {
+        let TrajectoryProfileInput {
+            voxels,
+            brain_bounds_voxels,
+            trajectories,
+            risk_inflation_mm,
+            step_um,
+            targets,
+            target_lookup,
+            sample_risk,
+        } = input;
         let mut coverage = BitSet::new(targets.len());
         let mut overlap_counts = vec![0usize; targets.len()];
         let mut min_sdf_distance_mm: Option<f32> = None;
@@ -968,41 +1167,16 @@ impl NativeAtlas {
             brain_inside.push(label > 0);
         }
 
-        let risk_step_um = step_um.clamp(VOXEL_SIZE_UM, RISK_SDF_TRILINEAR_STEP_UM);
-        for trajectory in trajectories {
-            let n = (trajectory.depth_um.max(0.0) / risk_step_um).ceil() as usize;
-            for i in 0..=n {
-                let d = (i as f32 * risk_step_um).min(trajectory.depth_um.max(0.0));
-                let point_um = [
-                    trajectory.entry_um[0] + trajectory.direction_unit[0] * d,
-                    trajectory.entry_um[1] + trajectory.direction_unit[1] * d,
-                    trajectory.entry_um[2] + trajectory.direction_unit[2] * d,
-                ];
-                for (class_name, sdf) in &self.risk_sdfs {
-                    if ENTRY_CORRIDOR_RISK_CLASSES.contains(&class_name.as_str()) {
-                        if d <= SKULL_ENTRY_CORRIDOR_ALLOWANCE_UM {
-                            continue;
-                        }
-                        if i % ENTRY_CORRIDOR_RISK_SAMPLE_STRIDE != 0 {
-                            continue;
-                        }
-                    }
-                    let sample = sdf.sample_point_um(point_um);
-                    if sample.inside_grid && sample.distance_mm.is_finite() {
-                        let distance_mm = sample.distance_mm - risk_inflation_mm.max(0.0);
-                        risk_distances_mm
-                            .entry(class_name.clone())
-                            .and_modify(|current| *current = current.min(distance_mm))
-                            .or_insert(distance_mm);
-                    }
-                }
-            }
+        if sample_risk {
+            risk_distances_mm =
+                self.trajectory_risk_distances(trajectories, risk_inflation_mm, step_um);
         }
 
         let covered_regions = targets
             .iter()
             .enumerate()
-            .filter_map(|(idx, target)| coverage.get(idx).then(|| target.key.clone()))
+            .filter(|(idx, _target)| coverage.get(*idx))
+            .map(|(_idx, target)| target.key.clone())
             .collect();
         let overlap_voxels = overlap_counts
             .into_iter()
@@ -1049,41 +1223,207 @@ impl NativeAtlas {
             |sdf| sdf.sample_voxel(x, y, z),
         )
     }
+
+    fn trajectory_risk_distances(
+        &self,
+        trajectories: &[TrajectorySpec],
+        risk_inflation_mm: f32,
+        step_um: f32,
+    ) -> BTreeMap<String, f32> {
+        let mut risk_distances_mm: BTreeMap<String, f32> = BTreeMap::new();
+        let risk_step_um = step_um.clamp(VOXEL_SIZE_UM, RISK_SDF_TRILINEAR_STEP_UM);
+        for trajectory in trajectories {
+            let n = (trajectory.depth_um.max(0.0) / risk_step_um).ceil() as usize;
+            for i in 0..=n {
+                let d = (i as f32 * risk_step_um).min(trajectory.depth_um.max(0.0));
+                let point_um = [
+                    trajectory.entry_um[0] + trajectory.direction_unit[0] * d,
+                    trajectory.entry_um[1] + trajectory.direction_unit[1] * d,
+                    trajectory.entry_um[2] + trajectory.direction_unit[2] * d,
+                ];
+                for (class_name, sdf) in &self.risk_sdfs {
+                    if ENTRY_CORRIDOR_RISK_CLASSES.contains(&class_name.as_str())
+                        && d <= SKULL_ENTRY_CORRIDOR_ALLOWANCE_UM
+                    {
+                        continue;
+                    }
+                    let sample = sdf.sample_point_um(point_um);
+                    if sample.inside_grid && sample.distance_mm.is_finite() {
+                        let distance_mm = sample.distance_mm - risk_inflation_mm.max(0.0);
+                        risk_distances_mm
+                            .entry(class_name.clone())
+                            .and_modify(|current| *current = current.min(distance_mm))
+                            .or_insert(distance_mm);
+                    }
+                }
+            }
+        }
+        risk_distances_mm
+    }
 }
 
 impl PlannerCore {
     pub fn new(config: PlannerEngineConfig) -> Self {
-        let atlas = NativeAtlas::load(&config).ok().map(Arc::new);
+        let loaded = NativeAtlas::load(&config);
+        let load_error = loaded.as_ref().err().map(|err| err.to_string());
+        let atlas = loaded.ok().map(Arc::new);
         Self {
             atlas,
             target_cache: Arc::new(Mutex::new(HashMap::new())),
+            load_error,
         }
     }
 
-    pub fn health_flags(&self) -> (bool, bool, bool) {
+    pub fn health_flags(&self) -> (bool, bool, bool, RiskSdfReadiness, Option<String>) {
         let atlas_loaded = self.atlas.is_some();
         let sdf_loaded = self
             .atlas
             .as_ref()
-            .map(|atlas| {
-                atlas.sdf_npy.is_some() || atlas.sdf.is_some() || !atlas.risk_sdfs.is_empty()
-            })
+            .map(|atlas| atlas.sdf_npy.is_some() || atlas.sdf.is_some())
             .unwrap_or(false);
+        let risk_sdf_readiness = self
+            .atlas
+            .as_ref()
+            .map(|atlas| atlas.risk_sdf_readiness())
+            .unwrap_or_else(|| RiskSdfReadiness {
+                ready: false,
+                loaded_classes: Vec::new(),
+                missing_classes: REQUIRED_RISK_SDF_CLASSES
+                    .iter()
+                    .map(|class_name| (*class_name).to_string())
+                    .collect(),
+            });
         let region_index_loaded = self
             .atlas
             .as_ref()
-            .map(|atlas| atlas.regions.len() > 0)
+            .map(|atlas| !atlas.regions.is_empty())
             .unwrap_or(false);
-        (atlas_loaded, sdf_loaded, region_index_loaded)
+        (
+            atlas_loaded,
+            sdf_loaded,
+            region_index_loaded,
+            risk_sdf_readiness,
+            self.load_error.clone(),
+        )
+    }
+
+    fn risk_sdf_readiness(&self) -> RiskSdfReadiness {
+        self.atlas
+            .as_ref()
+            .map(|atlas| atlas.risk_sdf_readiness())
+            .unwrap_or_else(|| RiskSdfReadiness {
+                ready: false,
+                loaded_classes: Vec::new(),
+                missing_classes: REQUIRED_RISK_SDF_CLASSES
+                    .iter()
+                    .map(|class_name| (*class_name).to_string())
+                    .collect(),
+            })
     }
 
     pub fn optimize(&self, request: OptimizeRequest) -> OptimizeResponse {
+        self.optimize_with_cancel(request, || false)
+    }
+
+    pub fn optimize_with_cancel<F>(
+        &self,
+        request: OptimizeRequest,
+        should_cancel: F,
+    ) -> OptimizeResponse
+    where
+        F: Fn() -> bool,
+    {
         let started = Instant::now();
         let algorithm_requested =
             string_param(&request.params, "algorithm", "greedy").to_ascii_lowercase();
+        if should_cancel() {
+            return cancellation_response(
+                &request.target_keys,
+                &algorithm_requested,
+                started,
+                "preflight",
+            );
+        }
         let constraints = ConstraintPolicy::from_request(&request);
         let conflict_policy = constraints.conflict_policy();
-        let generated = self.generate_candidates(&request);
+        let risk_sdf_readiness = self.risk_sdf_readiness();
+        if constraints.enforce_continuous_risk() && !risk_sdf_readiness.ready {
+            let mut compute_profile = BTreeMap::new();
+            compute_profile.insert("nativeKernelStatus".to_string(), json!("blocked"));
+            compute_profile.insert("targetCount".to_string(), json!(request.target_keys.len()));
+            compute_profile.insert(
+                "layeredSdfClasses".to_string(),
+                json!(risk_sdf_readiness.loaded_classes),
+            );
+            compute_profile.insert(
+                "missingLayeredSdfClasses".to_string(),
+                json!(risk_sdf_readiness.missing_classes),
+            );
+            compute_profile.insert(
+                "nativeDataSource".to_string(),
+                json!(if self.atlas.is_some() {
+                    "mmap_atlas_region_index_sdf"
+                } else {
+                    "none"
+                }),
+            );
+            let mut stage_breakdown = BTreeMap::new();
+            stage_breakdown.insert("engineService".to_string(), json!(true));
+            stage_breakdown.insert(
+                "nativeEngineStatus".to_string(),
+                json!("risk_model_unavailable"),
+            );
+            stage_breakdown.insert("candidateUniverseCount".to_string(), json!(0));
+            stage_breakdown.insert("candidatePoolCount".to_string(), json!(0));
+            stage_breakdown.insert("selectedCount".to_string(), json!(0));
+            stage_breakdown.insert(
+                "uncoveredCount".to_string(),
+                json!(request.target_keys.len()),
+            );
+            stage_breakdown.insert(
+                "nativeRejectReasons".to_string(),
+                json!({"risk_model_unavailable": 1}),
+            );
+            return OptimizeResponse {
+                ok: false,
+                code: Some("risk_model_unavailable".to_string()),
+                error: Some(
+                    "Continuous risk enforcement requested, but required layered risk SDF classes are not resident"
+                        .to_string(),
+                ),
+                engine_version: crate::api::engine_version().to_string(),
+                engine_status: "risk_model_unavailable".to_string(),
+                algorithm: algorithm_requested,
+                candidate_count: 0,
+                candidate_universe_count: 0,
+                selected: Vec::new(),
+                uncovered: request.target_keys,
+                required_coverage_units: 0,
+                covered_coverage_units: 0,
+                time_ms: elapsed_ms(started),
+                compute_profile,
+                candidate_stage_breakdown: stage_breakdown,
+            };
+        }
+        let generated = match self.generate_candidates_with_cancel(&request, &should_cancel) {
+            Ok(generated) => generated,
+            Err(_) => {
+                return cancellation_response(
+                    &request.target_keys,
+                    &algorithm_requested,
+                    started,
+                    "candidate_generation",
+                );
+            }
+        };
+        if should_cancel() {
+            return cancellation_response(
+                &generated.target_keys,
+                &algorithm_requested,
+                started,
+                "candidate_generated",
+            );
+        }
         let strict_atlas_targets = bool_param(&request.params, "strictAtlasTargets", true);
         if strict_atlas_targets
             && !constraints.allow_fallback_target_coverage
@@ -1115,6 +1455,75 @@ impl PlannerCore {
                 ),
                 engine_version: crate::api::engine_version().to_string(),
                 engine_status: "strict_target_lookup_failed".to_string(),
+                algorithm: algorithm_requested,
+                candidate_count: 0,
+                candidate_universe_count: 0,
+                selected: Vec::new(),
+                uncovered: generated.target_keys,
+                required_coverage_units: generated.target_count,
+                covered_coverage_units: 0,
+                time_ms: elapsed_ms(started),
+                compute_profile,
+                candidate_stage_breakdown: stage_breakdown,
+            };
+        }
+        if generated.candidates.is_empty() {
+            let risk_model_unavailable = generated
+                .rejection_reasons
+                .get("risk_model_unavailable")
+                .copied()
+                .unwrap_or(0)
+                > 0;
+            let code = if risk_model_unavailable {
+                "risk_model_unavailable"
+            } else {
+                "native_no_feasible_candidates"
+            };
+            let message = if risk_model_unavailable {
+                "Continuous risk enforcement requested, but no resident risk/SDF measurements were available"
+            } else {
+                "Native planner-engine found no feasible candidates after enforced constraints"
+            };
+            let mut compute_profile = BTreeMap::new();
+            compute_profile.insert("nativeKernelStatus".to_string(), json!("blocked"));
+            compute_profile.insert("targetCount".to_string(), json!(generated.target_count));
+            compute_profile.insert(
+                "fallbackTargetKeys".to_string(),
+                json!(generated.fallback_target_keys.clone()),
+            );
+            compute_profile.insert(
+                "nativeRejectReasons".to_string(),
+                json!(generated.rejection_reasons.clone()),
+            );
+            let mut stage_breakdown = BTreeMap::new();
+            stage_breakdown.insert("engineService".to_string(), json!(true));
+            stage_breakdown.insert("nativeEngineStatus".to_string(), json!(code));
+            stage_breakdown.insert("candidateUniverseCount".to_string(), json!(0));
+            stage_breakdown.insert(
+                "nativeRejectedCount".to_string(),
+                json!(generated.rejected_count),
+            );
+            stage_breakdown.insert(
+                "nativeRejectReasons".to_string(),
+                json!(generated.rejection_reasons),
+            );
+            stage_breakdown.insert("candidatePoolCount".to_string(), json!(0));
+            stage_breakdown.insert("selectedCount".to_string(), json!(0));
+            stage_breakdown.insert("uncoveredCount".to_string(), json!(generated.target_count));
+            stage_breakdown.insert(
+                "timingsMs".to_string(),
+                json!({
+                    "generationMs": generated.generation_ms,
+                    "scoringMs": generated.scoring_ms,
+                    "solverMs": 0,
+                }),
+            );
+            return OptimizeResponse {
+                ok: false,
+                code: Some(code.to_string()),
+                error: Some(message.to_string()),
+                engine_version: crate::api::engine_version().to_string(),
+                engine_status: code.to_string(),
                 algorithm: algorithm_requested,
                 candidate_count: 0,
                 candidate_universe_count: 0,
@@ -1212,24 +1621,69 @@ impl PlannerCore {
         } else {
             kernels.clone()
         };
-        let selected_ids = match solver_plan.kind {
-            SolverKind::Greedy | SolverKind::DrccHeuristic => {
-                greedy_select(&kernels, max_probe_count, &conflict_policy)
-            }
+        if should_cancel() {
+            return cancellation_response(
+                &generated.target_keys,
+                &algorithm_requested,
+                started,
+                "solver_ready",
+            );
+        }
+        let selected_ids_result = match solver_plan.kind {
+            SolverKind::Greedy | SolverKind::DrccHeuristic => greedy_select_with_cancel(
+                &kernels,
+                max_probe_count,
+                &conflict_policy,
+                &should_cancel,
+            ),
             SolverKind::Exact | SolverKind::DrccExactPool | SolverKind::DrccCvarRelax => {
-                exact_branch_and_bound(&solver_kernels, max_probe_count, &conflict_policy)
+                exact_branch_and_bound_with_cancel(
+                    &solver_kernels,
+                    max_probe_count,
+                    &conflict_policy,
+                    &should_cancel,
+                )
             }
             SolverKind::DrccHybrid => {
-                let exact_ids =
-                    exact_branch_and_bound(&solver_kernels, max_probe_count, &conflict_policy);
-                if exact_ids.is_empty() && !kernels.is_empty() {
-                    greedy_select(&kernels, max_probe_count, &conflict_policy)
-                } else {
-                    exact_ids
+                match exact_branch_and_bound_with_cancel(
+                    &solver_kernels,
+                    max_probe_count,
+                    &conflict_policy,
+                    &should_cancel,
+                ) {
+                    Ok(exact_ids) if exact_ids.is_empty() && !kernels.is_empty() => {
+                        greedy_select_with_cancel(
+                            &kernels,
+                            max_probe_count,
+                            &conflict_policy,
+                            &should_cancel,
+                        )
+                    }
+                    Ok(exact_ids) => Ok(exact_ids),
+                    Err(err) => Err(err),
                 }
             }
         };
+        let selected_ids = match selected_ids_result {
+            Ok(selected_ids) => selected_ids,
+            Err(_) => {
+                return cancellation_response(
+                    &generated.target_keys,
+                    &algorithm_requested,
+                    started,
+                    "solver_running",
+                );
+            }
+        };
         let solver_ms = elapsed_ms(solver_started);
+        if should_cancel() {
+            return cancellation_response(
+                &generated.target_keys,
+                &algorithm_requested,
+                started,
+                "solver_completed",
+            );
+        }
 
         let by_id: HashMap<u32, &CandidateDraft> =
             generated.candidates.iter().map(|c| (c.id, c)).collect();
@@ -1291,7 +1745,7 @@ impl PlannerCore {
             json!(self
                 .atlas
                 .as_ref()
-                .map(|atlas| atlas.regions.len() > 0)
+                .map(|atlas| !atlas.regions.is_empty())
                 .unwrap_or(false)),
         );
         compute_profile.insert(
@@ -1407,8 +1861,18 @@ impl PlannerCore {
         }
     }
 
-    fn generate_candidates(&self, request: &OptimizeRequest) -> GeneratedCandidates {
+    fn generate_candidates_with_cancel<F>(
+        &self,
+        request: &OptimizeRequest,
+        should_cancel: &F,
+    ) -> Result<GeneratedCandidates, CandidateGenerationCancelled>
+    where
+        F: Fn() -> bool,
+    {
         let generation_started = Instant::now();
+        if should_cancel() {
+            return Err(CandidateGenerationCancelled);
+        }
         let target_keys = request.target_keys.clone();
         let targets: Vec<TargetModel> = target_keys
             .iter()
@@ -1471,6 +1935,9 @@ impl PlannerCore {
         }
 
         for target in &candidate_seed_targets {
+            if should_cancel() {
+                return Err(CandidateGenerationCancelled);
+            }
             for ap_offset in offsets {
                 for ml_offset in offsets {
                     for theta in &angle_values {
@@ -1480,6 +1947,9 @@ impl PlannerCore {
                             &[0.0, 90.0, 180.0, 270.0]
                         };
                         for phi in phis {
+                            if should_cancel() {
+                                return Err(CandidateGenerationCancelled);
+                            }
                             if geometries.len() >= limit {
                                 break;
                             }
@@ -1513,21 +1983,24 @@ impl PlannerCore {
         let mut rejected_count = 0usize;
         let mut rejection_reasons = BTreeMap::new();
         for (id, geom, theta_deg, phi_deg, depth_um, aggregate_seed) in geometries {
-            match score_candidate(
+            if should_cancel() {
+                return Err(CandidateGenerationCancelled);
+            }
+            match score_candidate(CandidateScoreInput {
                 id,
-                geom[0],
-                geom[2],
+                ap_mm: geom[0],
+                ml_mm: geom[2],
                 theta_deg,
                 phi_deg,
                 depth_um,
                 step_um,
-                &targets,
+                targets: &targets,
                 coverage_radius_mm,
                 aggregate_seed,
-                self.atlas.as_deref(),
-                &target_lookup,
-                &constraints,
-            ) {
+                atlas: self.atlas.as_deref(),
+                target_lookup: &target_lookup,
+                constraints: &constraints,
+            }) {
                 Ok(candidate) => candidates.push(candidate),
                 Err(reason) => {
                     rejected_count += 1;
@@ -1537,7 +2010,7 @@ impl PlannerCore {
         }
         let scoring_ms = elapsed_ms(scoring_started);
 
-        GeneratedCandidates {
+        Ok(GeneratedCandidates {
             candidates,
             target_count,
             target_keys,
@@ -1546,7 +2019,7 @@ impl PlannerCore {
             scoring_ms,
             rejected_count,
             rejection_reasons,
-        }
+        })
     }
 
     fn target_model_for(&self, key: &str, idx: usize) -> TargetModel {
@@ -1568,21 +2041,22 @@ impl PlannerCore {
     }
 }
 
-fn score_candidate(
-    id: u32,
-    ap_mm: f32,
-    ml_mm: f32,
-    theta_deg: f32,
-    phi_deg: f32,
-    depth_um: f32,
-    step_um: f32,
-    targets: &[TargetModel],
-    coverage_radius_mm: f32,
-    aggregate_seed: bool,
-    atlas: Option<&NativeAtlas>,
-    target_lookup: &TargetLabelLookup,
-    constraints: &ConstraintPolicy,
-) -> Result<CandidateDraft, String> {
+fn score_candidate(input: CandidateScoreInput<'_>) -> Result<CandidateDraft, String> {
+    let CandidateScoreInput {
+        id,
+        ap_mm,
+        ml_mm,
+        theta_deg,
+        phi_deg,
+        depth_um,
+        step_um,
+        targets,
+        coverage_radius_mm,
+        aggregate_seed,
+        atlas,
+        target_lookup,
+        constraints,
+    } = input;
     let (entry_um, tip_um, direction) =
         trajectory_geometry(ap_mm, ml_mm, theta_deg, phi_deg, depth_um);
     if constraints.enforce_max_angle() && theta_deg.abs() > constraints.max_angle_deg {
@@ -1594,7 +2068,7 @@ fn score_candidate(
     let entry_mm = ccf_um_to_bregma_mm(entry_um);
     let tip_mm = ccf_um_to_bregma_mm(tip_um);
     if constraints.enforce_brain_bounds() {
-        if ap_mm < ENTRY_AP_MIN_MM || ap_mm > ENTRY_AP_MAX_MM {
+        if !(ENTRY_AP_MIN_MM..=ENTRY_AP_MAX_MM).contains(&ap_mm) {
             return Err("entry_ap_bounds".to_string());
         }
         if tip_mm[0] < TIP_POST_LIMIT_MM {
@@ -1614,12 +2088,6 @@ fn score_candidate(
     } else {
         step_um.min(VOXEL_SIZE_UM)
     };
-    let centerline_spec = TrajectorySpec {
-        entry_um,
-        direction_unit: direction,
-        depth_um,
-        step_um: profile_step_um,
-    };
     let lateral_axis = probe_lateral_axis_um(direction);
     let shank_specs = constraints
         .shank_offsets_um
@@ -1634,7 +2102,6 @@ fn score_candidate(
             }
         })
         .collect::<Vec<_>>();
-    let centerline_voxels = sample_trajectory_voxels(centerline_spec, grid);
     let mut voxel_seen = HashSet::new();
     let mut voxels = Vec::new();
     for spec in shank_specs.iter() {
@@ -1649,16 +2116,19 @@ fn score_candidate(
         trajectory_voxels.set(voxel_hash_bin(voxel.x, voxel.y, voxel.z));
     }
 
+    let risk_inflation_mm =
+        ((constraints.collision_radius_um - constraints.probe_radius_um).max(0.0)) / 1000.0;
     let atlas_profile = atlas.map(|atlas| {
-        atlas.trajectory_profile(
-            &voxels,
-            &centerline_voxels,
-            &[centerline_spec],
-            ((constraints.collision_radius_um - constraints.probe_radius_um).max(0.0)) / 1000.0,
-            profile_step_um,
+        atlas.trajectory_profile(TrajectoryProfileInput {
+            voxels: &voxels,
+            brain_bounds_voxels: &voxels,
+            trajectories: &shank_specs,
+            risk_inflation_mm,
+            step_um: profile_step_um,
             targets,
             target_lookup,
-        )
+            sample_risk: false,
+        })
     });
     let mut coverage = atlas_profile
         .as_ref()
@@ -1675,7 +2145,7 @@ fn score_candidate(
     let min_sdf_distance_mm = atlas_profile
         .as_ref()
         .and_then(|profile| profile.min_sdf_distance_mm);
-    let risk_distances_mm = atlas_profile
+    let mut risk_distances_mm = atlas_profile
         .as_ref()
         .map(|profile| profile.risk_distances_mm.clone())
         .unwrap_or_default();
@@ -1687,17 +2157,6 @@ fn score_candidate(
             if summary.available && !summary.passed {
                 return Err(summary.reason.clone());
             }
-        }
-        if let Some(reason) = boundary_risk_rejection(&risk_distances_mm, constraints, false) {
-            return Err(reason);
-        }
-    }
-    if constraints.enforce_continuous_risk() {
-        if risk_distances_mm.is_empty() && min_sdf_distance_mm.is_none() {
-            return Err("risk_model_unavailable".to_string());
-        }
-        if let Some(reason) = boundary_risk_rejection(&risk_distances_mm, constraints, true) {
-            return Err(reason);
         }
     }
     let mut proximity_score = 0.0f32;
@@ -1722,6 +2181,24 @@ fn score_candidate(
 
     if covered_regions.is_empty() {
         return Err("noCoverage".to_string());
+    }
+
+    if let Some(atlas) = atlas {
+        risk_distances_mm =
+            atlas.trajectory_risk_distances(&shank_specs, risk_inflation_mm, profile_step_um);
+    }
+    if constraints.enforce_brain_bounds() {
+        if let Some(reason) = boundary_risk_rejection(&risk_distances_mm, constraints, false) {
+            return Err(reason);
+        }
+    }
+    if constraints.enforce_continuous_risk() {
+        if risk_distances_mm.is_empty() && min_sdf_distance_mm.is_none() {
+            return Err("risk_model_unavailable".to_string());
+        }
+        if let Some(reason) = boundary_risk_rejection(&risk_distances_mm, constraints, true) {
+            return Err(reason);
+        }
     }
 
     let coverage_score = coverage.count_ones() as f32 * 10_000.0;
@@ -2184,7 +2661,7 @@ fn target_center_mm(key: &str, idx: usize) -> [f32; 3] {
             0.7 + (((h >> 16) & 0xff) as f32 / 255.0) * 3.4,
         ]
     };
-    let side = if idx % 2 == 0 { 1.0 } else { -1.0 };
+    let side = if idx.is_multiple_of(2) { 1.0 } else { -1.0 };
     [base[0], base[1], base[2] * side]
 }
 
@@ -2201,9 +2678,11 @@ fn preferred_ml_side(key: &str, idx: usize) -> f32 {
     let upper = key.to_ascii_uppercase();
     if upper.contains("LEFT") || upper.ends_with("_L") || upper.ends_with("-L") {
         -1.0
-    } else if upper.contains("RIGHT") || upper.ends_with("_R") || upper.ends_with("-R") {
-        1.0
-    } else if idx % 2 == 0 {
+    } else if upper.contains("RIGHT")
+        || upper.ends_with("_R")
+        || upper.ends_with("-R")
+        || idx.is_multiple_of(2)
+    {
         1.0
     } else {
         -1.0
@@ -2275,6 +2754,22 @@ fn boundary_risk_rejection(
     None
 }
 
+fn risk_sdf_readiness_from_loaded_classes(mut loaded_classes: Vec<String>) -> RiskSdfReadiness {
+    loaded_classes.sort();
+    loaded_classes.dedup();
+    let loaded = loaded_classes.iter().cloned().collect::<HashSet<_>>();
+    let missing_classes = REQUIRED_RISK_SDF_CLASSES
+        .iter()
+        .filter(|class_name| !loaded.contains(**class_name))
+        .map(|class_name| (*class_name).to_string())
+        .collect::<Vec<_>>();
+    RiskSdfReadiness {
+        ready: missing_classes.is_empty(),
+        loaded_classes,
+        missing_classes,
+    }
+}
+
 fn balanced_risk_thresholds() -> BTreeMap<String, f32> {
     BTreeMap::from([
         ("default".to_string(), MIN_RISK_DISTANCE_MM_DEFAULT),
@@ -2288,14 +2783,54 @@ fn balanced_risk_thresholds() -> BTreeMap<String, f32> {
     ])
 }
 
-fn enforce_boundary_risk_threshold_floors(thresholds: &mut BTreeMap<String, f32>) {
+fn conservative_risk_thresholds() -> BTreeMap<String, f32> {
+    BTreeMap::from([
+        ("default".to_string(), 0.42),
+        ("vessel".to_string(), 0.80),
+        ("ventricle".to_string(), 0.44),
+        ("sulcus".to_string(), 0.50),
+        ("skull".to_string(), 0.58),
+        ("cortex_outside".to_string(), 0.05),
+        ("brain_surface".to_string(), 0.05),
+        ("drilling_surface".to_string(), 0.05),
+    ])
+}
+
+fn aggressive_risk_thresholds() -> BTreeMap<String, f32> {
+    BTreeMap::from([
+        ("default".to_string(), 0.24),
+        ("vessel".to_string(), 0.50),
+        ("ventricle".to_string(), 0.24),
+        ("sulcus".to_string(), 0.20),
+        ("skull".to_string(), 0.30),
+        ("cortex_outside".to_string(), 0.02),
+        ("brain_surface".to_string(), 0.02),
+        ("drilling_surface".to_string(), 0.02),
+    ])
+}
+
+fn risk_thresholds_for_template(template: &str) -> BTreeMap<String, f32> {
+    match template.trim().to_ascii_lowercase().as_str() {
+        "conservative" => conservative_risk_thresholds(),
+        "aggressive" => aggressive_risk_thresholds(),
+        _ => balanced_risk_thresholds(),
+    }
+}
+
+fn enforce_risk_threshold_floors(thresholds: &mut BTreeMap<String, f32>) {
     for (key, floor) in [
+        ("default", 0.01_f32),
+        ("vessel", 0.01_f32),
+        ("ventricle", 0.01_f32),
+        ("sulcus", 0.01_f32),
+        ("skull", 0.01_f32),
         ("cortex_outside", 0.05_f32),
         ("brain_surface", 0.05_f32),
         ("drilling_surface", 0.05_f32),
     ] {
-        let current = thresholds.get(key).copied().unwrap_or(0.0);
-        thresholds.insert(key.to_string(), current.max(floor));
+        let current = thresholds.get(key).copied().unwrap_or(floor);
+        let safe = if current.is_finite() { current } else { floor };
+        thresholds.insert(key.to_string(), safe.max(floor));
     }
 }
 
@@ -2395,6 +2930,44 @@ fn bool_param(map: &BTreeMap<String, Value>, key: &str, default: bool) -> bool {
     map.get(key).and_then(Value::as_bool).unwrap_or(default)
 }
 
+fn cancellation_response(
+    target_keys: &[String],
+    algorithm_requested: &str,
+    started: Instant,
+    stage: &str,
+) -> OptimizeResponse {
+    let mut compute_profile = BTreeMap::new();
+    compute_profile.insert("nativeKernelStatus".to_string(), json!("cancelled"));
+    compute_profile.insert("targetCount".to_string(), json!(target_keys.len()));
+    compute_profile.insert("cancellationStage".to_string(), json!(stage));
+
+    let mut stage_breakdown = BTreeMap::new();
+    stage_breakdown.insert("engineService".to_string(), json!(true));
+    stage_breakdown.insert("nativeEngineStatus".to_string(), json!("cancelled"));
+    stage_breakdown.insert("cancellationStage".to_string(), json!(stage));
+    stage_breakdown.insert("candidatePoolCount".to_string(), json!(0));
+    stage_breakdown.insert("selectedCount".to_string(), json!(0));
+    stage_breakdown.insert("uncoveredCount".to_string(), json!(target_keys.len()));
+
+    OptimizeResponse {
+        ok: false,
+        code: Some("cancelled".to_string()),
+        error: Some("Optimization task was cancelled".to_string()),
+        engine_version: crate::api::engine_version().to_string(),
+        engine_status: "cancelled".to_string(),
+        algorithm: algorithm_requested.to_string(),
+        candidate_count: 0,
+        candidate_universe_count: 0,
+        selected: Vec::new(),
+        uncovered: target_keys.to_vec(),
+        required_coverage_units: target_keys.len(),
+        covered_coverage_units: 0,
+        time_ms: elapsed_ms(started),
+        compute_profile,
+        candidate_stage_breakdown: stage_breakdown,
+    }
+}
+
 fn elapsed_ms(started: Instant) -> u64 {
     started.elapsed().as_micros().div_ceil(1000) as u64
 }
@@ -2429,6 +3002,66 @@ fn rounded_distance_map(values: &BTreeMap<String, f32>) -> BTreeMap<String, f32>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    fn risk_warn_constraints() -> BTreeMap<String, Value> {
+        BTreeMap::from([("continuousRiskDistance".to_string(), json!("warn"))])
+    }
+
+    #[test]
+    fn native_optimizer_reports_cancelled_without_finishing() {
+        let request = OptimizeRequest {
+            task_id: None,
+            target_keys: vec!["CA1".to_string()],
+            params: BTreeMap::from([("algorithm".to_string(), json!("greedy"))]),
+            probe_params: BTreeMap::new(),
+            constraint_modes: risk_warn_constraints(),
+            correction_factors: None,
+            correction_uncertainty: None,
+            correction_applied: None,
+            planner_calibration: None,
+            clinical_context: None,
+        };
+        let response =
+            PlannerCore::new(PlannerEngineConfig::default()).optimize_with_cancel(request, || true);
+        assert!(!response.ok);
+        assert_eq!(response.code.as_deref(), Some("cancelled"));
+        assert_eq!(response.engine_status, "cancelled");
+        assert!(response.selected.is_empty());
+    }
+
+    #[test]
+    fn native_optimizer_reports_cancelled_during_candidate_generation() {
+        let request = OptimizeRequest {
+            task_id: None,
+            target_keys: vec!["CA1".to_string()],
+            params: BTreeMap::from([
+                ("algorithm".to_string(), json!("greedy")),
+                ("allowFallbackTargetCoverage".to_string(), json!(true)),
+                ("maxAngle".to_string(), json!(15)),
+            ]),
+            probe_params: BTreeMap::new(),
+            constraint_modes: risk_warn_constraints(),
+            correction_factors: None,
+            correction_uncertainty: None,
+            correction_applied: None,
+            planner_calibration: None,
+            clinical_context: None,
+        };
+        let calls = AtomicUsize::new(0);
+        let response = PlannerCore::new(PlannerEngineConfig::default())
+            .optimize_with_cancel(request, || calls.fetch_add(1, Ordering::SeqCst) >= 1);
+        assert!(!response.ok);
+        assert_eq!(response.code.as_deref(), Some("cancelled"));
+        assert_eq!(response.engine_status, "cancelled");
+        assert_eq!(
+            response
+                .candidate_stage_breakdown
+                .get("cancellationStage")
+                .and_then(Value::as_str),
+            Some("candidate_generation")
+        );
+    }
 
     #[test]
     fn native_optimizer_selects_covering_candidate() {
@@ -2446,7 +3079,11 @@ mod tests {
                 ("depthUm".to_string(), json!(7000)),
                 ("count".to_string(), json!(1)),
             ]),
-            constraint_modes: BTreeMap::new(),
+            constraint_modes: risk_warn_constraints(),
+            correction_factors: None,
+            correction_uncertainty: None,
+            correction_applied: None,
+            planner_calibration: None,
             clinical_context: None,
         };
         let response = PlannerCore::new(PlannerEngineConfig::default()).optimize(request);
@@ -2466,7 +3103,11 @@ mod tests {
             target_keys: vec!["PFC".to_string()],
             params: BTreeMap::from([("algorithm".to_string(), json!("greedy"))]),
             probe_params: BTreeMap::new(),
-            constraint_modes: BTreeMap::new(),
+            constraint_modes: risk_warn_constraints(),
+            correction_factors: None,
+            correction_uncertainty: None,
+            correction_applied: None,
+            planner_calibration: None,
             clinical_context: None,
         };
         let response = PlannerCore::new(PlannerEngineConfig::default()).optimize(request);
@@ -2488,7 +3129,11 @@ mod tests {
                 ("allowFallbackTargetCoverage".to_string(), json!(true)),
             ]),
             probe_params: BTreeMap::from([("count".to_string(), json!(1))]),
-            constraint_modes: BTreeMap::new(),
+            constraint_modes: risk_warn_constraints(),
+            correction_factors: None,
+            correction_uncertainty: None,
+            correction_applied: None,
+            planner_calibration: None,
             clinical_context: None,
         };
         let response = PlannerCore::new(PlannerEngineConfig::default()).optimize(request);
@@ -2520,7 +3165,11 @@ mod tests {
                 ("coverageRadius".to_string(), json!(600)),
             ]),
             probe_params: BTreeMap::from([("count".to_string(), json!(1))]),
-            constraint_modes: BTreeMap::new(),
+            constraint_modes: risk_warn_constraints(),
+            correction_factors: None,
+            correction_uncertainty: None,
+            correction_applied: None,
+            planner_calibration: None,
             clinical_context: None,
         };
         let response = PlannerCore::new(PlannerEngineConfig::default()).optimize(request);
@@ -2556,7 +3205,14 @@ mod tests {
             target_keys: vec!["CA1".to_string()],
             params: BTreeMap::new(),
             probe_params: BTreeMap::new(),
-            constraint_modes: BTreeMap::from([("brainBounds".to_string(), json!("enforce"))]),
+            constraint_modes: BTreeMap::from([
+                ("brainBounds".to_string(), json!("enforce")),
+                ("continuousRiskDistance".to_string(), json!("warn")),
+            ]),
+            correction_factors: None,
+            correction_uncertainty: None,
+            correction_applied: None,
+            planner_calibration: None,
             clinical_context: None,
         };
         let policy = ConstraintPolicy::from_request(&request);
@@ -2588,6 +3244,10 @@ mod tests {
                 "continuousRiskDistance".to_string(),
                 json!("enforce"),
             )]),
+            correction_factors: None,
+            correction_uncertainty: None,
+            correction_applied: None,
+            planner_calibration: None,
             clinical_context: None,
         };
         let policy = ConstraintPolicy::from_request(&request);
@@ -2611,17 +3271,21 @@ mod tests {
     }
 
     #[test]
-    fn native_risk_thresholds_floor_boundary_surface_classes() {
+    fn native_risk_thresholds_floor_known_classes() {
         let request = OptimizeRequest {
             task_id: None,
             target_keys: vec!["CA1".to_string()],
             params: BTreeMap::from([(
                 "riskThresholdsMm".to_string(),
                 json!({
+                    "default": -1.0,
+                    "vessel": -1.0,
+                    "ventricle": -1.0,
+                    "sulcus": -1.0,
                     "cortex_outside": 0.0,
                     "brain_surface": 0.0,
                     "drilling_surface": 0.0,
-                    "skull": 0.01
+                    "skull": -1.0
                 }),
             )]),
             probe_params: BTreeMap::new(),
@@ -2629,13 +3293,42 @@ mod tests {
                 "continuousRiskDistance".to_string(),
                 json!("enforce"),
             )]),
+            correction_factors: None,
+            correction_uncertainty: None,
+            correction_applied: None,
+            planner_calibration: None,
             clinical_context: None,
         };
         let policy = ConstraintPolicy::from_request(&request);
+        assert_eq!(policy.risk_threshold_for("default"), 0.01);
+        assert_eq!(policy.risk_threshold_for("vessel"), 0.01);
+        assert_eq!(policy.risk_threshold_for("ventricle"), 0.01);
+        assert_eq!(policy.risk_threshold_for("sulcus"), 0.01);
+        assert_eq!(policy.risk_threshold_for("skull"), 0.01);
         assert_eq!(policy.risk_threshold_for("cortex_outside"), 0.05);
         assert_eq!(policy.risk_threshold_for("brain_surface"), 0.05);
         assert_eq!(policy.risk_threshold_for("drilling_surface"), 0.05);
-        assert_eq!(policy.risk_threshold_for("skull"), 0.01);
+    }
+
+    #[test]
+    fn native_risk_threshold_template_matches_backend_contract() {
+        let request = OptimizeRequest {
+            task_id: None,
+            target_keys: vec!["CA1".to_string()],
+            params: BTreeMap::from([("riskThresholdTemplate".to_string(), json!("conservative"))]),
+            probe_params: BTreeMap::new(),
+            constraint_modes: BTreeMap::new(),
+            correction_factors: None,
+            correction_uncertainty: None,
+            correction_applied: None,
+            planner_calibration: None,
+            clinical_context: None,
+        };
+        let policy = ConstraintPolicy::from_request(&request);
+        assert_eq!(policy.risk_threshold_for("default"), 0.42);
+        assert_eq!(policy.risk_threshold_for("vessel"), 0.80);
+        assert_eq!(policy.risk_threshold_for("ventricle"), 0.44);
+        assert_eq!(policy.risk_threshold_for("skull"), 0.58);
     }
 
     #[test]
@@ -2653,10 +3346,15 @@ mod tests {
                 "continuousRiskDistance".to_string(),
                 json!("enforce"),
             )]),
+            correction_factors: None,
+            correction_uncertainty: None,
+            correction_applied: None,
+            planner_calibration: None,
             clinical_context: None,
         };
         let response = PlannerCore::new(PlannerEngineConfig::default()).optimize(request);
-        assert!(response.ok);
+        assert!(!response.ok);
+        assert_eq!(response.code.as_deref(), Some("risk_model_unavailable"));
         assert_eq!(response.candidate_count, 0);
         assert!(response
             .candidate_stage_breakdown
@@ -2664,6 +3362,29 @@ mod tests {
             .and_then(Value::as_object)
             .and_then(|reasons| reasons.get("risk_model_unavailable"))
             .is_some());
+    }
+
+    #[test]
+    fn risk_sdf_readiness_requires_all_hard_constraint_classes() {
+        let readiness = risk_sdf_readiness_from_loaded_classes(vec![
+            "skull".to_string(),
+            "ventricle".to_string(),
+            "vessel".to_string(),
+        ]);
+        assert!(!readiness.ready);
+        assert!(readiness
+            .missing_classes
+            .contains(&"brain_surface".to_string()));
+        assert!(readiness.missing_classes.contains(&"sulcus".to_string()));
+
+        let complete = risk_sdf_readiness_from_loaded_classes(
+            REQUIRED_RISK_SDF_CLASSES
+                .iter()
+                .map(|class_name| (*class_name).to_string())
+                .collect(),
+        );
+        assert!(complete.ready);
+        assert!(complete.missing_classes.is_empty());
     }
 
     #[test]
@@ -2682,7 +3403,11 @@ mod tests {
                 ("depthUm".to_string(), json!(20000)),
                 ("count".to_string(), json!(1)),
             ]),
-            constraint_modes: BTreeMap::new(),
+            constraint_modes: risk_warn_constraints(),
+            correction_factors: None,
+            correction_uncertainty: None,
+            correction_applied: None,
+            planner_calibration: None,
             clinical_context: None,
         };
         let response = PlannerCore::new(PlannerEngineConfig::default()).optimize(request);

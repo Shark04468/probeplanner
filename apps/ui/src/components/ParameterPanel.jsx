@@ -52,6 +52,7 @@ export default function ParameterPanel({ params, setParams, lang, mode = 'expert
   }, [params.drccSolver, setParams]);
   const objectivePreset = params.objectivePreset || 'balanced';
   const targetingMode = params.targetingMode || 'single_hemisphere';
+  const targetEndpointPolicy = params.targetEndpointPolicy || 'tip_in_target';
   const riskThresholdTemplate = String(params.riskThresholdTemplate || 'balanced').toLowerCase();
   const riskTemplateOptions = [
     { key: 'conservative', labelKey: 'riskThresholdTemplateConservative' },
@@ -220,6 +221,84 @@ export default function ParameterPanel({ params, setParams, lang, mode = 'expert
           {tr('paramSimpleHint')}
         </div>
       )}
+
+      <div
+        style={{
+          marginBottom: 10,
+          padding: '7px 8px',
+          border: '1px solid #19526a',
+          borderRadius: 6,
+          background: '#041421',
+          display: 'grid',
+          gap: 8,
+        }}
+      >
+        <div>
+          <div style={labelStyle}>
+            <span>{tr('targetEndpointPolicyLabel')}</span>
+          </div>
+          <select
+            style={{
+              width: '100%',
+              background: '#031120',
+              border: '1px solid #1c4f66',
+              borderRadius: 5,
+              padding: '5px 7px',
+              color: '#9edaff',
+              fontSize: 10.5,
+              outline: 'none',
+              cursor: 'pointer',
+            }}
+            value={targetEndpointPolicy}
+            onChange={(event) => setParams((current) => ({
+              ...current,
+              targetEndpointPolicy: event.target.value,
+            }))}
+          >
+            <option value="tip_in_target">{tr('targetEndpointTipInTarget')}</option>
+            <option value="trajectory_intersects">{tr('targetEndpointIntersection')}</option>
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <TinyToggle
+            label={tr('depthOptimizationLabel')}
+            on={Boolean(params.depthOptimizationEnabled)}
+            onText={tr('on')}
+            offText={tr('off')}
+            onClick={() => setParams((current) => ({
+              ...current,
+              depthOptimizationEnabled: !current.depthOptimizationEnabled,
+            }))}
+          />
+          <TinyToggle
+            label={tr('trajectoryStabilityLabel')}
+            on={Boolean(params.stabilityTieBreakerEnabled)}
+            onText={tr('on')}
+            offText={tr('off')}
+            onClick={() => setParams((current) => ({
+              ...current,
+              stabilityTieBreakerEnabled: !current.stabilityTieBreakerEnabled,
+            }))}
+          />
+        </div>
+
+        {expertMode && params.stabilityTieBreakerEnabled && (
+          <RangeField
+            label={tr('trajectoryStabilityWeightLabel')}
+            value={params.stabilityReferenceWeight ?? 0.1}
+            display={Number(params.stabilityReferenceWeight ?? 0.1).toFixed(2)}
+            min={0.01}
+            max={0.3}
+            step={0.01}
+            color="#38bdf8"
+            onChange={(value) => setParams((current) => ({
+              ...current,
+              stabilityReferenceWeight: value,
+            }))}
+          />
+        )}
+      </div>
 
       {visibleSliders.map(({ key, label, min, max, step, disp }) => (
         <div key={key} style={{ marginBottom: 9 }}>

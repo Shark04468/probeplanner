@@ -1,10 +1,11 @@
-﻿import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { vi } from 'vitest';
 import { useOptimizer } from './useOptimizer';
 import { flaskFetch } from './useBackend';
 
-jest.mock('./useBackend', () => ({
-  ...jest.requireActual('./useBackend'),
-  flaskFetch: jest.fn(),
+vi.mock('./useBackend', async (importOriginal) => ({
+  ...(await importOriginal()),
+  flaskFetch: vi.fn(),
 }));
 
 const CONSTRAINTS = {
@@ -18,7 +19,7 @@ const CONSTRAINTS = {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('useOptimizer preserves request/response hashes in reproducibility report', async () => {
@@ -138,4 +139,77 @@ test('useOptimizer does not pre-block unknown target and lets backend auto-provi
   const payload = flaskFetch.mock.calls[0][2];
   expect(payload.targetKeys).toEqual(['GPi']);
   expect(result.current.lastError).toBe('');
+});
+
+test('useOptimizer sends strict endpoint and stability controls and preserves unified probe audit', async () => {
+  flaskFetch.mockResolvedValue({
+    ok: true,
+    selected: [
+      {
+        ap_mm: 0.4,
+        ml_mm: 1.1,
+        entryDvCorr_mm: 0.44,
+        phi_deg: 2,
+        theta_deg: 5,
+        depthUm: 4125,
+        entry_xyz: [5000, 440, 6800],
+        tip_xyz: [5200, 4500, 6900],
+        dir: [0.05, 0.99, 0.02],
+        coveredRegions: ['CA1'],
+        brainContainmentPassed: true,
+        tipInTarget: true,
+        distalOvershootMm: 0,
+        internalRiskViolationCount: 0,
+        minimumInternalRiskMarginMm: null,
+        entrySurfaceCrossingStatus: 'allowed_entry_surface_semantics',
+        internalRiskAudit: { claimStatus: 'unavailable', unavailableClasses: ['vessel'] },
+      },
+    ],
+    uncovered: [],
+    safetyIssues: [],
+    candidateFunnelDiagnostics: { generatedCandidates: 120, afterBrainBounds: 86 },
+  });
+
+  const { result } = renderHook(() => useOptimizer());
+  const stabilityReferenceTrajectories = [
+    { entryCcfUm: [5000, 440, 6800], tipCcfUm: [5200, 4500, 6900] },
+  ];
+
+  await act(async () => {
+    result.current.run({
+      selectedRegions: new Set(['CA1']),
+      params: {
+        algorithm: 'greedy',
+        maxAngle: 15,
+        targetEndpointPolicy: 'tip_in_target',
+        depthOptimizationEnabled: true,
+        stabilityTieBreakerEnabled: true,
+        stabilityReferenceWeight: 0.1,
+        stabilityReferenceTrajectories,
+      },
+      probeParams: { depthUm: 7600, entrySpacingUm: 3500 },
+      probePreset: 'NP2.0-4sh',
+      constraintModes: CONSTRAINTS,
+      backendStatus: 'online',
+      correction: null,
+      correctionUncertainty: null,
+    });
+  });
+
+  await waitFor(() => expect(result.current.results?.probes?.length).toBe(1));
+  const payload = flaskFetch.mock.calls[0][2];
+  expect(payload.params.targetEndpointPolicy).toBe('tip_in_target');
+  expect(payload.params.depthOptimizationEnabled).toBe(true);
+  expect(payload.params.stabilityReferenceWeight).toBe(0.1);
+  expect(payload.params.stabilityReferenceTrajectories).toEqual(stabilityReferenceTrajectories);
+  expect(result.current.results.requestedTargets).toEqual(['CA1']);
+  expect(result.current.results.probes[0]).toMatchObject({
+    brainContainmentPassed: true,
+    tipInTarget: true,
+    distalOvershootMm: 0,
+    entrySurfaceCrossingStatus: 'allowed_entry_surface_semantics',
+  });
+  expect(result.current.results.probes[0].internalRiskAudit.claimStatus).toBe('unavailable');
+  expect(result.current.results.candidateFunnelDiagnostics.afterBrainBounds).toBe(86);
+  expect(result.current.results.stabilitySummary.referenceProbeCount).toBe(1);
 });

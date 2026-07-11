@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 """Validate MRI->CCF registration artifacts against common ANTs/SyN pitfalls."""
 
 from __future__ import annotations

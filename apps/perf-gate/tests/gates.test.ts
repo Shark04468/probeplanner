@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { evaluateGates } from "../src/metrics/gates.js";
 import type { PerfSummary } from "../src/types.js";
 
-function summary(totalMs: number, interactiveMs: number, fps: number): PerfSummary {
+function summary(totalMs: number, interactiveMs: number, fps: number, frameP95 = 20): PerfSummary {
   return {
     generatedAt: "now",
     mode: "gate",
@@ -54,7 +54,7 @@ function summary(totalMs: number, interactiveMs: number, fps: number): PerfSumma
       interactiveReadyMs: { count: 1, median: interactiveMs, p95: interactiveMs, min: interactiveMs, max: interactiveMs },
       totalLoadMs: { count: 1, median: interactiveMs + 5000, p95: interactiveMs + 5000, min: interactiveMs + 5000, max: interactiveMs + 5000 },
       fpsMedian: { count: 1, median: fps, p95: fps, min: fps, max: fps },
-      frameMsP95: { count: 1, median: 20, p95: 20, min: 20, max: 20 },
+      frameMsP95: { count: 1, median: frameP95, p95: frameP95, min: frameP95, max: frameP95 },
       unityResourceTotalBytes: { count: 1, median: 64 * 1024 * 1024, p95: 64 * 1024 * 1024, min: 64 * 1024 * 1024, max: 64 * 1024 * 1024 },
       unityResourceMaxLoadMs: { count: 1, median: 5000, p95: 5000, min: 5000, max: 5000 },
       jsHeapUsedBytes: { count: 1, median: 128 * 1024 * 1024, p95: 128 * 1024 * 1024, min: 128 * 1024 * 1024, max: 128 * 1024 * 1024 },
@@ -78,10 +78,24 @@ describe("evaluateGates", () => {
     expect(report.checks.some((item) => !item.passed && item.name.includes("median"))).toBe(true);
   });
 
-  test("fails 3d refresh-rate relative fps drift even when absolute fps is strong", () => {
+  test("passes 3d refresh-rate relative fps drift when absolute fps is strong", () => {
     const report = evaluateGates(summary(600, 13_000, 120), summary(120_000, 10_000, 240));
+    expect(report.passed).toBe(true);
+    expect(report.checks.find((item) => item.name === "3d fps not worse")?.passed).toBe(true);
+  });
+
+  test("fails 3d refresh-rate relative fps drift without strong absolute margin", () => {
+    const report = evaluateGates(summary(600, 13_000, 40), summary(120_000, 10_000, 240));
     expect(report.passed).toBe(false);
     expect(report.checks.some((item) => !item.passed && item.name === "3d fps not worse")).toBe(true);
+  });
+
+  test("fails 3d when any run frame p95 exceeds the absolute limit", () => {
+    const current = summary(600, 20_000, 120);
+    current.browser3d.frameMsP95 = { count: 3, median: 20, p95: 63, min: 17, max: 63 };
+    const report = evaluateGates(current, summary(120_000, 40_000, 120));
+    expect(report.passed).toBe(false);
+    expect(report.checks.some((item) => !item.passed && item.name === "3d worst-run frame p95 absolute")).toBe(true);
   });
 
   test("fails drcc downgrade to greedy", () => {
@@ -99,8 +113,31 @@ describe("evaluateGates", () => {
     current.cases[0]!.expectedSdfRiskClasses = ["vessel"];
     current.cases[0]!.expectedSdfOutcomes = ["reject"];
     current.cases[0]!.nativeRejectReasonKeys = ["risk_vessel"];
+    current.cases[0]!.selectedCountMedian = 0;
     const report = evaluateGates(current, summary(120_000, 40_000, 55));
     expect(report.passed).toBe(true);
+  });
+
+  test("skips relative backend improvement for sdf semantic gates", () => {
+    const current = summary(600, 20_000, 55);
+    current.cases[0]!.expectedSdfRiskClasses = ["vessel"];
+    current.cases[0]!.expectedSdfOutcomes = ["reject"];
+    current.cases[0]!.nativeRejectReasonKeys = ["risk_vessel"];
+    current.cases[0]!.selectedCountMedian = 0;
+    const report = evaluateGates(current, summary(590, 20_000, 55));
+    expect(report.passed).toBe(true);
+    expect(report.checks.some((item) => item.name === "backend suite relative improvement skipped for sdf gate")).toBe(true);
+  });
+
+  test("fails sdf reject if a probe is still selected", () => {
+    const current = summary(600, 20_000, 55);
+    current.cases[0]!.expectedSdfRiskClasses = ["vessel"];
+    current.cases[0]!.expectedSdfOutcomes = ["reject"];
+    current.cases[0]!.nativeRejectReasonKeys = ["risk_vessel"];
+    current.cases[0]!.selectedCountMedian = 1;
+    const report = evaluateGates(current, summary(120_000, 40_000, 55));
+    expect(report.passed).toBe(false);
+    expect(report.checks.some((item) => !item.passed && item.name.includes("sdf vessel rejects"))).toBe(true);
   });
 
   test("checks sdf pass control diagnostics", () => {

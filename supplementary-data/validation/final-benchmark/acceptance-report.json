@@ -1,0 +1,30 @@
+{
+  "bucketGate": {
+    "1": {
+      "required": 10,
+      "available": 10,
+      "passed": true
+    },
+    "2": {
+      "required": 8,
+      "available": 27,
+      "passed": true
+    },
+    "3": {
+      "required": 5,
+      "available": 5,
+      "passed": true
+    },
+    "4": {
+      "required": 4,
+      "available": 4,
+      "passed": true
+    }
+  },
+  "feasibleCaseCount": 27,
+  "minimumFeasibleCasesRequired": 20,
+  "failClosedRequired": 5,
+  "failClosedAvailable": 5,
+  "manifestSize": 32,
+  "passed": true
+}

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 """Build a cleaner AMBMC moving brain mask for native ANTs/SyN.
 
 The default Otsu mask in prepare_ants_syn_inputs.py is intentionally simple.

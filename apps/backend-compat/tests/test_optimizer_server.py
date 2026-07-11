@@ -40,6 +40,7 @@ def _full_constraints(lambda_key="lambdaBoundary"):
         "minEntrySpacing": "enforce",
         "minClearance": "enforce",
         "brainBounds": "enforce",
+        "continuousRiskDistance": "warn",
         "hemisphere": "warn",
     }
     payload[lambda_key] = "enforce"
@@ -74,6 +75,17 @@ def _fake_candidate():
         "source": "test",
         "trajectoryProfile": {},
     }
+
+
+def test_task_registry_empty_id_returns_stable_placeholder():
+    from backend.api import TASK_STATE_QUEUED, TaskRegistry
+
+    task = TaskRegistry().get("")
+    assert task["taskId"] == ""
+    assert task["status"] == TASK_STATE_QUEUED
+    assert task["stage"] == "unknown"
+    assert task["finishedAt"] is None
+    assert task["cancelled"] is False
 
 
 def test_optimize_rejects_constraint_contract(server):
@@ -616,6 +628,240 @@ def test_optimize_blocks_on_brain_bounds_enforce(server, monkeypatch):
     body = resp.get_json()
     assert body["code"] == "candidate_enforced_filter_empty"
     assert body["enforcedConstraintFilter"]["reasons"]["brainBounds"] >= 1
+
+
+def test_brain_mask_audit_counts_terminal_outside_gap(server, monkeypatch):
+    annotation = np.zeros((1, 8, 1), dtype=np.uint32)
+    annotation[0, 2:5, 0] = 1
+    monkeypatch.setattr(server, "atlas_annotation", annotation, raising=True)
+
+    summary = server._brain_mask_path_summary_from_voxels(
+        [(0, idx, 0) for idx in range(8)],
+        step_um=25.0,
+    )
+
+    assert summary["tipInside"] is False
+    assert summary["firstInsideIndex"] == 2
+    assert summary["lastInsideIndex"] == 4
+    assert summary["maxOutsideGapUm"] == pytest.approx(75.0)
+    assert summary["maxOutsideGapSegmentMm"] == pytest.approx([0.125, 0.175])
+
+
+def test_tip_in_target_policy_requires_target_tip_and_zero_overshoot(server, monkeypatch):
+    annotation = np.zeros((3, 3, 3), dtype=np.uint32)
+    annotation[1, 1, 1] = 42
+    monkeypatch.setattr(server, "atlas_annotation", annotation, raising=True)
+    monkeypatch.setattr(server, "PLANNER_REGIONS", {"VISp": {"id": 42}}, raising=True)
+    monkeypatch.setattr(server, "descendant_ids", {42: frozenset([42])}, raising=True)
+    monkeypatch.setattr(server, "BREGMA_UM", np.array([25.0, -75.0, 25.0]), raising=True)
+
+    candidate = {
+        "depthUm": 100.0,
+        "depthUm_corrected": 100.0,
+        "ap_mm_corrected": 0.0,
+        "ml_mm_corrected": 0.0,
+        "theta_deg": 0.0,
+        "phi_deg": 0.0,
+        "skullTiltDeg": 0.0,
+        "coveredRegions": ["VISp"],
+    }
+    summary = server._candidate_endpoint_target_summary(candidate, {"VISp": 42})
+    assert summary["tipInRequestedTarget"] is True
+    assert summary["tipTargetKeys"] == ["VISp"]
+    assert summary["overshootAfterLastTargetUm"] == pytest.approx(0.0)
+
+    ok, reason, _ = server._candidate_passes_single_enforced_constraints(
+        candidate,
+        {"targetEndpointPolicy": "tip_in_target", "minRiskDistanceMm": 0.0},
+        {},
+        {
+            "maxAngle": "off",
+            "lambdaBoundary": "off",
+            "brainBounds": "off",
+            "hemisphere": "off",
+            "continuousRiskDistance": "off",
+        },
+    )
+    assert ok is True
+    assert reason is None
+
+
+def test_unified_probe_audit_separates_entry_surfaces_from_internal_risk(server, monkeypatch):
+    annotation = np.ones((1, 5, 1), dtype=np.uint32) * 42
+    monkeypatch.setattr(server, "atlas_annotation", annotation, raising=True)
+    monkeypatch.setattr(server, "PLANNER_REGIONS", {"VISp": {"id": 42}}, raising=True)
+    monkeypatch.setattr(server, "descendant_ids", {42: frozenset([42])}, raising=True)
+    monkeypatch.setattr(server, "BREGMA_UM", np.array([0.0, 0.0, 0.0]), raising=True)
+    monkeypatch.setattr(
+        server,
+        "risk_model_summary",
+        {
+            "riskLayerCompleteness": {
+                "vessel": {"usable": True, "status": "ready"},
+                "ventricle": {"usable": False, "status": "configured_empty"},
+                "sulcus": {"usable": False, "status": "missing"},
+                "skull": {"usable": True, "status": "ready"},
+                "brain_surface": {"usable": True, "status": "ready"},
+                "drilling_surface": {"usable": False, "status": "missing"},
+                "cortex_outside": {"usable": True, "status": "ready"},
+            }
+        },
+        raising=True,
+    )
+    probe = {
+        "depthUm": 100.0,
+        "depthUm_corrected": 100.0,
+        "ap_mm_corrected": 0.0,
+        "ml_mm_corrected": 0.0,
+        "theta_deg": 0.0,
+        "phi_deg": 0.0,
+        "skullTiltDeg": 0.0,
+        "riskDiagnostics": {
+            "classMinDistanceMm": {
+                "vessel": 0.7,
+                "skull": -0.2,
+                "brain_surface": -0.1,
+                "cortex_outside": -0.3,
+            },
+            "classThresholdMm": {"vessel": 0.6, "skull": 0.45},
+        },
+    }
+
+    audit = server._build_unified_probe_audit(
+        probe,
+        ["VISp"],
+        {"minRiskDistanceMm": 0.35},
+    )
+
+    assert audit["brainContainmentPassed"] is True
+    assert audit["tipInTarget"] is True
+    assert audit["distalOvershootMm"] == pytest.approx(0.0)
+    assert audit["internalRiskViolationCount"] == 0
+    assert audit["minimumInternalRiskMarginMm"] == pytest.approx(0.1)
+    assert audit["entrySurfaceCrossingStatus"] == "allowed_entry_surface_semantics"
+    assert audit["internalRiskAudit"]["claimStatus"] == "partial"
+    assert audit["internalRiskAudit"]["unavailableClasses"] == [
+        "no_go",
+        "sulcus",
+        "user_defined_exclusion",
+        "user_exclusion",
+        "ventricle",
+    ]
+    assert "skull" not in audit["internalRiskAudit"]["classes"]
+
+
+def test_skull_is_not_used_as_internal_risk_margin(server):
+    probe = {
+        "minSafetyDistanceMm": -0.2,
+        "riskDiagnostics": {
+            "classMinDistanceMm": {"skull": -0.2, "vessel": 0.8},
+            "classThresholdMm": {"skull": 0.45, "vessel": 0.6},
+        },
+    }
+
+    threshold = server._effective_risk_threshold_payload_for_probe(probe, 0.35)
+
+    assert threshold["riskClass"] == "vessel"
+    assert threshold["marginMm"] == pytest.approx(0.2)
+
+
+def test_depth_optimization_flag_is_normalized(server):
+    payload = _base_opt_payload(_full_constraints())
+    payload["params"]["targetEndpointPolicy"] = "tip_in_target"
+    payload["params"]["depthOptimizationEnabled"] = False
+
+    normalized = server._normalize_optimize_payload(payload)
+
+    assert normalized["params"]["depthOptimizationEnabled"] is False
+
+
+def test_stability_reference_contract_is_normalized(server):
+    payload = _base_opt_payload(_full_constraints())
+    payload["params"].update(
+        {
+            "stabilityTieBreakerEnabled": True,
+            "stabilityReferenceWeight": 0.08,
+            "stabilityReferenceTrajectories": [
+                {
+                    "entryCcfUm": [1000.0, 1000.0, 1000.0],
+                    "tipCcfUm": [1000.0, 8000.0, 1000.0],
+                }
+            ],
+        }
+    )
+
+    normalized = server._normalize_optimize_payload(payload)
+
+    assert normalized["params"]["stabilityTieBreakerEnabled"] is True
+    assert normalized["params"]["stabilityReferenceWeight"] == pytest.approx(0.08)
+    assert normalized["params"]["stabilityReferenceProbeCount"] == 1
+    assert normalized["params"]["stabilityReferenceTrajectories"][0]["tipCcfUm"] == pytest.approx(
+        [1000.0, 8000.0, 1000.0]
+    )
+
+
+def test_stability_tie_breaker_prefers_reference_proximity(server):
+    near = _fake_candidate()
+    far = {
+        **_fake_candidate(),
+        "entry_xyz": [3500.0, 1000.0, 1000.0],
+        "tip_xyz": [3500.0, 8000.0, 1000.0],
+    }
+    params = {
+        "maxAngle": 15.0,
+        "objectiveCoverageWeight": 0.5,
+        "objectiveSafetyWeight": 0.3,
+        "objectiveAngleWeight": 0.2,
+        "robustOptimization": False,
+        "objectiveRiskPrimary": False,
+        "stabilityTieBreakerEnabled": True,
+        "stabilityReferenceWeight": 0.08,
+        "stabilityEntryWeight": 1.0,
+        "stabilityTipWeight": 1.0,
+        "stabilityAngleWeight": 1.0,
+        "stabilityReferenceTrajectories": [
+            {
+                "entryCcfUm": [1000.0, 1000.0, 1000.0],
+                "tipCcfUm": [1000.0, 8000.0, 1000.0],
+            }
+        ],
+    }
+
+    near_score = server._compute_candidate_objectives(near, ["VISp"], params)
+    far_score = server._compute_candidate_objectives(far, ["VISp"], params)
+
+    assert near_score["scores"]["referenceStabilityCost"] == pytest.approx(0.0)
+    assert far_score["scores"]["referenceStabilityCost"] == pytest.approx(5.0)
+    assert near_score["explainScore"] > far_score["explainScore"]
+
+    near["overlapVoxels"] = {"VISp": 10}
+    far["overlapVoxels"] = {"VISp": 11}
+    for candidate, score in ((near, near_score), (far, far_score)):
+        candidate["objectiveScores"] = score["scores"]
+        candidate["objectiveWeighted"] = score["weighted"]
+        candidate["explainScore"] = score["explainScore"]
+        candidate["paretoRank"] = 1
+    selected = server.greedy_optimize(["VISp"], [far, near], 0.0, 0.0)["selected"]
+    assert selected[0] is near
+
+
+def test_trajectory_profile_uses_physical_depth_samples(server, monkeypatch):
+    annotation = np.zeros((1, 1, 3), dtype=np.uint32)
+    annotation[0, 0, 1] = 42
+    monkeypatch.setattr(server, "atlas_annotation", annotation, raising=True)
+    monkeypatch.setattr(server, "structure_map", {42: {"voxel_count": 1}}, raising=True)
+    monkeypatch.setattr(server, "descendant_ids", {42: frozenset([42])}, raising=True)
+
+    profile = server.compute_trajectory_profile(
+        [(0, 0, 0), (0, 0, 1), (0, 0, 2)],
+        [42],
+        step_um=25.0,
+        sample_depths_um=[0.0, 110.0, 275.0],
+    )
+
+    assert profile[42]["entry_depth_um"] == pytest.approx(110.0)
+    assert profile[42]["exit_depth_um"] == pytest.approx(110.0)
+    assert profile[42]["channel_span_um"] == pytest.approx(0.0)
 
 
 def test_optimize_reports_hemisphere_warning(server, monkeypatch):
@@ -2009,8 +2255,26 @@ def test_continuous_risk_policy_uses_source_tag(server, monkeypatch):
         )
     policy = server._continuous_risk_policy({})
     assert policy.get("riskSourceTag") == "atlas_keywords_only"
-    assert policy.get("reason") == "atlas_keywords_only"
+    assert policy.get("reason") == "default_enforce"
+    assert policy.get("requestedMode") == "enforce"
+    assert policy.get("effectiveMode") == "enforce"
+    assert policy.get("sourceLimited") is False
+
+
+def test_continuous_risk_policy_requires_explicit_opt_out(server, monkeypatch):
+    monkeypatch.setattr(server, "ALLOW_KEYWORD_ONLY_RISK_ENFORCE", False, raising=False)
+    with server.risk_model_lock:
+        server.risk_model_summary.clear()
+        server.risk_model_summary.update({"enabled": False, "source": [], "sourceTag": None})
+    policy = server._continuous_risk_policy({})
+    assert policy.get("requestedMode") == "enforce"
+    assert policy.get("effectiveMode") == "enforce"
+    assert policy.get("reason") == "risk_model_disabled_default_enforce"
+
+    policy = server._continuous_risk_policy({"continuousRiskDistance": "warn"})
+    assert policy.get("requestedMode") == "warn"
     assert policy.get("effectiveMode") == "warn"
+    assert policy.get("reason") == "risk_model_disabled_explicit_mode"
 
 
 def test_mri_activate_accepts_active_profile_contract(server, monkeypatch, tmp_path):
@@ -2150,6 +2414,138 @@ def test_reconstruction_quality_endpoint_returns_gate_and_profile(server):
     assert "gateEnabled" in body["quality"]
     assert isinstance(body.get("dynamicUncertaintyProfile"), dict)
     assert isinstance(body.get("qualityGateFailureCard"), dict)
+
+
+def test_native_optimize_normalizes_payload_before_engine(server, monkeypatch):
+    client = server.app.test_client()
+    captured = {}
+
+    monkeypatch.setattr(server, "_native_engine_service_enabled", lambda: True, raising=True)
+    monkeypatch.setattr(
+        server,
+        "reconstruction_quality_state",
+        {"gateEnabled": True, "passed": True, "blockingReasons": []},
+        raising=False,
+    )
+
+    def fake_engine(body, task_id):
+        captured["body"] = json.loads(json.dumps(body))
+        candidate = _fake_candidate()
+        return server._normalize_native_engine_payload({
+            "ok": True,
+            "selected": [candidate],
+            "uncovered": [],
+            "candidateCount": 1,
+            "candidateUniverseCount": 1,
+            "timeMs": 3,
+        }, body)
+
+    monkeypatch.setattr(server, "_run_native_engine_service_pipeline", fake_engine, raising=True)
+
+    payload = _base_opt_payload(_full_constraints())
+    payload["params"].update(
+        {
+            "riskThresholdTemplate": "conservative",
+            "minRiskDistanceMm": 0.42,
+        }
+    )
+    payload["correctionFactors"] = {
+        "ap": 2.0,
+        "ml": 1.0,
+        "dv": 1.0,
+        "apShift": 0.5,
+        "mlShift": 0.0,
+        "dvShift": 0.0,
+    }
+
+    resp = client.post("/api/optimize", json=payload)
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["ok"] is True
+    assert captured["body"]["params"]["riskThresholdTemplate"] == "conservative"
+    assert captured["body"]["params"]["riskThresholdsMm"]["vessel"] == pytest.approx(0.80, abs=1e-6)
+    assert captured["body"]["correctionApplied"] is True
+    assert body["correctionApplied"] is True
+    assert body["selected"][0]["ap_mm_corrected"] == pytest.approx(2.9, abs=1e-6)
+    replay_resp = client.get(f"/api/replay/{body['requestId']}")
+    assert replay_resp.status_code == 200
+    replay = replay_resp.get_json()["record"]
+    assert replay["request"]["params"]["riskThresholdTemplate"] == "conservative"
+    assert replay["request"]["correctionApplied"] is True
+
+
+def test_strict_endpoint_request_bypasses_native_engine_service(server, monkeypatch):
+    client = server.app.test_client()
+    calls = {"python": 0, "native": 0}
+
+    monkeypatch.setattr(server, "_native_engine_service_enabled", lambda: True, raising=True)
+    monkeypatch.setattr(server, "atlas_loaded", True, raising=False)
+    monkeypatch.setattr(
+        server,
+        "reconstruction_quality_state",
+        {"gateEnabled": True, "passed": True, "blockingReasons": []},
+        raising=False,
+    )
+
+    def fake_python(body, task_id):
+        calls["python"] += 1
+        return {
+            "ok": True,
+            "selected": [],
+            "uncovered": list(body.get("targetKeys") or []),
+            "algorithm": "greedy",
+            "candidateCount": 0,
+            "candidateUniverseCount": 0,
+            "timeMs": 1,
+        }
+
+    def fake_native(body, task_id):
+        calls["native"] += 1
+        raise AssertionError("native engine must not receive strict endpoint requests")
+
+    monkeypatch.setattr(server, "_run_optimize_pipeline", fake_python, raising=True)
+    monkeypatch.setattr(server, "_run_native_engine_service_pipeline", fake_native, raising=True)
+
+    payload = _base_opt_payload(_full_constraints())
+    payload["params"].update({
+        "targetEndpointPolicy": "tip_in_target",
+        "depthOptimizationEnabled": True,
+        "stabilityTieBreakerEnabled": False,
+    })
+    resp = client.post("/api/optimize", json=payload)
+
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["ok"] is True
+    assert body["plannerExecutionBackend"] == "python_strict_contract"
+    assert body["nativeEngineBypassReason"]
+    assert calls == {"python": 1, "native": 0}
+
+
+def test_native_optimize_enforces_reconstruction_quality_gate(server, monkeypatch):
+    client = server.app.test_client()
+    monkeypatch.setattr(server, "_native_engine_service_enabled", lambda: True, raising=True)
+    monkeypatch.setattr(
+        server,
+        "reconstruction_quality_state",
+        {
+            "gateEnabled": True,
+            "passed": False,
+            "blockingReasons": ["dice below threshold"],
+        },
+        raising=False,
+    )
+
+    def fail_if_called(body, task_id):
+        raise AssertionError("native engine should not be called when MRI QC fails")
+
+    monkeypatch.setattr(server, "_run_native_engine_service_pipeline", fail_if_called, raising=True)
+    resp = client.post("/api/optimize", json=_base_opt_payload(_full_constraints()))
+    assert resp.status_code == 422
+    body = resp.get_json()
+    assert body["ok"] is False
+    assert body["code"] == "reconstruction_quality_gate_block"
+    assert "reconstructionQuality" in body
 
 
 def test_benchmark_init_and_status_support_custom_workspace_paths(server, tmp_path):
@@ -2461,6 +2857,30 @@ def test_score_candidates_parallel_returns_compute_metadata(server):
     assert stats["workersUsed"] >= 1
 
 
+def test_region_index_cache_uses_json_not_pickle(server, tmp_path, monkeypatch):
+    cache_dir = tmp_path / "region_index_cache"
+    monkeypatch.setattr(server, "REGION_INDEX_CACHE_DIR", cache_dir, raising=False)
+    monkeypatch.setattr(server, "REGION_INDEX_CACHE_ENABLED", True, raising=False)
+    monkeypatch.setattr(server, "REGION_INDEX_CACHE_MIN_REGIONS", 1, raising=False)
+
+    cache_path = server._save_region_index_cache(
+        "allen_sdk",
+        "abc123",
+        {"CA1": {"id": 1}},
+        {1: {"id": 1, "acronym": "CA1"}},
+        {1: [1, 2, 3]},
+    )
+    assert cache_path.endswith("_region_index.json")
+    assert not list(cache_dir.glob("*.pkl"))
+    raw = json.loads(Path(cache_path).read_text(encoding="utf-8"))
+    assert raw["plannerSeed"]["CA1"]["id"] == 1
+
+    loaded = server._load_region_index_cache("allen_sdk", "abc123")
+    assert loaded["cacheHit"] is True
+    assert loaded["plannerSeed"]["CA1"]["id"] == 1
+    assert loaded["structureMap"]["1"]["acronym"] == "CA1"
+
+
 def test_calibration_profile_overrides_defaults_when_not_explicit(server, tmp_path):
     calib_path = tmp_path / "planner_calibration.json"
     calib_payload = {
@@ -2528,16 +2948,24 @@ def test_risk_margin_tre_inflates_only_regular_risk_thresholds(server):
 def test_risk_thresholds_floor_boundary_surface_classes(server):
     payload = _base_opt_payload(_full_constraints())
     payload["params"]["riskThresholdsMm"] = {
+        "default": 0.0,
+        "vessel": 0.0,
+        "ventricle": 0.0,
+        "sulcus": 0.0,
         "cortex_outside": 0.0,
         "brain_surface": 0.0,
         "drilling_surface": 0.0,
-        "skull": 0.01,
+        "skull": 0.0,
     }
 
     normalized = server._normalize_optimize_payload(payload)
     thresholds = normalized["params"]["riskThresholdsMm"]
 
+    assert thresholds["default"] == pytest.approx(0.01, abs=1e-6)
+    assert thresholds["vessel"] == pytest.approx(0.01, abs=1e-6)
+    assert thresholds["ventricle"] == pytest.approx(0.01, abs=1e-6)
+    assert thresholds["sulcus"] == pytest.approx(0.01, abs=1e-6)
+    assert thresholds["skull"] == pytest.approx(0.01, abs=1e-6)
     assert thresholds["cortex_outside"] == pytest.approx(0.05, abs=1e-6)
     assert thresholds["brain_surface"] == pytest.approx(0.05, abs=1e-6)
     assert thresholds["drilling_surface"] == pytest.approx(0.05, abs=1e-6)
-    assert thresholds["skull"] == pytest.approx(0.01, abs=1e-6)

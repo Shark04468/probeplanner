@@ -85,7 +85,7 @@ function summarizeUnityCapabilities(caps) {
   };
 }
 
-module.exports = {
+const unityBridge = {
   BRIDGE_METRIC_ABSOLUTE_KEYS,
   UNITY_COMMAND_FLUSH_INTERVAL_MS,
   UNITY_COMMAND_RETRY_DELAYS_MS,
@@ -98,3 +98,19 @@ module.exports = {
   normalizeUnityCapabilities,
   summarizeUnityCapabilities,
 };
+
+export {
+  BRIDGE_METRIC_ABSOLUTE_KEYS,
+  UNITY_COMMAND_FLUSH_INTERVAL_MS,
+  UNITY_COMMAND_RETRY_DELAYS_MS,
+  UNITY_FALLBACK_MAX_PAYLOAD_BYTES,
+  UNITY_FALLBACK_UNSUPPORTED_METHODS,
+  UNITY_LARGE_PAYLOAD_METHODS,
+  UNITY_LEGACY_BRIDGE_COMPAT,
+  UNITY_NO_RETRY_METHODS,
+  estimateUnityPayloadBytes,
+  normalizeUnityCapabilities,
+  summarizeUnityCapabilities,
+};
+
+export default unityBridge;

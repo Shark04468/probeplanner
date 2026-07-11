@@ -13,10 +13,23 @@
     },
     "params": { "type": "object" },
     "probeParams": { "type": "object" },
-    "constraintModes": { "type": "object" },
+    "constraintModes": {
+      "type": "object",
+      "default": {
+        "maxAngle": "enforce",
+        "minEntrySpacing": "enforce",
+        "minClearance": "enforce",
+        "lambdaBoundary": "enforce",
+        "brainBounds": "enforce",
+        "continuousRiskDistance": "enforce",
+        "hemisphere": "warn"
+      }
+    },
     "correctionFactors": { "type": ["object", "null"] },
     "correctionUncertainty": { "type": ["object", "null"] },
+    "correctionApplied": { "type": ["boolean", "null"] },
+    "plannerCalibration": { "type": ["object", "null"] },
     "clinicalContext": { "type": ["object", "null"] }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

@@ -18,6 +18,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot "port_guard.ps1")
 . (Join-Path $PSScriptRoot "path_defaults.ps1")
 if ((Get-Variable -Name ProjectRoot -ErrorAction SilentlyContinue) -and [string]::IsNullOrWhiteSpace($ProjectRoot)) { $ProjectRoot = Get-ProbePlannerBackendRoot }
 if ((Get-Variable -Name PythonExe -ErrorAction SilentlyContinue) -and [string]::IsNullOrWhiteSpace($PythonExe)) { $PythonExe = Get-ProbePlannerPython }
@@ -186,15 +187,8 @@ try {
   Write-Warning ("[env] failed to normalize PATH casing: {0}" -f $_.Exception.Message)
 }
 
-$existing = Get-ListeningProcIds -TargetPort $Port
-foreach ($procId in $existing) {
-  try {
-    Write-Host "[MRI+CCF] Stopping existing process on port ${Port}: PID=$procId"
-    Stop-Process -Id ([int]$procId) -Force -ErrorAction SilentlyContinue
-  } catch {}
-}
-Start-Sleep -Milliseconds 800
-$stillListening = Get-ListeningProcIds -TargetPort $Port
+Stop-ProbePlannerPortListeners -TargetPort $Port -ProjectRoot $ProjectRoot -ThrowOnForeign
+$stillListening = Get-ProbePlannerListeningProcIds -TargetPort $Port
 if ($stillListening -and $stillListening.Count -gt 0) {
   throw "Port $Port is still occupied by: $($stillListening -join ', ')"
 }

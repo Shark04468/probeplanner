@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 """Coarse QC sweep for AMBMC->CCF BSpline regularization.
 
 This script is intentionally cheap: it does not build MRI artifacts or SDFs.

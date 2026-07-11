@@ -1,0 +1,700 @@
+{
+  "schemaVersion": 1,
+  "releaseTag": "v0.2.0-paper",
+  "releaseDate": "2026-07-11",
+  "sourceCommit": "tag:v0.2.0-paper",
+  "pathPolicy": "No absolute workstation paths; placeholders identify required external roots.",
+  "provenance": [
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_01_allensdk/2026-07-10-allensdk-atlas-audit.json",
+      "publicPath": "experiments/experiment_01/2026-07-10-allensdk-atlas-audit.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_01_allensdk/2026-07-10-allensdk-atlas-audit.md",
+      "publicPath": "experiments/experiment_01/2026-07-10-allensdk-atlas-audit.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_02_registration_qc/2026-07-08-mri-to-ccf-registration-qc.json",
+      "publicPath": "experiments/experiment_02/2026-07-08-mri-to-ccf-registration-qc.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_02_registration_qc/2026-07-08-mri-to-ccf-registration-qc.md",
+      "publicPath": "experiments/experiment_02/2026-07-08-mri-to-ccf-registration-qc.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_02_registration_qc/figures/2026-07-08-mri-ccf-deformable-vs-affine-diagnostic.png",
+      "publicPath": "experiments/experiment_02/figures/2026-07-08-mri-ccf-deformable-vs-affine-diagnostic.png"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_02_registration_qc/figures/mri-ccf-registration-qc-ants062.pdf",
+      "publicPath": "experiments/experiment_02/figures/mri-ccf-registration-qc-ants062.pdf"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_02_registration_qc/figures/mri-ccf-registration-qc-ants062.png",
+      "publicPath": "experiments/experiment_02/figures/mri-ccf-registration-qc-ants062.png"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_02_registration_qc/figures/mri-ccf-registration-qc-ants062.svg",
+      "publicPath": "experiments/experiment_02/figures/mri-ccf-registration-qc-ants062.svg"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_02_registration_qc/figures/mri-ccf-registration-qc-strict-rerun.pdf",
+      "publicPath": "experiments/experiment_02/figures/mri-ccf-registration-qc-strict-rerun.pdf"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_02_registration_qc/figures/mri-ccf-registration-qc-strict-rerun.png",
+      "publicPath": "experiments/experiment_02/figures/mri-ccf-registration-qc-strict-rerun.png"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_02_registration_qc/figures/mri-ccf-registration-qc-strict-rerun.svg",
+      "publicPath": "experiments/experiment_02/figures/mri-ccf-registration-qc-strict-rerun.svg"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_03_coordinate_roundtrip/2026-07-09-coordinate-transform-roundtrip-qc.json",
+      "publicPath": "experiments/experiment_03/2026-07-09-coordinate-transform-roundtrip-qc.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_03_coordinate_roundtrip/2026-07-09-coordinate-transform-roundtrip-qc.md",
+      "publicPath": "experiments/experiment_03/2026-07-09-coordinate-transform-roundtrip-qc.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_03_coordinate_roundtrip/work/sampled_mri_points_mm.csv",
+      "publicPath": "experiments/experiment_03/work/sampled_mri_points_mm.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_03_coordinate_roundtrip/work/sampled_points_after_planner_loop_ccf_mm.csv",
+      "publicPath": "experiments/experiment_03/work/sampled_points_after_planner_loop_ccf_mm.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_03_coordinate_roundtrip/work/sampled_points_back_mri_mm.csv",
+      "publicPath": "experiments/experiment_03/work/sampled_points_back_mri_mm.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_03_coordinate_roundtrip/work/sampled_points_in_ccf_mm.csv",
+      "publicPath": "experiments/experiment_03/work/sampled_points_in_ccf_mm.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_04_registration_perturbation/registration-perturbation-sensitivity.csv",
+      "publicPath": "experiments/experiment_04/registration-perturbation-sensitivity.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_04_registration_perturbation/registration-perturbation-sensitivity.json",
+      "publicPath": "experiments/experiment_04/registration-perturbation-sensitivity.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_04_registration_perturbation/registration-perturbation-sensitivity.md",
+      "publicPath": "experiments/experiment_04/registration-perturbation-sensitivity.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_05_auto_probe_count/auto-probe-count.csv",
+      "publicPath": "experiments/experiment_05/auto-probe-count.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_05_auto_probe_count/auto-probe-count.json",
+      "publicPath": "experiments/experiment_05/auto-probe-count.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_05_auto_probe_count/auto-probe-count.md",
+      "publicPath": "experiments/experiment_05/auto-probe-count.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_06_digital_phantom/accuracy/phantom-accuracy.json",
+      "publicPath": "experiments/experiment_06/accuracy/phantom-accuracy.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_06_digital_phantom/accuracy/phantom-accuracy.md",
+      "publicPath": "experiments/experiment_06/accuracy/phantom-accuracy.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_06_digital_phantom/known-optimal-probe-count.csv",
+      "publicPath": "experiments/experiment_06/known-optimal-probe-count.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_06_digital_phantom/known-optimal-probe-count.json",
+      "publicPath": "experiments/experiment_06/known-optimal-probe-count.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_06_digital_phantom/known-optimal-probe-count.md",
+      "publicPath": "experiments/experiment_06/known-optimal-probe-count.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_07_baseline_comparison/baseline-comparison.csv",
+      "publicPath": "experiments/experiment_07/baseline-comparison.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_07_baseline_comparison/baseline-comparison.json",
+      "publicPath": "experiments/experiment_07/baseline-comparison.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_07_baseline_comparison/baseline-comparison.md",
+      "publicPath": "experiments/experiment_07/baseline-comparison.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_08_ablation/objective-constraint-ablation.csv",
+      "publicPath": "experiments/experiment_08/objective-constraint-ablation.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_08_ablation/objective-constraint-ablation.json",
+      "publicPath": "experiments/experiment_08/objective-constraint-ablation.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_08_ablation/objective-constraint-ablation.md",
+      "publicPath": "experiments/experiment_08/objective-constraint-ablation.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_09_stability/planning-stability-full-planner.csv",
+      "publicPath": "experiments/experiment_09/planning-stability-full-planner.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_09_stability/planning-stability-full-planner.json",
+      "publicPath": "experiments/experiment_09/planning-stability-full-planner.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_09_stability/planning-stability-full-planner.md",
+      "publicPath": "experiments/experiment_09/planning-stability-full-planner.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/figures/2026-07-10-real-atlas-case-study-target-safe-case_01_single_vpm.pdf",
+      "publicPath": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_01_single_vpm.pdf"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/figures/2026-07-10-real-atlas-case-study-target-safe-case_01_single_vpm.png",
+      "publicPath": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_01_single_vpm.png"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/figures/2026-07-10-real-atlas-case-study-target-safe-case_01_single_vpm.svg",
+      "publicPath": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_01_single_vpm.svg"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/figures/2026-07-10-real-atlas-case-study-target-safe-case_02_merged_hippocampal.pdf",
+      "publicPath": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_02_merged_hippocampal.pdf"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/figures/2026-07-10-real-atlas-case-study-target-safe-case_02_merged_hippocampal.png",
+      "publicPath": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_02_merged_hippocampal.png"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/figures/2026-07-10-real-atlas-case-study-target-safe-case_02_merged_hippocampal.svg",
+      "publicPath": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_02_merged_hippocampal.svg"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/figures/2026-07-10-real-atlas-case-study-target-safe-case_03_distributed_multitarget.pdf",
+      "publicPath": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_03_distributed_multitarget.pdf"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/figures/2026-07-10-real-atlas-case-study-target-safe-case_03_distributed_multitarget.png",
+      "publicPath": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_03_distributed_multitarget.png"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/figures/2026-07-10-real-atlas-case-study-target-safe-case_03_distributed_multitarget.svg",
+      "publicPath": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_03_distributed_multitarget.svg"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/figures/2026-07-10-real-atlas-case-study-target-safe-case_04_depth_limited_uncovered.pdf",
+      "publicPath": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_04_depth_limited_uncovered.pdf"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/figures/2026-07-10-real-atlas-case-study-target-safe-case_04_depth_limited_uncovered.png",
+      "publicPath": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_04_depth_limited_uncovered.png"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/figures/2026-07-10-real-atlas-case-study-target-safe-case_04_depth_limited_uncovered.svg",
+      "publicPath": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_04_depth_limited_uncovered.svg"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/real-atlas-case-study.csv",
+      "publicPath": "experiments/experiment_10/real-atlas-case-study.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/real-atlas-case-study.json",
+      "publicPath": "experiments/experiment_10/real-atlas-case-study.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/real-atlas-case-study.md",
+      "publicPath": "experiments/experiment_10/real-atlas-case-study.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/trajectory-containment-audit.csv",
+      "publicPath": "experiments/experiment_10/trajectory-containment-audit.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/trajectory-containment-audit.json",
+      "publicPath": "experiments/experiment_10/trajectory-containment-audit.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/experiment_10_real_atlas/trajectory-containment-audit.md",
+      "publicPath": "experiments/experiment_10/trajectory-containment-audit.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-final-benchmark/acceptance-report.json",
+      "publicPath": "validation/final-benchmark/acceptance-report.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-final-benchmark/acceptance-report.md",
+      "publicPath": "validation/final-benchmark/acceptance-report.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-final-benchmark/CHECKLIST.md",
+      "publicPath": "validation/final-benchmark/CHECKLIST.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-final-benchmark/final-benchmark-manifest.json",
+      "publicPath": "validation/final-benchmark/final-benchmark-manifest.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-final-benchmark/PLAN.md",
+      "publicPath": "validation/final-benchmark/PLAN.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-final-benchmark/single-target-diagnostics.csv",
+      "publicPath": "validation/final-benchmark/single-target-diagnostics.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-final-benchmark/single-target-diagnostics.json",
+      "publicPath": "validation/final-benchmark/single-target-diagnostics.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-final-benchmark/strict-final-benchmark-results.json",
+      "publicPath": "validation/final-benchmark/strict-final-benchmark-results.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-baseline-ablation/CHECKLIST.md",
+      "publicPath": "validation/baseline-ablation/CHECKLIST.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-baseline-ablation/PLAN.md",
+      "publicPath": "validation/baseline-ablation/PLAN.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-baseline-ablation/strict-ablation-summary.json",
+      "publicPath": "validation/baseline-ablation/strict-ablation-summary.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-baseline-ablation/strict-baseline-ablation-results.csv",
+      "publicPath": "validation/baseline-ablation/strict-baseline-ablation-results.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-baseline-ablation/strict-baseline-ablation-results.json",
+      "publicPath": "validation/baseline-ablation/strict-baseline-ablation-results.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-baseline-ablation/strict-baseline-ablation-results.md",
+      "publicPath": "validation/baseline-ablation/strict-baseline-ablation-results.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-strict-baseline-ablation/strict-baseline-summary.json",
+      "publicPath": "validation/baseline-ablation/strict-baseline-summary.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-trajectory-stability/CHECKLIST.md",
+      "publicPath": "validation/registration-stability/CHECKLIST.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-trajectory-stability/PLAN.md",
+      "publicPath": "validation/registration-stability/PLAN.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-trajectory-stability/trajectory-stability-results.csv",
+      "publicPath": "validation/registration-stability/trajectory-stability-results.csv"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-trajectory-stability/trajectory-stability-results.json",
+      "publicPath": "validation/registration-stability/trajectory-stability-results.json"
+    },
+    {
+      "source": "docs/evidence/2026-07-11-trajectory-stability/trajectory-stability-results.md",
+      "publicPath": "validation/registration-stability/trajectory-stability-results.md"
+    },
+    {
+      "source": "docs/evidence/2026-07-10-strict-full-rerun/RUN_CONTRACT.md",
+      "publicPath": "RUN_CONTRACT.md"
+    }
+  ],
+  "files": [
+    {
+      "path": "experiments/experiment_01/2026-07-10-allensdk-atlas-audit.json",
+      "bytes": 6033,
+      "sha256": "634ba27847a9ad6f30480a7f8ea354df43579792e104e6736b32178689c2c5dd"
+    },
+    {
+      "path": "experiments/experiment_01/2026-07-10-allensdk-atlas-audit.md",
+      "bytes": 2510,
+      "sha256": "2431b74037b87b2f8318caa16a043884036d1e51f649e1f259e9039f4d04db0a"
+    },
+    {
+      "path": "experiments/experiment_02/2026-07-08-mri-to-ccf-registration-qc.json",
+      "bytes": 6268,
+      "sha256": "28cfda6d71e8ca69e5888267d53e2191292559eed479e75948dbdbc0f82caeab"
+    },
+    {
+      "path": "experiments/experiment_02/2026-07-08-mri-to-ccf-registration-qc.md",
+      "bytes": 4151,
+      "sha256": "28c5a54efce1508b4897e35c21bad324717d80a2ed88ef6e53f3a2dc91fb6a68"
+    },
+    {
+      "path": "experiments/experiment_02/figures/2026-07-08-mri-ccf-deformable-vs-affine-diagnostic.png",
+      "bytes": 658155,
+      "sha256": "cae88303294d6a8b5e6ed8f0fca2acd497797c2a8e10ec1a6f4cb754c9ad8fdf"
+    },
+    {
+      "path": "experiments/experiment_02/figures/mri-ccf-registration-qc-ants062.pdf",
+      "bytes": 245896,
+      "sha256": "4fe118c43056e35c2c47b3ef2724b9d3de4e970b4e555152e345eff0865b40a2"
+    },
+    {
+      "path": "experiments/experiment_02/figures/mri-ccf-registration-qc-ants062.png",
+      "bytes": 790786,
+      "sha256": "f18416e36b6d46d645274edaea973a8ed0f6ec3f616acec55c09312a5bfeaf47"
+    },
+    {
+      "path": "experiments/experiment_02/figures/mri-ccf-registration-qc-ants062.svg",
+      "bytes": 524882,
+      "sha256": "7dc1bee99b09affcc75e846c392d945d0dd8399956352316eb56937f1fc4c1e8"
+    },
+    {
+      "path": "experiments/experiment_02/figures/mri-ccf-registration-qc-strict-rerun.pdf",
+      "bytes": 260589,
+      "sha256": "44452c1e423624c7909aad11ed7ba479da62c787622dc9eb357313d4d23bd985"
+    },
+    {
+      "path": "experiments/experiment_02/figures/mri-ccf-registration-qc-strict-rerun.png",
+      "bytes": 860354,
+      "sha256": "d5dda9e35b5ff83c6153956f5a6b9715aff701681219885a69d56d9adca44ae0"
+    },
+    {
+      "path": "experiments/experiment_02/figures/mri-ccf-registration-qc-strict-rerun.svg",
+      "bytes": 572633,
+      "sha256": "d400951d4a084ddc4adc534d50f1138536674eb13726f8bba6a939c81794402e"
+    },
+    {
+      "path": "experiments/experiment_03/2026-07-09-coordinate-transform-roundtrip-qc.json",
+      "bytes": 7988,
+      "sha256": "7eebe17e907553c1e0da3d580ea4e9318ea4e24de9e89c619d3a0022e1934e40"
+    },
+    {
+      "path": "experiments/experiment_03/2026-07-09-coordinate-transform-roundtrip-qc.md",
+      "bytes": 3819,
+      "sha256": "c09249271efaff01617deaa8269e02c195bd55211d924189e120e699baeccf25"
+    },
+    {
+      "path": "experiments/experiment_03/work/sampled_mri_points_mm.csv",
+      "bytes": 46368,
+      "sha256": "e677b94946877a8177ff1541817e082d6cde9085a05a5383ff387f5dcfe9cdbd"
+    },
+    {
+      "path": "experiments/experiment_03/work/sampled_points_after_planner_loop_ccf_mm.csv",
+      "bytes": 46279,
+      "sha256": "24dffee384e4dd607f38f58e90298489b24fe8984b8a7a73011e2a797439979d"
+    },
+    {
+      "path": "experiments/experiment_03/work/sampled_points_back_mri_mm.csv",
+      "bytes": 22738,
+      "sha256": "1ad6d6c38df0a57622a371d51835eb905aca85c4ecc2c0a141b673bd50e97790"
+    },
+    {
+      "path": "experiments/experiment_03/work/sampled_points_in_ccf_mm.csv",
+      "bytes": 24737,
+      "sha256": "80fa7fce85d34ac301980dcf35a10fe5cf8ad06cfe4c29c8fa820e330da343d1"
+    },
+    {
+      "path": "experiments/experiment_04/registration-perturbation-sensitivity.csv",
+      "bytes": 7423,
+      "sha256": "b90ceccc09286cac9910da56b9aa784f26f73ff94ff4cadbe0ee1c6a1502e262"
+    },
+    {
+      "path": "experiments/experiment_04/registration-perturbation-sensitivity.json",
+      "bytes": 4220868,
+      "sha256": "028d57e91aa865377913245c8fa97e9890548c64f287d8da8e8a37152c63e6a5"
+    },
+    {
+      "path": "experiments/experiment_04/registration-perturbation-sensitivity.md",
+      "bytes": 7099,
+      "sha256": "a6f2854559a7c686737965bb2043e8c1461a341ba3d768238b144ebd72683fb7"
+    },
+    {
+      "path": "experiments/experiment_05/auto-probe-count.csv",
+      "bytes": 1122,
+      "sha256": "c65783c66fbfcf2c7621a25007e9d84425b2221e3061dca3a060f00a4490efb2"
+    },
+    {
+      "path": "experiments/experiment_05/auto-probe-count.json",
+      "bytes": 76751,
+      "sha256": "09fd1b4d1874a59c790e6e694ae78c065b0788d5ba18ec9d6d31f4ead6284243"
+    },
+    {
+      "path": "experiments/experiment_05/auto-probe-count.md",
+      "bytes": 4566,
+      "sha256": "6c2157d67aafbd1b8c07fee68dd9fcfbee9fcaac00216ad689fac82224c40c12"
+    },
+    {
+      "path": "experiments/experiment_06/accuracy/phantom-accuracy.json",
+      "bytes": 10478,
+      "sha256": "7e7e3b4ceb4c5ec8b297f54fe355e448fcd4fd5a1a8c0f711e65c108bf8e47a2"
+    },
+    {
+      "path": "experiments/experiment_06/accuracy/phantom-accuracy.md",
+      "bytes": 1896,
+      "sha256": "c571dffd7b9e3e56b5d2bfe52cb610f7bc682ad95ef9945d8dd3acd6bbb0c5d7"
+    },
+    {
+      "path": "experiments/experiment_06/known-optimal-probe-count.csv",
+      "bytes": 510,
+      "sha256": "944d8b22164fda39ac1b63069f4252c1fef0d8ff5beb50027a970640ddf74eed"
+    },
+    {
+      "path": "experiments/experiment_06/known-optimal-probe-count.json",
+      "bytes": 31541,
+      "sha256": "f6886215b28ac57225b75bbc69e88e3b8f3ebced9112d5240e28ee935157c091"
+    },
+    {
+      "path": "experiments/experiment_06/known-optimal-probe-count.md",
+      "bytes": 2207,
+      "sha256": "9dff5c8348733e6f10dfb5735e5da25c002601973b33e16a89505dd8b48d0c01"
+    },
+    {
+      "path": "experiments/experiment_07/baseline-comparison.csv",
+      "bytes": 5098,
+      "sha256": "18bcd0723199f18efb27431a55e449a9371c5295ce014409ec6ea13454338ba2"
+    },
+    {
+      "path": "experiments/experiment_07/baseline-comparison.json",
+      "bytes": 152532,
+      "sha256": "74f6b7435b0f3c919cbb1ba6a5de671c7995f4fc026ff3e0071441d04a4236de"
+    },
+    {
+      "path": "experiments/experiment_07/baseline-comparison.md",
+      "bytes": 5610,
+      "sha256": "2d2b21710a9daaaed3c615ffe14e20a9e638c43b8d71311c52bafd34f7f9e299"
+    },
+    {
+      "path": "experiments/experiment_08/objective-constraint-ablation.csv",
+      "bytes": 8848,
+      "sha256": "6dfecd4caa132985b6f82a192cdc564c88c3f97f6af61950c3c3cf1b8cec91e2"
+    },
+    {
+      "path": "experiments/experiment_08/objective-constraint-ablation.json",
+      "bytes": 232673,
+      "sha256": "fd85c2eef1c828bffb33fcaeb88cd477d17a8e6d00f60116a2e94a679ea1bf07"
+    },
+    {
+      "path": "experiments/experiment_08/objective-constraint-ablation.md",
+      "bytes": 6539,
+      "sha256": "95fc7730c360890d1192857b3319053f37bd34cf5c5ece38af1c160d086a91ef"
+    },
+    {
+      "path": "experiments/experiment_09/planning-stability-full-planner.csv",
+      "bytes": 6445,
+      "sha256": "aec0e0dd8bc4c804cbfce70273f17e5679dcbf432b35b2f35c01c667718518b3"
+    },
+    {
+      "path": "experiments/experiment_09/planning-stability-full-planner.json",
+      "bytes": 1344003,
+      "sha256": "a8762c587de53da0a36179cd8d6287c0e93827d3ba63a630b14f200d4eacd52c"
+    },
+    {
+      "path": "experiments/experiment_09/planning-stability-full-planner.md",
+      "bytes": 7797,
+      "sha256": "3fb878923e3bd651095304b8148bcf227555b75ff01eac36fe88b2e1610b0a7e"
+    },
+    {
+      "path": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_01_single_vpm.pdf",
+      "bytes": 256964,
+      "sha256": "f12e3b572439d2c569e9a27a3b841dd1d24b9200619a3d6b5ade3cca80c22179"
+    },
+    {
+      "path": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_01_single_vpm.png",
+      "bytes": 753211,
+      "sha256": "17ca92f210ea09d789a0340652990f15866556fae45efc7d2e616baac018fb28"
+    },
+    {
+      "path": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_01_single_vpm.svg",
+      "bytes": 474655,
+      "sha256": "2ba2ea8afc8b1414dba6d440f28a06d0cec740fd3b3a96312f1c20e269812930"
+    },
+    {
+      "path": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_02_merged_hippocampal.pdf",
+      "bytes": 261228,
+      "sha256": "c867c2847083e5b53abfcf2afb25e445f9e438f10fad4a57423ab849d448b39d"
+    },
+    {
+      "path": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_02_merged_hippocampal.png",
+      "bytes": 775053,
+      "sha256": "a70421b6843a4e1c421d4fec0382d9ab06aa74202310d0eed454fc2d3db05ef7"
+    },
+    {
+      "path": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_02_merged_hippocampal.svg",
+      "bytes": 484743,
+      "sha256": "46344cba758365758a01b8616ee7b07d688f47856dfda337cd9622ef337d2601"
+    },
+    {
+      "path": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_03_distributed_multitarget.pdf",
+      "bytes": 250193,
+      "sha256": "574a3e421d9f9c9b5f3efa12d6bb84707e5de765fb62a7c948af3139054dc8e9"
+    },
+    {
+      "path": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_03_distributed_multitarget.png",
+      "bytes": 746480,
+      "sha256": "2855bafbe19897767d1521c01670ed5ea06faef21d444119ff3780038c742320"
+    },
+    {
+      "path": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_03_distributed_multitarget.svg",
+      "bytes": 474253,
+      "sha256": "1f3e1d91ba2ef23f5559c45ea37e32b92ebd27a02b8c07778eb6e13abf003f5b"
+    },
+    {
+      "path": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_04_depth_limited_uncovered.pdf",
+      "bytes": 241072,
+      "sha256": "7850f27c1c61cd504723f91a1946187d4ee87a64d8fcf5be796821cc0d10e807"
+    },
+    {
+      "path": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_04_depth_limited_uncovered.png",
+      "bytes": 706702,
+      "sha256": "7f2ccbdc3e7f0d2d3a0df6b190922675091516bc2ef8098cadb3e50ad724f12e"
+    },
+    {
+      "path": "experiments/experiment_10/figures/2026-07-10-real-atlas-case-study-target-safe-case_04_depth_limited_uncovered.svg",
+      "bytes": 455034,
+      "sha256": "220e5402eef0f1eaf68b73c18c1025da9354e0ebf9909558aad9f93469ef4876"
+    },
+    {
+      "path": "experiments/experiment_10/real-atlas-case-study.csv",
+      "bytes": 1053,
+      "sha256": "1b57bf6c6a20b7157deb3046a88608d2ffd46d631274f791c8d6de14c7efb6cb"
+    },
+    {
+      "path": "experiments/experiment_10/real-atlas-case-study.json",
+      "bytes": 62865,
+      "sha256": "9d172130f95cd2fc4f7732e2aac921c4765203bbd6106f842d48d88a7f620ba4"
+    },
+    {
+      "path": "experiments/experiment_10/real-atlas-case-study.md",
+      "bytes": 3416,
+      "sha256": "b3577a71a56ca8ac5d92ab7e06e9060dccbde8a2d587da6c845b06970fb9c290"
+    },
+    {
+      "path": "experiments/experiment_10/trajectory-containment-audit.csv",
+      "bytes": 630,
+      "sha256": "cf7478b3c7463faca5abe048890a40ec407f1dfb1e0cdf1e4d6f2db3fcf59ba1"
+    },
+    {
+      "path": "experiments/experiment_10/trajectory-containment-audit.json",
+      "bytes": 7340,
+      "sha256": "aa341bd1baf8cd58c0312e8cf2d6f9dba9c045edebe9cdff3bdaf9750d7162e6"
+    },
+    {
+      "path": "experiments/experiment_10/trajectory-containment-audit.md",
+      "bytes": 1053,
+      "sha256": "7ad8fd7ee1604f402569c7665ed57edde28d90f5f4c8796b6bdcb660f9e5d961"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1465,
+      "sha256": "25a14117990e61fd06533098d647a5532ad28498b49c84e73ca8b47e7a71ad84"
+    },
+    {
+      "path": "RUN_CONTRACT.md",
+      "bytes": 2535,
+      "sha256": "201e8322c437d3e7984094ec40fce60bbb7eb00657e36a5535c1e5b976d13950"
+    },
+    {
+      "path": "validation/baseline-ablation/CHECKLIST.md",
+      "bytes": 591,
+      "sha256": "4df04a80185560a2516facb9a5520b2785a48729e0d3b3521a6357d176de397a"
+    },
+    {
+      "path": "validation/baseline-ablation/PLAN.md",
+      "bytes": 1519,
+      "sha256": "ccabed566a582dbd8cf7f1009072f8ddc08970576fdcc6b067b53dd559c4125d"
+    },
+    {
+      "path": "validation/baseline-ablation/strict-ablation-summary.json",
+      "bytes": 5172,
+      "sha256": "446afa1cbdb4d2a64fcfd48cee90062ca63ff6ccd2165e8e623a72ccd6c82529"
+    },
+    {
+      "path": "validation/baseline-ablation/strict-baseline-ablation-results.csv",
+      "bytes": 53786,
+      "sha256": "5c4a674c98b63b92caa62f123f2abe9cee0e4604f3ca333b1d3766fc8ea8f8e5"
+    },
+    {
+      "path": "validation/baseline-ablation/strict-baseline-ablation-results.json",
+      "bytes": 1967194,
+      "sha256": "59528d44d3a3fe55bbb541e947d62ec04c6891c64f4e1b42154e70d4f6be1695"
+    },
+    {
+      "path": "validation/baseline-ablation/strict-baseline-ablation-results.md",
+      "bytes": 3003,
+      "sha256": "617951a7889de10a8e342426cc4d990be294e158a2cccab4dbb1896172ec6a1b"
+    },
+    {
+      "path": "validation/baseline-ablation/strict-baseline-summary.json",
+      "bytes": 3641,
+      "sha256": "ccf79d2f7177c5f30a9be4b4c8ceb1a2bf84c3d9fd268008df42894bc83b4cfd"
+    },
+    {
+      "path": "validation/final-benchmark/acceptance-report.json",
+      "bytes": 546,
+      "sha256": "5a29871a0dea246023488bbad8588802a17a78d1a5b4b1dda640b1e02ecf5572"
+    },
+    {
+      "path": "validation/final-benchmark/acceptance-report.md",
+      "bytes": 1232,
+      "sha256": "b49d273a3b978eaf7c8cd416ef2f73577c8fb140f5efadca022ab65538c8dead"
+    },
+    {
+      "path": "validation/final-benchmark/CHECKLIST.md",
+      "bytes": 825,
+      "sha256": "f3809489f704099539faf44c27cccc2a6ed75a06ff7fd76d4757e82e03af453f"
+    },
+    {
+      "path": "validation/final-benchmark/final-benchmark-manifest.json",
+      "bytes": 932811,
+      "sha256": "071be1ef421bd547bd8bdde360f79bde58215ce4e34eeeaa686a3d1928ba06f6"
+    },
+    {
+      "path": "validation/final-benchmark/PLAN.md",
+      "bytes": 2836,
+      "sha256": "0ada95967df95e0b9770678fd7b2d9bc6a244f8fb57c0a58daa9ecf50965ec47"
+    },
+    {
+      "path": "validation/final-benchmark/single-target-diagnostics.csv",
+      "bytes": 500,
+      "sha256": "d4137755432a410dc2128cbfd90100cc8dd5dd86e53d2a612456446e1ccd215b"
+    },
+    {
+      "path": "validation/final-benchmark/single-target-diagnostics.json",
+      "bytes": 146187,
+      "sha256": "b1ff5f46f7f69fdcfa82ed5bb38370f8ee711bb39b4b62b6be612fe206302b7b"
+    },
+    {
+      "path": "validation/final-benchmark/strict-final-benchmark-results.json",
+      "bytes": 2739893,
+      "sha256": "ed11b0184ff4be9428c376e3a4049eae91181e40d8ef5af344339ac596078938"
+    },
+    {
+      "path": "validation/registration-stability/CHECKLIST.md",
+      "bytes": 429,
+      "sha256": "045506e7388e66ca7e9b9694d11375295ac86cfa1ef2eb3d0e152de02ceeeb22"
+    },
+    {
+      "path": "validation/registration-stability/PLAN.md",
+      "bytes": 1576,
+      "sha256": "5a372e46421bce2d75188dc634dc7522f14910e65ba7fd7466a58237403b36ae"
+    },
+    {
+      "path": "validation/registration-stability/trajectory-stability-results.csv",
+      "bytes": 29073,
+      "sha256": "a29d7cdc896722d5b286da3dc1a4951e68b343eb5663209e0183e5127afd1ec9"
+    },
+    {
+      "path": "validation/registration-stability/trajectory-stability-results.json",
+      "bytes": 6309305,
+      "sha256": "1242d4662943346bee3af220fd06685d44c5dc0837957f765f2c3777957cd0d2"
+    },
+    {
+      "path": "validation/registration-stability/trajectory-stability-results.md",
+      "bytes": 1606,
+      "sha256": "33a450706ed970c6815227cd34036d69651282b5a1d06056e286425641c06ff8"
+    }
+  ]
+}

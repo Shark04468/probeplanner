@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 """Build a native MRI planning profile from the strict MRI->CCF ANTs baseline.
 
 The registration baseline is kept as the atlas bridge.  This script applies the

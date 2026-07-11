@@ -2,7 +2,7 @@
   "id": "13a2046cc6594fb792bc3025f36393d8",
   "label": "MOs+CA1+SSp+VISrl+VISal+VISp+VISpm-13a2046c",
   "source": "local",
-  "requestHash": "47472bac0d21522323a1b16f9669274b875140b032833b50853da9897a2bb700",
+  "requestHash": "63fc99a9761fb96cb044da91b16483e887e966991520a4b0b14d4677dd135586",
   "targetKeys": [
     "MOs",
     "CA1",
@@ -11,6 +11,9 @@
     "VISal",
     "VISp",
     "VISpm"
+  ],
+  "excludedTargetKeys": [
+    "PFC"
   ],
   "algorithm": "drcc",
   "request": {
@@ -85,7 +88,8 @@
       "minClearance": "enforce",
       "lambdaBoundary": "enforce",
       "brainBounds": "enforce",
-      "hemisphere": "warn"
+      "hemisphere": "warn",
+      "continuousRiskDistance": "enforce"
     },
     "correctionFactors": null,
     "correctionUncertainty": null,
@@ -95,7 +99,8 @@
       "nativeExcludedFallbackTargetKeys": [
         "PFC"
       ],
-      "nativeExcludedFallbackTargetReason": "not atlas-backed in native region index; excluded from real coverage gate"
+      "nativeExcludedFallbackTargetReason": "not atlas-backed in native region index; excluded from real coverage gate",
+      "nativeTargetLookupSource": "artifact://region-map"
     }
   }
 }

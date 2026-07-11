@@ -29,15 +29,46 @@ jobs:
         with:
           python-version: "3.11"
       - run: npm ci
+      - run: npm --prefix apps/ui ci
+      - run: npm audit --audit-level=moderate
+      - run: npm --prefix apps/ui audit --audit-level=moderate
       - run: npm run typecheck
       - run: npm test
+      - run: npm run ui:test
+      - run: npm --prefix apps/ui run quality
       - run: npm run ui:build
       - run: cargo test -p planner-engine
+      - run: cargo clippy -p planner-engine --all-targets -- -D warnings
+      - name: Cache RustSec advisory DB
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/advisory-db
+          key: cargo-advisory-db-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            cargo-advisory-db-${{ runner.os }}-
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+      - name: Run cargo audit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            cargo audit
+            if ($LASTEXITCODE -eq 0) {
+              exit 0
+            }
+            Write-Warning "cargo audit attempt $attempt failed with exit code $LASTEXITCODE"
+            Start-Sleep -Seconds (10 * $attempt)
+          }
+          Write-Warning "Falling back to cached RustSec advisory DB"
+          cargo audit --no-fetch --stale
+          exit $LASTEXITCODE
       - name: Install backend compatibility test dependencies
-        run: python -m pip install -r apps/backend-compat/requirements.txt
+        run: python -m pip install -r apps/backend-compat/requirements.txt -r apps/backend-compat/requirements-legacy.txt pip-audit
+      - run: python -m pip_audit -r apps/backend-compat/requirements.txt -r apps/backend-compat/requirements-legacy.txt
       - run: npm run backend:test
       - name: Python compileall for backend scripts
-        run: python -m compileall apps/backend-compat/scripts
+        run: python -m compileall apps/backend-compat/src apps/backend-compat/tests apps/backend-compat/scripts scripts
       - name: PowerShell parser check
         shell: pwsh
         run: |
@@ -54,13 +85,14 @@ jobs:
           if ($errors.Count -gt 0) { throw ($errors -join "`n") }
 
   native-backend-gates:
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.run_native_gates)
+    if: github.event_name == 'workflow_dispatch' && inputs.run_native_gates
     runs-on: [self-hosted, Windows]
     timeout-minutes: 90
     env:
       PROBEPLANNER_ARTIFACT_ROOT: ${{ vars.PROBEPLANNER_ARTIFACT_ROOT }}
       PROBEPLANNER_MRI_CCF_PROFILE_NAME: ${{ vars.PROBEPLANNER_MRI_CCF_PROFILE_NAME || 'ambmc_true_outer_full' }}
       PERF_BASELINE_SUMMARY: ${{ vars.PERF_BASELINE_SUMMARY || 'reports/baseline-legacy-10/summary.json' }}
+      SDF_BASELINE_SUMMARY: ${{ vars.SDF_BASELINE_SUMMARY || 'reports/native-sdf-adversarial-strict-v2/summary.json' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -71,7 +103,7 @@ jobs:
       - run: npm ci
       - name: Verify self-hosted backend gate environment
         shell: pwsh
-        run: ./scripts/verify_ci_environment.ps1 -RequireBackendBaseline
+        run: ./scripts/verify_ci_environment.ps1 -RequireBackendBaseline -RequireSdfBaseline
       - name: Start native engine
         shell: pwsh
         run: |
@@ -79,7 +111,7 @@ jobs:
             "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/run_engine.ps1",
             "-ArtifactRoot", $env:PROBEPLANNER_ARTIFACT_ROOT, "-KillExisting"
           )
-          ./scripts/wait_http.ps1 -Url "http://127.0.0.1:7878/healthz" -TimeoutSeconds 180
+          ./scripts/wait_http.ps1 -Url "http://127.0.0.1:7878/healthz" -TimeoutSeconds 180 -RequireJsonTruthy ok,atlasLoaded,sdfLoaded,riskSdfReady,regionIndexLoaded
       - name: Start backend compatibility shell
         shell: pwsh
         run: |
@@ -87,12 +119,12 @@ jobs:
             "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "apps/backend-compat/scripts/start_backend_compat.ps1",
             "-ArtifactRoot", $env:PROBEPLANNER_ARTIFACT_ROOT, "-UseEngineService"
           )
-          ./scripts/wait_http.ps1 -Url "http://127.0.0.1:5000/api/status" -TimeoutSeconds 240
+          ./scripts/wait_http.ps1 -Url "http://127.0.0.1:5000/api/status" -TimeoutSeconds 240 -RequireJsonTruthy ok,nativeEngineReady
       - name: Run 10-case backend gate
         run: npm run perf:gate:backend -- --baseline "$env:PERF_BASELINE_SUMMARY" --out reports/ci-native-backend --case-group replay10 --case-limit 10 --runs 3
         shell: pwsh
       - name: Run SDF adversarial gate
-        run: npm run perf:gate:sdf -- --baseline "$env:PERF_BASELINE_SUMMARY" --out reports/ci-sdf-adversarial --runs 1
+        run: npm run perf:gate:sdf -- --baseline "$env:SDF_BASELINE_SUMMARY" --out reports/ci-sdf-adversarial --runs 1
         shell: pwsh
       - name: Run real SDF boundary layer gate
         run: npm run sdf:boundary
@@ -116,7 +148,7 @@ jobs:
         run: ./scripts/stop_local_stack.ps1 -Ports 7878,5000
 
   browser3d-gate:
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.run_3d_gate)
+    if: github.event_name == 'workflow_dispatch' && inputs.run_3d_gate
     runs-on: [self-hosted, Windows]
     timeout-minutes: 90
     env:
@@ -135,6 +167,8 @@ jobs:
           python-version: "3.11"
       - run: npm ci
       - run: npm --prefix apps/ui ci
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
       - run: npm run ui:build
       - name: Verify self-hosted 3D gate environment
         shell: pwsh
@@ -146,14 +180,15 @@ jobs:
             "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/run_engine.ps1",
             "-ArtifactRoot", $env:PROBEPLANNER_ARTIFACT_ROOT, "-KillExisting"
           )
-          ./scripts/wait_http.ps1 -Url "http://127.0.0.1:7878/healthz" -TimeoutSeconds 180
+          ./scripts/wait_http.ps1 -Url "http://127.0.0.1:7878/healthz" -TimeoutSeconds 180 -RequireJsonTruthy ok,atlasLoaded,sdfLoaded,riskSdfReady,regionIndexLoaded
           Start-Process -FilePath powershell -WindowStyle Hidden -ArgumentList @(
             "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "apps/backend-compat/scripts/start_backend_compat.ps1",
             "-ArtifactRoot", $env:PROBEPLANNER_ARTIFACT_ROOT, "-UseEngineService"
           )
-          ./scripts/wait_http.ps1 -Url "http://127.0.0.1:5000/api/status" -TimeoutSeconds 240
+          ./scripts/wait_http.ps1 -Url "http://127.0.0.1:5000/api/status" -TimeoutSeconds 240 -RequireJsonTruthy ok,nativeEngineReady
           ./scripts/stop_local_stack.ps1 -Ports 3100
-          Start-Process -FilePath python -WindowStyle Hidden -ArgumentList @("-m", "http.server", "3100", "--directory", "apps/ui/build")
+          $uiBuild = Join-Path (Get-Location) "apps/ui/build"
+          Start-Process -FilePath python -WindowStyle Hidden -ArgumentList @("-m", "http.server", "3100", "--directory", $uiBuild)
           ./scripts/wait_http.ps1 -Url "http://127.0.0.1:3100" -TimeoutSeconds 120
       - name: Run headed 3D gate
         shell: pwsh

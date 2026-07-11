@@ -2,10 +2,11 @@
   "id": "8b83d8d249834bcba970b8e463ff6a9d",
   "label": "golden_ca1_medium",
   "source": "repo",
-  "requestHash": "e6a5d2936c34b0f2dae281f6f34f1d84369b993766e1c0cfbebc726962ae2fc7",
+  "requestHash": "a04960da62ed6d81b4adf8e764feef14d3b084a562143bd9f5fb952396891a8f",
   "targetKeys": [
     "CA1"
   ],
+  "excludedTargetKeys": [],
   "algorithm": "greedy",
   "request": {
     "probeParams": {
@@ -42,9 +43,9 @@
     "constraintModes": {
       "minEntrySpacing": "enforce",
       "hemisphere": "warn",
-      "lambdaBoundary": "warn",
+      "lambdaBoundary": "enforce",
       "brainBounds": "enforce",
-      "continuousRiskDistance": "warn",
+      "continuousRiskDistance": "enforce",
       "maxAngle": "enforce",
       "minClearance": "enforce"
     }
