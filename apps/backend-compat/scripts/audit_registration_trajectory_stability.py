@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import itertools
 import json
 import math
 import os
@@ -17,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -155,19 +155,18 @@ def matched_spatial_metrics(
     other = [geometry for probe in current if (geometry := probe_geometry(probe)) is not None]
     if not base or not other:
         return {
+            "matchingMethod": "rectangular_hungarian",
             "matchedProbeCount": 0,
+            "unmatchedBaselineProbeCount": len(base),
+            "unmatchedCurrentProbeCount": len(other),
             "entryDisplacementMm": None,
             "tipDisplacementMm": None,
             "angularChangeDeg": None,
         }
-    match_count = min(len(base), len(other))
-    best = None
-    for other_indices in itertools.permutations(range(len(other)), match_count):
-        total = 0.0
-        rows = []
-        for base_index, other_index in enumerate(other_indices):
-            base_entry, base_tip = base[base_index]
-            cur_entry, cur_tip = other[other_index]
+    cost = np.empty((len(base), len(other)), dtype=np.float64)
+    pair_metrics: dict[tuple[int, int], tuple[float, float, float]] = {}
+    for base_index, (base_entry, base_tip) in enumerate(base):
+        for other_index, (cur_entry, cur_tip) in enumerate(other):
             entry_mm = float(np.linalg.norm(cur_entry - base_entry) / 1000.0)
             tip_mm = float(np.linalg.norm(cur_tip - base_tip) / 1000.0)
             base_direction = base_tip - base_entry
@@ -181,13 +180,18 @@ def matched_spatial_metrics(
                 )
             )
             angle = float(math.degrees(math.acos(cosine)))
-            total += entry_mm + tip_mm + angle / 10.0
-            rows.append((entry_mm, tip_mm, angle))
-        if best is None or total < best[0]:
-            best = (total, rows)
-    rows = best[1] if best is not None else []
+            cost[base_index, other_index] = entry_mm + tip_mm + angle / 10.0
+            pair_metrics[(base_index, other_index)] = (entry_mm, tip_mm, angle)
+    baseline_indices, current_indices = linear_sum_assignment(cost)
+    rows = [
+        pair_metrics[(int(base_index), int(current_index))]
+        for base_index, current_index in zip(baseline_indices, current_indices)
+    ]
     return {
+        "matchingMethod": "rectangular_hungarian",
         "matchedProbeCount": len(rows),
+        "unmatchedBaselineProbeCount": len(base) - len(rows),
+        "unmatchedCurrentProbeCount": len(other) - len(rows),
         "entryDisplacementMm": round(max(row[0] for row in rows), 6) if rows else None,
         "tipDisplacementMm": round(max(row[1] for row in rows), 6) if rows else None,
         "angularChangeDeg": round(max(row[2] for row in rows), 6) if rows else None,

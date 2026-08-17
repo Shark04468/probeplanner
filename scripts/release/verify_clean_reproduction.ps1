@@ -7,6 +7,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$lockedPython = "3.10.20"
+$actualPython = (& $PythonExe -c "import platform; print(platform.python_version())").Trim()
+if ($LASTEXITCODE -ne 0) { throw "failed to inspect Python interpreter: $PythonExe" }
+if ($actualPython -ne $lockedPython) {
+  throw "Python $actualPython does not match locked version $lockedPython"
+}
 $runBase = Join-Path $repo ".probeplanner\reproduction"
 $runRoot = Join-Path $runBase ([guid]::NewGuid().ToString("N"))
 $source = Join-Path $runRoot "source"
@@ -24,6 +30,7 @@ try {
   $env:PROBEPLANNER_REPLAY_DIR = Join-Path $env:PROBEPLANNER_STATE_DIR "replay"
   $env:PROBEPLANNER_AUDIT_LOG = Join-Path $env:PROBEPLANNER_STATE_DIR "audit.log"
   $env:PYTHONDONTWRITEBYTECODE = "1"
+  $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD = "1"
 
   Push-Location $source
   try {
@@ -54,8 +61,16 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Python dependency installation failed" }
     & $venvPython -m pip check
     if ($LASTEXITCODE -ne 0) { throw "Python dependency check failed" }
-    & $venvPython -m pytest apps/backend-compat/tests/test_optimizer_server.py -q
-    if ($LASTEXITCODE -ne 0) { throw "backend tests failed" }
+    $testOutput = & $venvPython -m pytest `
+      apps/backend-compat/tests/test_optimizer_server.py `
+      apps/backend-compat/tests/test_validation_scripts.py -q 2>&1
+    $testExitCode = $LASTEXITCODE
+    $testOutput | ForEach-Object { Write-Host $_ }
+    if ($testExitCode -ne 0) { throw "backend and validation tests failed" }
+    $testText = $testOutput | Out-String
+    if ($testText -notmatch "(?m)(\d+) passed") { throw "pytest pass count was not reported" }
+    $passed = [int]$Matches[1]
+    if ($passed -ne 112) { throw "expected exactly 112 passed tests, observed $passed" }
     $expectedRust = "1.95.0"
     $actualRust = (& rustc "+$RustToolchain" --version).Split()[1]
     if ($actualRust -ne $expectedRust) { throw "Rust version $actualRust does not match locked $expectedRust" }

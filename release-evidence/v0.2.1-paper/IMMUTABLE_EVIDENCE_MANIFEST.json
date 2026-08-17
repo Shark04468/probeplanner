@@ -1,0 +1,1820 @@
+{
+  "archive": "ProbePlanner-v0.2.1-paper-immutable-evidence.zip",
+  "archiveSha256": "947ec62f04a866ce024d704bd5284b96c263990e2ef26c95e470ebdf47c81e62",
+  "embeddedManifestSha256": "f99a963fa41199fd2a2ddd1c8eda6c83a82c41ef4c99d85a4dd443abf5061efd",
+  "files": [
+    {
+      "path": "external_inputs/historical_clean_locked_manifest.json",
+      "sha256": "ae54b788825f758611bd6bf53953bbf9243bf45a7541c4866b4d9119c5df0181",
+      "size": 924321
+    },
+    {
+      "path": "external_inputs/planning_profile_artifact_manifest.json",
+      "sha256": "ebaa6bade50c34f5d84fccd3092bef7dc904cada6e983f31af363ec61ada8222",
+      "size": 3478
+    },
+    {
+      "path": "paper_final_validation/02_prespecified_holdout/CONFIG.json",
+      "sha256": "02f040440d898b4c5e10df4bb66e39d6556ba1bb2c54566182828cb9d2394351",
+      "size": 542
+    },
+    {
+      "path": "paper_final_validation/02_prespecified_holdout/REPORT.md",
+      "sha256": "39746b9c57f8fe22695ae0d8cd754949c1b38bd6cb4d340bb9faaed735942f7a",
+      "size": 482
+    },
+    {
+      "path": "paper_final_validation/02_prespecified_holdout/holdout_case_results.csv",
+      "sha256": "1420cfb7cb12e03296fca86e1aa0e1d925bf246b9afd413c35d6aaf14893a758",
+      "size": 4115
+    },
+    {
+      "path": "paper_final_validation/02_prespecified_holdout/holdout_manifest.json",
+      "sha256": "25c177b405ecf395e86511e2150edef8bd7343a59e31497873b79705f39e5d55",
+      "size": 8567
+    },
+    {
+      "path": "paper_final_validation/02_prespecified_holdout/holdout_manifest.sha256",
+      "sha256": "c00a0b6441a6017a25e6ca2f9f4b4537c670cc2a1e50c626154388b7e7821721",
+      "size": 89
+    },
+    {
+      "path": "paper_final_validation/02_prespecified_holdout/holdout_results.json",
+      "sha256": "8c2a4846521f1d734a4c29a751b536e5441d82c2e0290a882431be2084191485",
+      "size": 648439
+    },
+    {
+      "path": "paper_final_validation/02_prespecified_holdout/holdout_selected_probes.csv",
+      "sha256": "2f89acf96cc18a74dc2cd930335ec1819ae437b2406c3a7a66c1a064da28ee8d",
+      "size": 6529
+    },
+    {
+      "path": "paper_final_validation/02_prespecified_holdout/holdout_summary.json",
+      "sha256": "08747050fc3775d39066564cd6dbaaeee2c6d69b2f32ba01d43b67a6d7976edf",
+      "size": 608
+    },
+    {
+      "path": "paper_final_validation/02_prespecified_holdout/run_holdout.py",
+      "sha256": "9ca0981c92613fc39653ecb8e93aa083f968fd2da93ca2ac5b1a6d60c0bd9aea",
+      "size": 12704
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/CONFIG.json",
+      "sha256": "cfddabdf4d73044a80b2d6f28efc2fd408d14666ec44f89a62e64b971f642b3e",
+      "size": 973
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/REPORT.md",
+      "sha256": "9853786e8d402e38dcd8753267a6b113275e008549d9db5a3914bb7efb9e69a1",
+      "size": 343
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/exact_oracle_case_results.csv",
+      "sha256": "1498c496c0129ff1f239c4bcb49e692edc9d01eb4e7ddd6a2d07454b09a1f3ca",
+      "size": 11740
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/exact_oracle_results.json",
+      "sha256": "27773d24996740ef5b769c1d0b02ee3366768e56e99620a1b52b4fd552957404",
+      "size": 68237
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/exact_oracle_summary.json",
+      "sha256": "47179d6ce0584c654d6887da3f2396dbba6fc6296ef2dd34c376e9c4fd4c7092",
+      "size": 1291
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_001_single_cp.exact_model.json.gz",
+      "sha256": "84be30c475910f02b842d8cb337fd8330fa12cee44beaab76df2421eab91d8cc",
+      "size": 1273
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_002_single_rsp.exact_model.json.gz",
+      "sha256": "55a348a97aa2186f64a7614a228f7efe4ea8b1aef5c50346b1d81d4a65559109",
+      "size": 1299
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_003_single_sub.exact_model.json.gz",
+      "sha256": "3efeef55d9ac400ad2edb79fe368f8705851410ffed45357612c255fed5616a1",
+      "size": 456
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_004_single_vispm.exact_model.json.gz",
+      "sha256": "4027289258db041b8e0d4ebf58cff93981b3332654135668944f12e9044c0aff",
+      "size": 326
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_005_nearby_hippocampal.exact_model.json.gz",
+      "sha256": "f77277db3760c0785ce32eed3d7e0333f2ee65cad2c37d6ef70f14be519f9365",
+      "size": 5535
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_006_nearby_striatal.exact_model.json.gz",
+      "sha256": "bb94ba2b37c09242453ce0e480e5197b040f51a4d40fd0bea94df45d852206a8",
+      "size": 3554
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_008_nearby_sensorimotor.exact_model.json.gz",
+      "sha256": "4faad7fb6ebf2cc05531e4a1799fbbb0349141b90beadc35101398b271dc3f82",
+      "size": 13632
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_009_distributed_ca3_lgd.exact_model.json.gz",
+      "sha256": "fcf682d77ffca23108364ce4feab57efae167db42da1abde9afbfbc92cff2838",
+      "size": 1862
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_010_distributed_dg_vpm.exact_model.json.gz",
+      "sha256": "c562bc7f56e163da6013936afdada7a543898bc5a64953f571a901c9ffd33678",
+      "size": 1525
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_011_distributed_rsp_lp.exact_model.json.gz",
+      "sha256": "241a08368f5baeb1140aced9921696ef0640af0e87a586b03a0650fda29fdec5",
+      "size": 1585
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_013_bilateral_dg_vpm.exact_model.json.gz",
+      "sha256": "30b6f61fad17038c41dc44155de0fce9a16bb472509a4d5cf5928f25c1858856",
+      "size": 1573
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_014_bilateral_ca3_lgd.exact_model.json.gz",
+      "sha256": "7653bb453e870d20406ad15f954ed09a21e71b5e27c63da7d5d029bbd24f41de",
+      "size": 1900
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_015_bilateral_rsp_visp.exact_model.json.gz",
+      "sha256": "62cc6848f515c1d71ed895f34c37985254e843b7c92b7646e713380ee5474468",
+      "size": 4511
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_016_bilateral_cp_mos.exact_model.json.gz",
+      "sha256": "7219102abc7096e077854ab4f88ead133dc799ca40ac16392289aa1d0fa1e8e5",
+      "size": 6102
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_017_triad_ca1_lgd_mop.exact_model.json.gz",
+      "sha256": "a0d4cea95f9b6f05e0b8271cc36b9ead404df2ddc65ec111ff0bc55c56d80a87",
+      "size": 4018
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_018_triad_dg_lp_vispm.exact_model.json.gz",
+      "sha256": "d467bcd199b923e94c681c50978ebb1e78c3feaae0bb98db7fa01bb8a9157b3d",
+      "size": 2648
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_019_triad_cp_vpm_rsp.exact_model.json.gz",
+      "sha256": "dd66e5c270790f17fc858310ead252d44da4ed2d7ad8500769dfd74b41249d65",
+      "size": 11109
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_020_quartet_ca3_lgd_mos_ssp.exact_model.json.gz",
+      "sha256": "97958772ff615a583451f3d60374fd6be1b089121c7a2754d20b9072871ed683",
+      "size": 9871
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_022_quintet_ca1_dg_lgd_mop_visp.exact_model.json.gz",
+      "sha256": "ac2dff0270e09e04852bcad201bb702e5b9a65fc4c08ee90be9345f9c1cf9fda",
+      "size": 32553
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_023_quintet_ca3_cp_lp_mos_vispm.exact_model.json.gz",
+      "sha256": "2f299b1efe43ebf249f63c1725270b12a91fb4bdf11dffa3a872225e9520983c",
+      "size": 26097
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/holdout_024_bilateral_triad_ca1_lgd_ssp.exact_model.json.gz",
+      "sha256": "03845b4b8b53ceaefb863a6fbab0c31702e8f8d68b9af1d44827885a2d590c04",
+      "size": 4411
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_ca1_ca3.exact_model.json.gz",
+      "sha256": "604c1702c95e8fe1102b778904bb461642ffa85c639721299c14a43a76b89afa",
+      "size": 7050
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_ca1_dg.exact_model.json.gz",
+      "sha256": "c2e7fb44b3706c269912e8f499c7e915c9bba17233ffea10ed9ef21712cb3bbe",
+      "size": 3740
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_ca1_lgd.exact_model.json.gz",
+      "sha256": "9e9a0e55a8aefb394c0ced3abf804ae7490bcc0b7b10bdbcc9827aa36a1e62bc",
+      "size": 1835
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_ca1_lp.exact_model.json.gz",
+      "sha256": "7eeda49cf1435d8ce25ca89925262e7d0ba4f94d3047988ea70ef6aa0e70b1ab",
+      "size": 1142
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_ca1_mop.exact_model.json.gz",
+      "sha256": "0c0b97f9cfda49f723a176c226e63d900959bdd6bef96ecf0ce51a11a43be774",
+      "size": 7019
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_ca1_mos.exact_model.json.gz",
+      "sha256": "75c4f4ff5eb8b63f059404ce39142102f2ed343d01e316b153bd90e052534070",
+      "size": 4089
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_ca1_ssp.exact_model.json.gz",
+      "sha256": "b81f821384a79a215c4f077b569c4dfee422dfe0e717374a67b246fd3dc18767",
+      "size": 1794
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_ca1_visp.exact_model.json.gz",
+      "sha256": "7b813c2db6dccb915002ac2d247b00653a16a8de157bc5f235a4a1d86c30c177",
+      "size": 2623
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_ca1_vpm.exact_model.json.gz",
+      "sha256": "a0c4d4b1dcd13e3a89b95281e0d1ca4423aebb7961d118544892eb233e408d20",
+      "size": 1523
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_ca3_dg.exact_model.json.gz",
+      "sha256": "3b49c10a9ebd9e77b461d77b2b035736a9dd7ec934cd566412914e6ba091cb3d",
+      "size": 7350
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_ca3_mop.exact_model.json.gz",
+      "sha256": "572c590c41f2233b14c9cc1c70caf250c7252ce1e87c8869ccb7bdb4f294bdff",
+      "size": 3225
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_ca3_mos.exact_model.json.gz",
+      "sha256": "59f1ea2e719f034d699764e13760a9a63a3d8f20a68a17c0465b6e88ce8fd97f",
+      "size": 4148
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_dg_mop.exact_model.json.gz",
+      "sha256": "01c58daf57e71e8bf05a5524d419d829d320e17b0d96222a7a8f27607f15ff0e",
+      "size": 5453
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_dg_mos.exact_model.json.gz",
+      "sha256": "a71c2747199eee0da018bc70cae2d0f90ad2fc382e3d31020e559d07c2519391",
+      "size": 3859
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_ssp_mos.exact_model.json.gz",
+      "sha256": "8775536c14ca9abfba26424db93d4c179d9fe941beeef9c8a29f869744057e1c",
+      "size": 14249
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_vpm_mop.exact_model.json.gz",
+      "sha256": "ceb96b08e7cfc36f33a54959ad2b3e14ae710ab0ae3e81455937d436133ac9ac",
+      "size": 2350
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_bilateral_vpm_mos.exact_model.json.gz",
+      "sha256": "2b83261b3cd95c92a187f1b1892d9ba88bb35fe7e07484d0279900d56098055c",
+      "size": 3149
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_unilateral_ca1.exact_model.json.gz",
+      "sha256": "5f06efc59804bf12042ba2695e05dccf06bb1cb83003225bee247a10e002c336",
+      "size": 728
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_unilateral_ca3.exact_model.json.gz",
+      "sha256": "e22559566f68b0bb5ee7f0dbadd73eafecc53501a9dd98b60676cabf57a5d2af",
+      "size": 1111
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_unilateral_dg.exact_model.json.gz",
+      "sha256": "d55441003d768583df88490705f6bf9512a889b1acee3690a7a2a22edf9276ee",
+      "size": 1721
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_unilateral_lgd.exact_model.json.gz",
+      "sha256": "c07f1c755737ae8b5f7af46b16db53056ddf142b5d2cc5990b51e8ae58222c4b",
+      "size": 396
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_unilateral_lp.exact_model.json.gz",
+      "sha256": "2abafa17a4c6a170f8134f4617403e30de68803a754696d0f38cf4afee5343f6",
+      "size": 425
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_unilateral_mop.exact_model.json.gz",
+      "sha256": "8040a0832f0fe7f25351f6e0445456e49ef46660fdf30c5819dfd88dcd171406",
+      "size": 1381
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_unilateral_mos.exact_model.json.gz",
+      "sha256": "4f9f447d53fe7b9332619703a025f09f0017f26b6517d229671a02bb77258d0a",
+      "size": 1348
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_unilateral_ssp.exact_model.json.gz",
+      "sha256": "2bbc5aa071674b92188aa6798c43b3adabf84fd9373fb1bd3ddbd5f293015570",
+      "size": 1216
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_unilateral_visp.exact_model.json.gz",
+      "sha256": "73bd98d5634b09c3e33cec26491b12f1474b4a6c9b3151346229616b227dce16",
+      "size": 771
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/models/search_unilateral_vpm.exact_model.json.gz",
+      "sha256": "5c71b018e6473bf1b74c61d8301fc40a44a2a8b2d15ca3b18e8f759945f58e49",
+      "size": 560
+    },
+    {
+      "path": "paper_final_validation/03_exact_probe_count_oracle/run_exact_oracle.py",
+      "sha256": "2ee263412ca8a2c2196494d33d06f56a1c71e5088f8fb48815cf3867580dd7bb",
+      "size": 18550
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/FINAL_SOURCE_EXACT_ORACLE_REPORT.md",
+      "sha256": "c8a270518ed90e54762d7570c0d5970eebb18c20ae3b58f1a5493deafff1626a",
+      "size": 491
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/FINAL_SOURCE_HISTORICAL_REGRESSION_REPORT.md",
+      "sha256": "1f0805f2c767bc172de503cc0b198c4ee366a1d32f387d513065d9870a69db27",
+      "size": 490
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/HISTORICAL_REGRESSION_REPORT.md",
+      "sha256": "c8c04ffe2a0630822cbbd30138e6b35b9d2876cf26ef0d3188de25a0761a089d",
+      "size": 490
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/RUN_CHECKLIST.md",
+      "sha256": "7f28ae9d153f454dcf2c1d92a6536ca169b0804d7244be875b8c55a55fd5b345",
+      "size": 2080
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/RUN_PLAN.md",
+      "sha256": "1c706e28c616a6c5929113291f0c1f73061d3756abd7667a71b2da4ab14419c6",
+      "size": 966
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/TARGETED_MIRROR_SOURCE_EXACT_ORACLE_REPORT.md",
+      "sha256": "602a99fcb86f7dad8c6da20013475d0d86ed01d6e7b2b627780c7f6851fe29ca",
+      "size": 491
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/TARGETED_MIRROR_SOURCE_HISTORICAL_REGRESSION_REPORT.md",
+      "sha256": "2bfb75a97a6b1395bfa6a486853a5349c6f6d701d083fb7aa90683c4f3f62cfb",
+      "size": 490
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/V021_EXACT_ORACLE_REPORT.md",
+      "sha256": "60512456121b1faf7b549e215506c7f9e9ccb06fb76f4d2dc870478386e45a43",
+      "size": 491
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/V021_FINAL_SOURCE_VALIDATION_SUMMARY.md",
+      "sha256": "b9062add6a013a07b248d35b87aea335c9931fab7f96489cddffcbfcc7c843f7",
+      "size": 4437
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/V021_V3_FAILURE_REMEDIATION_REPORT.md",
+      "sha256": "40351fbaed2a5b796d18b98ec597472b19e74df2eb0063c635ba17754f60cd4c",
+      "size": 238
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/V021_V3_UNTOUCHED_COVERAGE_REAUDIT.md",
+      "sha256": "fc5246829a5f8c8bd32703ea6513cd16c42a17d8befe135f503d0aa27219a559",
+      "size": 327
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/V021_V3_UNTOUCHED_HOLDOUT_REPORT.md",
+      "sha256": "f1d5922a28d794aea7d2d11d7aa3d04870c8c6b7a8b3c42f10ddd013b761ab54",
+      "size": 363
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/V021_V4_EXACT_ORACLE_REPORT.md",
+      "sha256": "6b3377cb0fdc2d95e081088f0649902836498980d964eda6606a3c8dec28da4b",
+      "size": 337
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/V021_V4_FAILURE_ORACLE_REPORT.md",
+      "sha256": "4c20fd483c9d5ad1e0a8662c488c8ba6c01355877be6febdb5bb952d8ce12105",
+      "size": 338
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/V021_V4_FAILURE_REMEDIATION_REPORT.md",
+      "sha256": "53bda402195a2ec6ee84d91150b9a7f2d8091a60eaaeef9b8987d8629f7a797a",
+      "size": 267
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/V021_V4_FINAL_SOURCE_HOLDOUT_REPORT.md",
+      "sha256": "effe16fb54fb746a513f680b6487a533aa6d066b70504b04cbce1f339eaa0cc8",
+      "size": 363
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/V021_V4_TARGETED_MIRROR_REMEDIATION_REPORT.md",
+      "sha256": "53bda402195a2ec6ee84d91150b9a7f2d8091a60eaaeef9b8987d8629f7a797a",
+      "size": 267
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/V021_V5_EXACT_ORACLE_REPORT.md",
+      "sha256": "296696a8bcb6fd7501278b8d2aba89e2539821bcd01cb0593b9d0df2d80be2d7",
+      "size": 337
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/V021_V5_FINAL_HOLDOUT_REPORT.md",
+      "sha256": "e851ee121ffccd0615f850aecf1f3af2eb45c340c6d3598e8432ad39bfa7cd8f",
+      "size": 363
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/VISAL_FIX_REPORT.md",
+      "sha256": "0353d02b82e048b35cb036228379ac363c690f13b0120eff4e4920f5ad2a92bb",
+      "size": 3066
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_001_single_cp.exact_model.json.gz",
+      "sha256": "ac4748c9e5b466677424cacefbfbe277747f8f05c49448e073ff54dbf69e9b63",
+      "size": 1108
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_002_single_rsp.exact_model.json.gz",
+      "sha256": "9f0bd185511dbeec452027ec26f754ddb82a672e32a72c858f97be85aadea141",
+      "size": 1231
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_003_single_sub.exact_model.json.gz",
+      "sha256": "e32715b7cb8345e271841474e990998a9bfd75ef12bd424be68dac5b06707add",
+      "size": 664
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_004_single_vispm.exact_model.json.gz",
+      "sha256": "37276fd1ec66cd924f46aaecfa783abc2de6e42c5fd3233b498512fbf4d39664",
+      "size": 534
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_005_nearby_hippocampal.exact_model.json.gz",
+      "sha256": "e699c5088e779124c92cfbde04b254e7831964b8be9e230ed24f8cf566d8197d",
+      "size": 14249
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_006_nearby_striatal.exact_model.json.gz",
+      "sha256": "d854c6c81d67bafb2f57010b58a76a8f71e065abed60a3da83b90c6ab0732fa7",
+      "size": 6024
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_008_nearby_sensorimotor.exact_model.json.gz",
+      "sha256": "db04e999de236ef2739be79d5007b32cdbfa710b050582410e1266c75ccf5f64",
+      "size": 34058
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_009_distributed_ca3_lgd.exact_model.json.gz",
+      "sha256": "e1ecb2b8526ab740babd0c772ee018d1dff22278152fd986e3db81d9355b62e1",
+      "size": 734
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_010_distributed_dg_vpm.exact_model.json.gz",
+      "sha256": "ec7baa9f1ec13d21d91c9f1d459a3ae613fa521f4dede2d5efd064fa977cdeac",
+      "size": 2403
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_011_distributed_rsp_lp.exact_model.json.gz",
+      "sha256": "b677a49edaf57f9c2f8de0b5b921a878beb9c81cd93971ac75adba9c4a454e0d",
+      "size": 3379
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_013_bilateral_dg_vpm.exact_model.json.gz",
+      "sha256": "ec51ffc16cbb5a9e69fab0d2ed7e72a58a913dccd22a4041ac96351bf7c7f1f4",
+      "size": 6075
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_014_bilateral_ca3_lgd.exact_model.json.gz",
+      "sha256": "17020f7d97dcb2123381469370776ddefcecb69cec77456a7a7dfec6cfb82584",
+      "size": 2304
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_015_bilateral_rsp_visp.exact_model.json.gz",
+      "sha256": "ea06052033e8099e04785299e8895fae079c6b9815af3cd267e622ad02bdfb5d",
+      "size": 9712
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_016_bilateral_cp_mos.exact_model.json.gz",
+      "sha256": "595a138a46ceea82f819df2d8892e9729b1d8e7cc62c2640681759d125297cea",
+      "size": 27114
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_017_triad_ca1_lgd_mop.exact_model.json.gz",
+      "sha256": "7864e6887b4d67b042a5abf43bb560a48bbfcb8c706515cf8404bd04bfd67d59",
+      "size": 3980
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_018_triad_dg_lp_vispm.exact_model.json.gz",
+      "sha256": "4f5171a38cfc3ede5832d8b32262a8ddc6fed85eb51fd19b0576d710cf974bcf",
+      "size": 2732
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_019_triad_cp_vpm_rsp.exact_model.json.gz",
+      "sha256": "98a7f752c6efe4c26697dfdea52439f6981e79a853d9a5545a32580ed46d1239",
+      "size": 19322
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_020_quartet_ca3_lgd_mos_ssp.exact_model.json.gz",
+      "sha256": "5a9971677883aa7054d1759752063fb9d5059aed36330d9485607b6f5ebc85a1",
+      "size": 16744
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_022_quintet_ca1_dg_lgd_mop_visp.exact_model.json.gz",
+      "sha256": "783c9064bab6a7db9a2ba7c9baa4181ecd06c86a84c809b4c294753c9dc184c5",
+      "size": 35806
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_023_quintet_ca3_cp_lp_mos_vispm.exact_model.json.gz",
+      "sha256": "dc8d3e76181b6a57542a194c4240c9a8923affbd07192e599b6358b98cbd9b68",
+      "size": 30201
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/holdout_024_bilateral_triad_ca1_lgd_ssp.exact_model.json.gz",
+      "sha256": "629dd38b2d63e679c71511bac05658f5e058df9330e6b238bfda25b5fafd53c8",
+      "size": 19040
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_ca1_ca3.exact_model.json.gz",
+      "sha256": "12d4c7361167a335d920e3b949e5d088636a2de74ae7aab1b84ca88e94d640a9",
+      "size": 26680
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_ca1_dg.exact_model.json.gz",
+      "sha256": "12e91ce274d901f03d034ced7f2d243ef0a06852a85b6054b0e9762a9092c05f",
+      "size": 23299
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_ca1_lgd.exact_model.json.gz",
+      "sha256": "338aba5a0720b7a960257b71edf2237e60f47e0bbe07c249cc59ffd38fc4a02e",
+      "size": 3616
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_ca1_lp.exact_model.json.gz",
+      "sha256": "eb1c0c5d1ef45b3d142325ac252e08103795eb054a8770f90b9660588594a247",
+      "size": 2951
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_ca1_mop.exact_model.json.gz",
+      "sha256": "4e63a9b873ab248f6613e5fb589ddb9104987138eaeaa7432bf558009f0f394b",
+      "size": 9640
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_ca1_mos.exact_model.json.gz",
+      "sha256": "d4e3d703488d2fed5d0d7acff1e7cf9f66a0c69e1319778d9db02c0a821c5707",
+      "size": 12168
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_ca1_ssp.exact_model.json.gz",
+      "sha256": "5d84e225a0650e7bd5d9c9d7875ddc7764ebc8cae027355bdb190892dcf55d1a",
+      "size": 9897
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_ca1_visp.exact_model.json.gz",
+      "sha256": "47c45fc1d93c9fc3544a0dace018094d21a2f7883f5c93403b224de8938955dd",
+      "size": 13800
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_ca1_vpm.exact_model.json.gz",
+      "sha256": "25c433ccecb55f046a3d56617ff4ba85cd4f878ae7ded9dfc9d68a3bf7963af1",
+      "size": 7237
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_ca3_dg.exact_model.json.gz",
+      "sha256": "92c20f785e517fe3f4860ed287fe56c170aae6c9e73e6ed3cfccb73f4f2c4a79",
+      "size": 27212
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_ca3_mop.exact_model.json.gz",
+      "sha256": "6352c8bb6e0b1b99f412fa924becd3e42a54be9e1bcf44100aea085e1f0e4153",
+      "size": 5539
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_ca3_mos.exact_model.json.gz",
+      "sha256": "e35211b0f20c02146d1474bc0cba7a9fd12861e30e0a60d43db0fcb05bf2cf3f",
+      "size": 8594
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_dg_mop.exact_model.json.gz",
+      "sha256": "dd4d500db48fa25e9508cb3efbad178d56f5e2d7022be0c76e7c504d17ef351e",
+      "size": 10454
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_dg_mos.exact_model.json.gz",
+      "sha256": "359ee7b5bb2f8c038de93a92ac2baf7586ada0ca29a070476f8ab4a162b48c82",
+      "size": 8853
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_ssp_mos.exact_model.json.gz",
+      "sha256": "7784706993a76c1af0e2a6518dd1375706b4a256277a0a866867a498c9dbf4c4",
+      "size": 32765
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_vpm_mop.exact_model.json.gz",
+      "sha256": "0e52d074e494afb890cd62dea6233cedabc63aad272cbdf1796be70b5dba632f",
+      "size": 4805
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_bilateral_vpm_mos.exact_model.json.gz",
+      "sha256": "a06d23f000a872a298ee0d629d30bde49a3f12b48c366d05555875400d88d585",
+      "size": 8044
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_unilateral_ca1.exact_model.json.gz",
+      "sha256": "45374ca813204a2938edf1fb02f60b8cd344d2bc083225d9db23b30b5c4a642e",
+      "size": 1595
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_unilateral_ca3.exact_model.json.gz",
+      "sha256": "0230dc870fd35945404afc24d4f62b99144400053a3da7fbb9a27c4a6044850f",
+      "size": 1097
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_unilateral_dg.exact_model.json.gz",
+      "sha256": "ac3e378dae995250d8884a26bc1e661d5a918c460cd82e194b0ea62f23653157",
+      "size": 1466
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_unilateral_lgd.exact_model.json.gz",
+      "sha256": "b6e5003f3c2fd0fa777ef81d7c657074069480043d1bf76031fa70bf7effb9d6",
+      "size": 389
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_unilateral_lp.exact_model.json.gz",
+      "sha256": "36f82b27fb7117ee101febcf435c473e663648bbe264bc549f3052bbd6f1f657",
+      "size": 442
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_unilateral_mop.exact_model.json.gz",
+      "sha256": "b7361ce65f8ba60ae1f237eb5eb48f3a6605ec511b2e5b71e3cb9356a2ff19eb",
+      "size": 1255
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_unilateral_mos.exact_model.json.gz",
+      "sha256": "94a3fbe415ba961857a9986bbbdd2f4247533ccf735c2dba3e023ee0f84ede7d",
+      "size": 1302
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_unilateral_ssp.exact_model.json.gz",
+      "sha256": "700fb920fdd0c1abef96aefed11e59e9e909de38b430d916e6643dc3d97d1020",
+      "size": 1599
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_unilateral_visp.exact_model.json.gz",
+      "sha256": "c4888d88c16a8c1ce52d37151f5db3dc5a42751eb9789e1f41958dc866be380d",
+      "size": 790
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_models/search_unilateral_vpm.exact_model.json.gz",
+      "sha256": "a70da09c0c3b93eb7e9288adc1de96367ab0fba74cc1041637086799f2deb966",
+      "size": 556
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_oracle_cases.csv",
+      "sha256": "759eede474e8be3c269a8c73c1b8dda8cf3b13b50b06da82094c00527dc3b435",
+      "size": 11885
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_oracle_contract.json",
+      "sha256": "7cb3f76ccc9184dcde03b79e1b3cdc82a718bef327791ba855ce1d1f67504f50",
+      "size": 2214
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_oracle_results.json",
+      "sha256": "979543709d71774f44aa58acd0316d56b226b2038542b5f30b5ff274c8b65e49",
+      "size": 79267
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_exact_oracle_summary.json",
+      "sha256": "ae9eab401f677b05a956add1efbee1cf224998ae431d4428991d87afd725770b",
+      "size": 406
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_historical_regression_cases.csv",
+      "sha256": "f307bbc0481387886a737e6c19995de5cf97524424f6ea3cf05984ce1ae09d0c",
+      "size": 3257
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_historical_regression_contract.json",
+      "sha256": "a60374551a1229c1ffbac9e79addb11297646cd3942d14b413105f8e4ed32e70",
+      "size": 1823
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_historical_regression_probes.csv",
+      "sha256": "b12dc92836bf9d160245ba74d6c0121dbde60118f9ef7b210996453fc7b7b4cd",
+      "size": 6926
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_historical_regression_results.json",
+      "sha256": "438a73243df01c96c38a05a48a3ff44769c1d644a79824f0d198414fc8bc6d02",
+      "size": 730307
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/final_source_historical_regression_summary.json",
+      "sha256": "f9e7088ffd36cad3c68b4311f9c5710c95e17bf2e7c4564d752073fa07c7b74e",
+      "size": 1105
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/freeze_new_untouched_holdout.py",
+      "sha256": "e4fd5486b97ee0c029afa0b5d552d788e99fff17f109f036eeb2c3fd4a27e769",
+      "size": 8778
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/freeze_v3_untouched_holdout.py",
+      "sha256": "0a0e37cea00fc759ac8bda8250145d3f33e748a7d6257e871a600e1a2b175608",
+      "size": 6593
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/freeze_v4_final_source_holdout.py",
+      "sha256": "ecf264d0605842dd6f75e51f640a261d958185e5cf85256c881f48d640e6d1b6",
+      "size": 6490
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/freeze_v5_final_holdout.py",
+      "sha256": "e70f0a907e053a2caa948d57f33b34a634b3379ba8f683ed0c2c6b4a4120f557",
+      "size": 7915
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/historical_regression_cases.csv",
+      "sha256": "66a1c29459a143da73139cb8eeaabc589dd18b8780409acaba9d2aa10f2c6eee",
+      "size": 3251
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/historical_regression_contract.json",
+      "sha256": "14eb303b721da2c46d3592230692997e6104eebc393de25ea4bae01f656191fa",
+      "size": 1665
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/historical_regression_probes.csv",
+      "sha256": "53b408d0c9c4e3948341e23e9f77536c167846b6d735854ca3b54c210a10fc44",
+      "size": 6916
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/historical_regression_results.json",
+      "sha256": "a9aceaac91d44cec46b75acfb7efc27af6c4e9b12ac77b09f3c23b594bbf7ab1",
+      "size": 726927
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/historical_regression_summary.json",
+      "sha256": "2d04deb6135524d5b1aac8aab6e0b915068b937bcf4b26f51cf114c2a88c17e1",
+      "size": 1105
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/post_v4_source_historical_regression_contract.json",
+      "sha256": "5597ec188577019ca274e4dc7f142345b4bf37b74ea41bbdf1707f5b6187b247",
+      "size": 1825
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_final_source_exact_oracle.py",
+      "sha256": "1b23a2f058ee1a08d619a383fb19966f753f20ad336b1d6649e183a823fddcd0",
+      "size": 817
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_final_source_historical_regression.py",
+      "sha256": "1dbe0b418cbeecde743a14a8b51c08e86188c4270a75914b42e59dece1a070b8",
+      "size": 907
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_historical_regression.py",
+      "sha256": "83bbbaa8ea5440187715fb14fcb0fecfe0ccf28cf87feb3f119b6c5274f81034",
+      "size": 16786
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_post_v4_source_exact_oracle.py",
+      "sha256": "c6a8ce987163779dc83a53206c4dcdd6c1a9d7046c6c2dec75f47a36baea6d09",
+      "size": 917
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_post_v4_source_historical_regression.py",
+      "sha256": "1e0fb8911e0ca099f4c95f0fc0ab71c66c8465dfe5ba357853fd1cb8097c7775",
+      "size": 912
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_targeted_mirror_source_exact_oracle.py",
+      "sha256": "66094d5fed1dee5cf7ae21a39bbf6a9e628556aa944d9d99132ae9640553e1a4",
+      "size": 977
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_targeted_mirror_source_historical_regression.py",
+      "sha256": "d4ba37a1c41d20214c8044c8b833a284705bda9c80c7ddab447b94964b8debe1",
+      "size": 966
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_v021_exact_oracle.py",
+      "sha256": "345a27c0b2809f24f7b55f7c3b91b8eef5e75f159875528917e6901348ee43d9",
+      "size": 17329
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_v021_untouched_holdout.py",
+      "sha256": "cd03ca95668fa5f325b6d72fa8fa8ba972ec63f604102bc54c257c9b11a9b278",
+      "size": 16350
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_v021_v3_untouched_holdout.py",
+      "sha256": "80d1568a8748b9a40c291828ce5710ca74ea12c9f6c89894a8cde437995e3216",
+      "size": 976
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_v021_v4_exact_oracle.py",
+      "sha256": "dc24df22a7dda3ab2c99b955ec1cbe59b3703d5cf6335da24d551ecfbd8eee4e",
+      "size": 6810
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_v021_v4_failure_oracle.py",
+      "sha256": "9decd8b0bdee03db8f56583628ea1dd19b296dd90b278f15159dd3a0d6df893c",
+      "size": 7439
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_v021_v4_final_source_holdout.py",
+      "sha256": "223e7d820e411e8573b560fba9d8388ab490328741a9919f1c20a48fab40dfdc",
+      "size": 1009
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_v021_v5_exact_oracle.py",
+      "sha256": "0edba0b85ada6bdf9f9d88375d11b50b9b6cb5b97df92c1405fa6c9aaf82ece3",
+      "size": 3545
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_v021_v5_final_holdout.py",
+      "sha256": "ddafdc0ab7fa4c11e7bb5ee0844362a0d4f772102a6fb8ae765355b8b392daef",
+      "size": 931
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_v3_failure_remediation.py",
+      "sha256": "5048250516afbcf09ce4fba8a40b0ff10ea91555f14765773a4463e9c6703882",
+      "size": 9389
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_v4_failure_remediation.py",
+      "sha256": "a271f5251b978eff1df68cfaa7ad345f2497b42951ada8f91c7c735b3b750a39",
+      "size": 6637
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/run_v4_targeted_mirror_remediation.py",
+      "sha256": "10a01cbfd8e82697981fb36a92831ec3f52bea010de8445c4ce3aa2cfe057fcf",
+      "size": 499
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_001_single_cp.exact_model.json.gz",
+      "sha256": "a22806e52bc0c8bb12fc8c74b23f2ddf6c090a23694e7eab7574d2a7358a1c5c",
+      "size": 1108
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_002_single_rsp.exact_model.json.gz",
+      "sha256": "8c1a763dcd9bb3a1d0215c20ce2c8ffddbfc53221ba97cbbe393ba7dfcc735cd",
+      "size": 1231
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_003_single_sub.exact_model.json.gz",
+      "sha256": "584d0a01ad9e48fa273783519326fa5c9c47f4e6a934d00018bf72d3ca7c09b3",
+      "size": 664
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_004_single_vispm.exact_model.json.gz",
+      "sha256": "16d00fec9301e4ab9416de7caa5d8d9a0cd641250f35916d1260ae11ad9891e7",
+      "size": 534
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_005_nearby_hippocampal.exact_model.json.gz",
+      "sha256": "c8bd6bbaf1f8e2c260fcb0c58d109bf51a62d924fff30f0423b012e8898bd41d",
+      "size": 14249
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_006_nearby_striatal.exact_model.json.gz",
+      "sha256": "e6bdf96cdad4c0a42f4306cc22ab9c69a1d494722329afbb28b60913edd9952d",
+      "size": 6024
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_008_nearby_sensorimotor.exact_model.json.gz",
+      "sha256": "f9097cba819b419d7b9e0d1bc00ec2b7f75e5c243e15127a71f46359d590f4e3",
+      "size": 34058
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_009_distributed_ca3_lgd.exact_model.json.gz",
+      "sha256": "2478164d53fc58ba4679905444701e6ab66e16ac6eb637a557c3bacd0366b06e",
+      "size": 734
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_010_distributed_dg_vpm.exact_model.json.gz",
+      "sha256": "57f8f537e673d3ff2c06144627b0b9c78300cf90a236b7d9056e433d230532ee",
+      "size": 2403
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_011_distributed_rsp_lp.exact_model.json.gz",
+      "sha256": "1f4c51838d50c807ad82f9557456167ff656e13e663753fb262dc275e0d4f8eb",
+      "size": 3379
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_013_bilateral_dg_vpm.exact_model.json.gz",
+      "sha256": "857b562ed8a9d55b4835d626bea2c068e800507caeb17041e29ac49166ac6957",
+      "size": 6075
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_014_bilateral_ca3_lgd.exact_model.json.gz",
+      "sha256": "20a6e61c9fdca6c9b9b5525d446cfd84c17f4289fe43b40c9bfafb8a4384deb5",
+      "size": 2304
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_015_bilateral_rsp_visp.exact_model.json.gz",
+      "sha256": "28fbd3ae01b3ff2805224cf57f48c9017a02c0a939dc54a43d6923987e96a301",
+      "size": 9712
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_016_bilateral_cp_mos.exact_model.json.gz",
+      "sha256": "89b599b1a4e0ec0e3b867348d0a4979b4241154c79bd773b6785dc1a629123c2",
+      "size": 27114
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_017_triad_ca1_lgd_mop.exact_model.json.gz",
+      "sha256": "0efb781ffd599a0ab1fc71b8e20f2bd234c0a4313de285020e6059f25120b7c1",
+      "size": 3980
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_018_triad_dg_lp_vispm.exact_model.json.gz",
+      "sha256": "ff1ac5e0dc454d6b9211f93df0e07640de786501b25cbd7293f63dbeaf99ee8d",
+      "size": 2732
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_019_triad_cp_vpm_rsp.exact_model.json.gz",
+      "sha256": "34987f848f0875387c597f412b33811e82208c667cbbf40a178a928ac9911deb",
+      "size": 19322
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_020_quartet_ca3_lgd_mos_ssp.exact_model.json.gz",
+      "sha256": "97a7dadf52db353190993a12edddebdc80ef3164c46704141f433ea939d0fb8e",
+      "size": 16744
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_022_quintet_ca1_dg_lgd_mop_visp.exact_model.json.gz",
+      "sha256": "3c54adc0b0478b0106343158c5a03083d3e4cbf58e08f21bae90d1b8af5966cc",
+      "size": 35806
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_023_quintet_ca3_cp_lp_mos_vispm.exact_model.json.gz",
+      "sha256": "b52a4eac5accb564949f025fee8bf025997ceeebd64a18687d0a3fe662df3a04",
+      "size": 30201
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/holdout_024_bilateral_triad_ca1_lgd_ssp.exact_model.json.gz",
+      "sha256": "33841a0c90e2a91f75ecb828dfc338e4519e10d26de260e3c6023a588050c5e8",
+      "size": 19040
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_ca1_ca3.exact_model.json.gz",
+      "sha256": "2e648e52282051aa0ddf9c56c8eb2b542cc0b40ad308ec4c0053e5331a4fee4c",
+      "size": 26680
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_ca1_dg.exact_model.json.gz",
+      "sha256": "e43664f15dd6f398a2cd92ac27664e51c853ab869f8dfe483a4cec1437deac29",
+      "size": 23299
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_ca1_lgd.exact_model.json.gz",
+      "sha256": "99c7ab1b182d2557d14b47ddd520b3a4c7245239c1ce8e4ec907bdbcbbbebbed",
+      "size": 3616
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_ca1_lp.exact_model.json.gz",
+      "sha256": "3e4f112cf958ead488f39de60bf008d47d725d3cfc2a1761474424d5b47f9d2c",
+      "size": 2951
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_ca1_mop.exact_model.json.gz",
+      "sha256": "adca49ca6f1b0a1468bf0b1b293f49d1c645ec2074577e1b69724cb71323984a",
+      "size": 9640
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_ca1_mos.exact_model.json.gz",
+      "sha256": "5c5f1d69297d14692d44824e31a7a6e605ac057c53095b92c3d2186a07e3f7fd",
+      "size": 12168
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_ca1_ssp.exact_model.json.gz",
+      "sha256": "557015c1a7fa646cf6775d762b37d577ca82b2305f181ef0568eb553a7eebc28",
+      "size": 9897
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_ca1_visp.exact_model.json.gz",
+      "sha256": "d8a4aab282a61e4cc39651f5cd43c0504239dd0b08caaa94843c2ea61f3f0a02",
+      "size": 13800
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_ca1_vpm.exact_model.json.gz",
+      "sha256": "dd4a3262e46c17ba9562b434cea2671adcf161c6d652d0b1849d433bc1fa368e",
+      "size": 7237
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_ca3_dg.exact_model.json.gz",
+      "sha256": "e54fa56f917eeedb4d33824b62d8883ef332384698b07f05fc621cb09db0508e",
+      "size": 27212
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_ca3_mop.exact_model.json.gz",
+      "sha256": "ecfbea820fdd3a26c2b3a49dc50222a66dc39f80922a5a0c0b496c96313f08ef",
+      "size": 5539
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_ca3_mos.exact_model.json.gz",
+      "sha256": "9f4af85b8bf56980073857a03a961688f700d940e90d5195f8a9470163956006",
+      "size": 8594
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_dg_mop.exact_model.json.gz",
+      "sha256": "8bcecd9d962e48e28c6c047da4c37dd80cf183d705bdaa992027a3b77c5b8438",
+      "size": 10454
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_dg_mos.exact_model.json.gz",
+      "sha256": "c0fba7c09fb907189c150edd42a2804fd4847278ee3b1a5019c27a35a5d715a0",
+      "size": 8853
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_ssp_mos.exact_model.json.gz",
+      "sha256": "34375e5e5dbdce98a5e4191b5a95886c0df6a386806ef29ef626b71bdc3b6d7a",
+      "size": 32765
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_vpm_mop.exact_model.json.gz",
+      "sha256": "b303648c31883dd4d7a854c6423d87a9e236d998f6824da2d84b84de7feece35",
+      "size": 4805
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_bilateral_vpm_mos.exact_model.json.gz",
+      "sha256": "cc53334ec5b8142350c21e0375b039ff763afc4264cbbe8bb1f07dc770ed04bd",
+      "size": 8044
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_unilateral_ca1.exact_model.json.gz",
+      "sha256": "f1232db2eabd8f59f318e3124693fd152b6697e93bd476395d5c8e8d60a138d1",
+      "size": 1595
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_unilateral_ca3.exact_model.json.gz",
+      "sha256": "c9c370747efc01899e6fe1fa46b0ec930e2dcbe79fcf8643a71a3647fb4ef6ac",
+      "size": 1097
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_unilateral_dg.exact_model.json.gz",
+      "sha256": "85ae99e1bcf90c0b2d1c7762c33c2e4546010d0a743d3469f6dda20e40fe66a4",
+      "size": 1466
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_unilateral_lgd.exact_model.json.gz",
+      "sha256": "2ddd1098a1da58ff14caef381c8cf5ceced7682a0e59e12fc55f32dcd65f9c3d",
+      "size": 389
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_unilateral_lp.exact_model.json.gz",
+      "sha256": "6b34fadd3a45c3b46fe5626dbe4891f8f4def952105dff0dccf57fa8a94fdfc5",
+      "size": 442
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_unilateral_mop.exact_model.json.gz",
+      "sha256": "2587fb2a065105eab4a487ebb59e9b9b34ea6aa16328050dffe7e449f3232251",
+      "size": 1255
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_unilateral_mos.exact_model.json.gz",
+      "sha256": "c9a3a2b43e00eb94409a179a93d09bf567f02e5d7fd1605e0b1c5cf3405d86fe",
+      "size": 1302
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_unilateral_ssp.exact_model.json.gz",
+      "sha256": "e39755b778dc73098639e3a7a865cda2abf9b39fc1c05854ff9239c7e18f8418",
+      "size": 1599
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_unilateral_visp.exact_model.json.gz",
+      "sha256": "89b7f012bee212b5a40a6062a0ed3a0e2b2480cb759e124cb696668d5b5647bd",
+      "size": 790
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_models/search_unilateral_vpm.exact_model.json.gz",
+      "sha256": "e4828b7d973a53c0fccb4de7c9b50381e3e283e336aaa5be2d35d41e0c64b4a3",
+      "size": 556
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_oracle_cases.csv",
+      "sha256": "140fd934836c863c620a64d64cff6937a544d57e4ebf067cb5ab71efb1cb02ed",
+      "size": 11885
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_oracle_contract.json",
+      "sha256": "e824e54c69b9da313b781af34c434edd7701443f5b59648944115622ba03a9f6",
+      "size": 2224
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_oracle_results.json",
+      "sha256": "9f2165f379bba8618e54759ee1d79b13d6b08ee0d0731a5e32336705ef84acc8",
+      "size": 79762
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_exact_oracle_summary.json",
+      "sha256": "ae9eab401f677b05a956add1efbee1cf224998ae431d4428991d87afd725770b",
+      "size": 406
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_historical_regression_cases.csv",
+      "sha256": "9d000c6cde3b0f7fa325c48bcdfc8cec5a933eb43cef1cc6540745ca83047ef5",
+      "size": 3259
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_historical_regression_contract.json",
+      "sha256": "95736854b32aa6b4d0c0e697aa959c27fda21006b6f80372d95c101cbf086dee",
+      "size": 1833
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_historical_regression_probes.csv",
+      "sha256": "b12dc92836bf9d160245ba74d6c0121dbde60118f9ef7b210996453fc7b7b4cd",
+      "size": 6926
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_historical_regression_results.json",
+      "sha256": "e23f92e32f11a53db32f4df8ec5944d37b79f315eb15f611108d7b6e54ce1b94",
+      "size": 741771
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/targeted_mirror_source_historical_regression_summary.json",
+      "sha256": "cd97745b02e6a8ffc1fb525674811d5f758138a917aaf814acf19fbeeb7cd721",
+      "size": 1103
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_001_single_cp.exact_model.json.gz",
+      "sha256": "a44819a499ee570f392b4d9aba5a35970e75aa76343dd9f902edca2cd1d7f035",
+      "size": 1108
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_002_single_rsp.exact_model.json.gz",
+      "sha256": "65c557e991b588b40b20f5a3dee8c5871a980db455b90d57bf38486591363774",
+      "size": 1231
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_003_single_sub.exact_model.json.gz",
+      "sha256": "ca6c86d7fee217859142f5a9eae87e7b779cc27cdca8960d39db8db43401f857",
+      "size": 664
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_004_single_vispm.exact_model.json.gz",
+      "sha256": "db4f2eb674b294d94d6aa029a61972a0021f8e69d7aefed249170c6ca82d9ead",
+      "size": 534
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_005_nearby_hippocampal.exact_model.json.gz",
+      "sha256": "45bacedde9a00cbd2e03b0ee829c4b2467af3bfa4e3221c33c4241fcfda2200f",
+      "size": 13507
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_006_nearby_striatal.exact_model.json.gz",
+      "sha256": "c65250c8b0053b340e25a8091adc80ab9ba308abb5dd6e62c6c5e5095f6c980e",
+      "size": 2917
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_008_nearby_sensorimotor.exact_model.json.gz",
+      "sha256": "d00a5f7e47fe33ca3173349b1800ad2a4f2b5ce0c2466cb40d3ba63d8ac63895",
+      "size": 20388
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_009_distributed_ca3_lgd.exact_model.json.gz",
+      "sha256": "4c6550252b82dae026050260b9580f185c08139e870661f48c645be465355e65",
+      "size": 687
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_010_distributed_dg_vpm.exact_model.json.gz",
+      "sha256": "02cb0154e9b688468729d25eb4183e66529f301c6a6fcb6bac78b6dd58c83233",
+      "size": 1202
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_011_distributed_rsp_lp.exact_model.json.gz",
+      "sha256": "59dcd73aea194a0501f24242d073d870e623894cea584df6e1cc3df6b8ff7a88",
+      "size": 2156
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_013_bilateral_dg_vpm.exact_model.json.gz",
+      "sha256": "5c72152ac24d1bb083be6c28d27f39dc230825e43fe27f1c47f6b30c13b08ba0",
+      "size": 1442
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_014_bilateral_ca3_lgd.exact_model.json.gz",
+      "sha256": "65b0d6784e959ff4780a921107ce29c864af2a200aae585d725d22c5da6c3908",
+      "size": 913
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_015_bilateral_rsp_visp.exact_model.json.gz",
+      "sha256": "0521386be76665cde3fa0e5aa6bd8615cfd6ab8dca244c5913850cd176affc56",
+      "size": 2569
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_016_bilateral_cp_mos.exact_model.json.gz",
+      "sha256": "205de744f8592144d3a824b522332437e556312ebf4137b368fb5697ebb154c1",
+      "size": 7153
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_017_triad_ca1_lgd_mop.exact_model.json.gz",
+      "sha256": "f26caa67158a18e73b1b963ed88c5b746f42e23d0bc56faa3fe5e15487ce6f61",
+      "size": 2756
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_018_triad_dg_lp_vispm.exact_model.json.gz",
+      "sha256": "d4474e22d05dc914a74e89973b2588e6b9d5d3b04fe7a9211e7146626f9eab39",
+      "size": 2640
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_019_triad_cp_vpm_rsp.exact_model.json.gz",
+      "sha256": "ad45b3b7b6fa2b3b19119caf4987f8847f11e955e08e3baf54ebbf7acb2bcac3",
+      "size": 20620
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_020_quartet_ca3_lgd_mos_ssp.exact_model.json.gz",
+      "sha256": "d3db07fb14867128a662ba6e2c03bc661f0b58b3d21cde2437393031f5d9b579",
+      "size": 12242
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_022_quintet_ca1_dg_lgd_mop_visp.exact_model.json.gz",
+      "sha256": "c319aade887886b4f784dbcc532cbd67b89c95d18ae58ed37c6f458911a0e89e",
+      "size": 32868
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_023_quintet_ca3_cp_lp_mos_vispm.exact_model.json.gz",
+      "sha256": "45aa52b815d10eeb6de712a740bfa97e623b1b749c67f028d5ffa96a30d87bf0",
+      "size": 22918
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/holdout_024_bilateral_triad_ca1_lgd_ssp.exact_model.json.gz",
+      "sha256": "e185b70aadb7190cc3b3476bca9c9e87e2204e3611939e1b5a276263e3e7802f",
+      "size": 8156
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_ca1_ca3.exact_model.json.gz",
+      "sha256": "970492eaa31200a7e8ab03526c4a1ec8145fb3d25272648d8c2abf2add06d96b",
+      "size": 8185
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_ca1_dg.exact_model.json.gz",
+      "sha256": "51c54c2fa5823db7d12ce150131cad414b6f89e23e11688db9c698b7124cb956",
+      "size": 14068
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_ca1_lgd.exact_model.json.gz",
+      "sha256": "357353fe9dea9d7be6cc71e7f2fc9c4993d8fe6689d46fded1e61e92276a3514",
+      "size": 1461
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_ca1_lp.exact_model.json.gz",
+      "sha256": "64f41f88bbc5ba642ce54cdf71c21cfd639eabe26730e3ea28146b0c77488a82",
+      "size": 1299
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_ca1_mop.exact_model.json.gz",
+      "sha256": "09cbf9278e72f64cacdb7772f2f83cd5a25b3f9454eba99c7dbef12836a6bf3d",
+      "size": 3726
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_ca1_mos.exact_model.json.gz",
+      "sha256": "18bc907038764fc6de1aa8fbddac679314e2e7621681e41481ed0d6d97a91106",
+      "size": 3974
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_ca1_ssp.exact_model.json.gz",
+      "sha256": "c85b0448629a504111857b5728602ed8e1dd5748ef3ca312171afe2091b4310b",
+      "size": 5612
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_ca1_visp.exact_model.json.gz",
+      "sha256": "471be67f764ef721796b344cf233519327ff612e920d6581d3d4562af1eec0c3",
+      "size": 7580
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_ca1_vpm.exact_model.json.gz",
+      "sha256": "f8122b47d5921498e9893afd42735c24c21712eabc2781c462a77377da8e5088",
+      "size": 1624
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_ca3_dg.exact_model.json.gz",
+      "sha256": "739e7135bce77f2e969e609d1d2e99b161398d5cba4971e6fc5b065a61f02c2d",
+      "size": 13545
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_ca3_mop.exact_model.json.gz",
+      "sha256": "0fe00f3d20bc967559b3902eac4b6cc611599f4afc46897c536279aaaab84446",
+      "size": 1870
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_ca3_mos.exact_model.json.gz",
+      "sha256": "0c6e34e1cba3dd93e4482c40ab5d1e2c97f8e1a3e9176aae971397cf91a84e3d",
+      "size": 2518
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_dg_mop.exact_model.json.gz",
+      "sha256": "369075983da56e954c8e617121451a58734228dd26973ce6c54220212c3c324d",
+      "size": 4826
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_dg_mos.exact_model.json.gz",
+      "sha256": "d0827fc2063367a486427b7b395e2030782d9c5af066d042f70c8e8822b90430",
+      "size": 2603
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_ssp_mos.exact_model.json.gz",
+      "sha256": "5753645a02f91dde78a3b50572799353b29f79e02b975c935f3f46e1a6722b64",
+      "size": 10967
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_vpm_mop.exact_model.json.gz",
+      "sha256": "45110e705310e1df652282c63bf0d949a663b366657d6ead6ce06214d8f2a799",
+      "size": 1821
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_bilateral_vpm_mos.exact_model.json.gz",
+      "sha256": "501a804fc8729899b063ef7bd6fd63ab5d99d833f80704809154cc692feef145",
+      "size": 2372
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_unilateral_ca1.exact_model.json.gz",
+      "sha256": "a2bef204867548464c2f0745583ccb14945f8e2e9819bb17451df513aeb3dbcc",
+      "size": 1595
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_unilateral_ca3.exact_model.json.gz",
+      "sha256": "b00df9be6052a179048a161c2b3ebb7f3a77338cbac10fa4994b55ae828d8913",
+      "size": 1097
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_unilateral_dg.exact_model.json.gz",
+      "sha256": "453f841d7be798a2f9b5df87a5d6f26491a38ea1d0feea14cdb0c6ca3baac817",
+      "size": 1466
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_unilateral_lgd.exact_model.json.gz",
+      "sha256": "18305c4d2a276c72e400c969c4b8bf1f45e1abfe419e3e85dfc72f8fa0685b62",
+      "size": 389
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_unilateral_lp.exact_model.json.gz",
+      "sha256": "435bd8a5ab207052f371e616897f335259321c9a844d498da423995e8d224ed4",
+      "size": 442
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_unilateral_mop.exact_model.json.gz",
+      "sha256": "c646634189b416214820de2aeccc166246b31b9952b03c7a449b54eaaabdf9ea",
+      "size": 1255
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_unilateral_mos.exact_model.json.gz",
+      "sha256": "58b6a8635281d7497836cd966cfe5e2d440722b6b2cefe2171d180aabe8ba6aa",
+      "size": 1302
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_unilateral_ssp.exact_model.json.gz",
+      "sha256": "c7c3b8aaf4469a8cb72f3bcbe1b7de5db59b5b05bdd59aa4350e50fd5b56306e",
+      "size": 1599
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_unilateral_visp.exact_model.json.gz",
+      "sha256": "3d4c10e1f0c832d48a9122429e2ac72576dc6ac779299eec9ce979713e35d8b7",
+      "size": 790
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_models/search_unilateral_vpm.exact_model.json.gz",
+      "sha256": "dc29378692983302892d04e585f889857bcd45a428d90d9ea17259b85eef35fd",
+      "size": 556
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_oracle_cases.csv",
+      "sha256": "06b97dc41ea6f9bf9d840af3367cac94c722130391175b246ee71dabcaa17b15",
+      "size": 11873
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_oracle_contract.json",
+      "sha256": "abaca0608d68e17255e7548d369746de0aa7efda20566c229f96dddcb80c0752",
+      "size": 2065
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_oracle_results.json",
+      "sha256": "684512da741b700fa82fa0d8845c9d0c812555541a0944bcce78e7500ab42aa1",
+      "size": 78697
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_exact_oracle_summary.json",
+      "sha256": "06a9fe8a842d01220d2dcb43620f46c67bf6104862ac93b243e0f253532b6ecd",
+      "size": 406
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_final_validation_figure_data.csv",
+      "sha256": "7c491e1ee7bd1bd6bc3f638b193489690b254105b2406f9761c6514edb88b229",
+      "size": 475
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_untouched_holdout_lock.json",
+      "sha256": "7e3ed4caa1740687d26b2bd77a8a6854a809e18138e420489fbca2e398882ef8",
+      "size": 798
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_untouched_holdout_manifest.json",
+      "sha256": "a197f40c692f60c66673cc72247f2b999dd76b70c6f37058d9ac06fcb21bec3d",
+      "size": 14009
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_untouched_holdout_manifest.sha256",
+      "sha256": "02e192df0d0a5fb360bbe577bda72031950587ee0243fddc6dc4e60b507b989d",
+      "size": 104
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_untouched_holdout_run_contract.json",
+      "sha256": "04f9d04401bc67b7ea597cc79306b87109a8ea16713606fd267a7c22874282fd",
+      "size": 1523
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v3_failure_remediation_results.json",
+      "sha256": "ea2527380d55a83cab2731c4b2dbe140714ae33219af79e15fc10d3a9fb318b6",
+      "size": 173789
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v3_untouched_coverage_reaudit.json",
+      "sha256": "cba43a51ae0509238ccf396d1790c14a0f0c6852b2ba8b1d76f9dff120407cb2",
+      "size": 9193
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v3_untouched_holdout_cases.csv",
+      "sha256": "b041327171a2650d50ee5c33701f757cac00e5cb630f7181a5b27cd0942817af",
+      "size": 3162
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v3_untouched_holdout_lock.json",
+      "sha256": "f3c9129f4b3eb0579ac37143092d0aa7ebef79c2ca712d804641b3ce367bddb6",
+      "size": 800
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v3_untouched_holdout_manifest.json",
+      "sha256": "ba0a24d97a69d5bbe648f75ad0ad3088a0aea2393f54c50ecf336907ed5c759c",
+      "size": 11441
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v3_untouched_holdout_manifest.sha256",
+      "sha256": "90a93734ad98c89bab7cb103fb8448c4dd175cfc4160592ae4068ac3c98c9724",
+      "size": 107
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v3_untouched_holdout_probes.csv",
+      "sha256": "611826b9a34974f6598c7784321926f142ecf15c8468fae9a277a4a402988f41",
+      "size": 6990
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v3_untouched_holdout_results.json",
+      "sha256": "a5f67bbd9f815c9ed8800b707a7873da26b8b5fe5bb1f555b20d6e90e079f6d5",
+      "size": 719827
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v3_untouched_holdout_run_contract.json",
+      "sha256": "5253c6bc8b139916fdd84d220546f305b04a6c31fac0ef01e83a3a6e8397e48b",
+      "size": 1672
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v3_untouched_holdout_summary.json",
+      "sha256": "2d9a65a031e3f991d1201df678ab2306d49df1da268c98a5fa350c556a51a9d5",
+      "size": 577
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_001_single_rspv.exact_model.json.gz",
+      "sha256": "8c505a374f61eab1f969611e8e94f43d3f19fb4cf15eff5967824216684cd416",
+      "size": 792
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_002_single_visam.exact_model.json.gz",
+      "sha256": "65e382484b1fffbf97b34cb4363ff22b0c5560f692c0776d3eed29ad6493fcd5",
+      "size": 773
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_003_single_gpe.exact_model.json.gz",
+      "sha256": "62999784c21d94bbddee7b0efe08ea2d2e2ec6f46cb7e51013e248d98a9d6575",
+      "size": 647
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_004_single_ad.exact_model.json.gz",
+      "sha256": "87deb5d8a737f8275f2f4695510afcebec336e98f6cda27e1ea15f02558d0ff1",
+      "size": 325
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_005_single_bst.exact_model.json.gz",
+      "sha256": "4071f711df2aa257895525dc0d667b1660c3fe109329c953bed9179745f2a729",
+      "size": 710
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_006_single_mob.exact_model.json.gz",
+      "sha256": "ae88da30c2d5f6f640320ab14eb8765035abd19863af69eb994c501d7359d0f0",
+      "size": 1594
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_007_nearby_anterior_thalamic.exact_model.json.gz",
+      "sha256": "6cd00e69e583944223e9f2fef3e8007be73c5d31f6f5fe27cfc539f478b27638",
+      "size": 769
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_008_nearby_pallidal.exact_model.json.gz",
+      "sha256": "7a2f68d956f3a38974425181fb8497df22bf8b5c25ec0865c1be8bb516b2a86e",
+      "size": 939
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_010_nearby_subiculum.exact_model.json.gz",
+      "sha256": "fa6af3eb1974ac72f3be1fa332d51691334b12097f0d89357e370cfceca3e98e",
+      "size": 1560
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_012_distributed_audd_lgv.exact_model.json.gz",
+      "sha256": "5337546c8f4a5248c229d580701a6290fe5d89a40b6bace1746471b92544c12e",
+      "size": 676
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_013_distributed_mob_rt.exact_model.json.gz",
+      "sha256": "a038fc31c6ded45e8bc8364356f778df2fbe7f49649334fadabcf620e2b86e02",
+      "size": 5154
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_014_bilateral_rspv_ad.exact_model.json.gz",
+      "sha256": "2268f63474bd55e8fb66d9cf8ce276db7b2e229d71f728bcb260cfc14375fcbb",
+      "size": 6047
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_015_bilateral_gpe_lgv.exact_model.json.gz",
+      "sha256": "ab5454c9e1094f8ef8dd7b3cea6f6b6fd3e0317b53dc9ccaa2445e45802fcb81",
+      "size": 1846
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_017_triad_visual_thalamic_bst.exact_model.json.gz",
+      "sha256": "4f5e4afa20359b83ca5540427c10fe9cfa933d5a52c48d191581e7722ecf2864",
+      "size": 2122
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_018_quartet_distributed.exact_model.json.gz",
+      "sha256": "77124b1855ff69f722647e5b489fb66dd3c0c89dd467c3f011c253e5f15f3c23",
+      "size": 6119
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_models/v021_v4_019_quintet_distributed.exact_model.json.gz",
+      "sha256": "938f65de556072bbc2bb53d9a518f480267a86f47d4344353567f73daf5e1633",
+      "size": 9590
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_oracle_cases.csv",
+      "sha256": "8de2c19531a010047b0fef585c9aef6c63fd34cd8c9b0b08a33452ab59193539",
+      "size": 4297
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_oracle_contract.json",
+      "sha256": "13dc004b99c4f637a43ec83c75e1bbcba8c86ba29c3cf53e8c32d85ff30e6c93",
+      "size": 2035
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_oracle_results.json",
+      "sha256": "1223afd9135e960abfb5aaa7b02abf57a495b906653aacea35d1a61201b4ece2",
+      "size": 31472
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_exact_oracle_summary.json",
+      "sha256": "35ea96f2e442b9d73f9918cc9d6e7fe9314c5618bbbb4c31fa9e5e6b5e1929b0",
+      "size": 406
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_failure_exact_models/v021_v4_009_nearby_olfactory_amygdala.exact_model.json.gz",
+      "sha256": "444e704a4f9fd3a2da24139c6908c0eb3b5503cd1a8c118fe3967afc8897b337",
+      "size": 1128
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_failure_exact_models/v021_v4_011_distributed_visl_ld.exact_model.json.gz",
+      "sha256": "e8613023071e545816f0a5060557b0e9fdb0694e8b15b96ea9812f5337db64dc",
+      "size": 1229
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_failure_exact_models/v021_v4_016_bilateral_coaa_ld.exact_model.json.gz",
+      "sha256": "12fa891b45831ce8a2d97afc65acdf1289802ce6bc8cb1ee8bbbb9b5ead59164",
+      "size": 615
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_failure_oracle_results.json",
+      "sha256": "da8615557e406816f8b1d3e583bf7e49963a05073b0376ce616da03341897ed4",
+      "size": 6686
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_failure_remediation_results.json",
+      "sha256": "3c7b52a1be2cf0a15838d4f801880fd9c96940e4f88e38faadebfab00ec2e288",
+      "size": 123637
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_final_source_holdout_cases.csv",
+      "sha256": "19210cca6333cdc997af33a62ddfc804e19865a326e6e15ce34458dc9a41bee1",
+      "size": 2598
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_final_source_holdout_lock.json",
+      "sha256": "d6b71400a9dc44fc985c4361736d80823b6d470a696fb48ab9067fd319101ff1",
+      "size": 806
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_final_source_holdout_manifest.json",
+      "sha256": "b3921fe300995a3a1faa061ef2635be57cfcfa903445679eb9c5b0b6bd0036af",
+      "size": 9805
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_final_source_holdout_manifest.sha256",
+      "sha256": "8ed6c91de61cf4f57cebb082ab2b3b4929181f986c497507f9263c92bdb6cadf",
+      "size": 110
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_final_source_holdout_probes.csv",
+      "sha256": "26384be4c0d5938ce7a3d9f1bc1ddc20d7352baf3786b809ee301e1b5228e28c",
+      "size": 5973
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_final_source_holdout_results.json",
+      "sha256": "72d4a7518bf561b6993d802369c2f6a8351ea446ca22272264927f06c1b9d299",
+      "size": 584450
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_final_source_holdout_run_contract.json",
+      "sha256": "fe94824f1bb85177a1123c1276e6c4d75c6c3a8a9d9e6f3cea95a9bc5cb4a897",
+      "size": 1675
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_final_source_holdout_summary.json",
+      "sha256": "c70d941542b6663284487a27caaf3d49b0e3a04953f156a0eb08d2f784f223e3",
+      "size": 630
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v4_targeted_mirror_remediation_results.json",
+      "sha256": "6d4e4f8a2021cfbce2a64e078f7d5607c97a229f3d15831630a5875098c028ec",
+      "size": 124896
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_001_single_scsg.exact_model.json.gz",
+      "sha256": "8c4e3e46e4a5561a23720fb63a334c287048e471d03b36f286237373a70d0862",
+      "size": 420
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_002_single_dmh.exact_model.json.gz",
+      "sha256": "3a6d7d794abb26f94f09497f72606ded1eaeb846f2f935dc41f04db52e2d3a8d",
+      "size": 600
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_003_single_ep.exact_model.json.gz",
+      "sha256": "3b1ab6613492cff43ac8b4f691fc635cca0e442af725c390b0465666f4412910",
+      "size": 712
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_004_single_tt.exact_model.json.gz",
+      "sha256": "fb84567a427a85c60d2cf89a319c24483376d5e9f1a49b8a296d689a08670bdc",
+      "size": 1060
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_005_single_par.exact_model.json.gz",
+      "sha256": "22be657dcc3577494f2456c6cff4cdc580ad68d5bbfebc92c68de3e42e81c9a8",
+      "size": 239
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_006_single_vplpc.exact_model.json.gz",
+      "sha256": "f376ca1bfa712c1b7e91f545e9c8901bdaf9ff4bbf42321b953a2c41607f91db",
+      "size": 230
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_007_nearby_superior_colliculus.exact_model.json.gz",
+      "sha256": "48be647e32a625fccad95481233351e42c209185e406f227ce6958e4f3b70d0a",
+      "size": 841
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_008_nearby_hypothalamic.exact_model.json.gz",
+      "sha256": "5c27cb91d9831b836b79c35d9e018acc114ddcd6631f4b5b407a1283ca1cc433",
+      "size": 1348
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_009_nearby_olfactory.exact_model.json.gz",
+      "sha256": "b8622def7cba63cec4ce89d1ea7a806ace707605da97812745fc6a119d186953",
+      "size": 3858
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_010_nearby_subiculum.exact_model.json.gz",
+      "sha256": "18c8d47c4cfebdccfd071c11316a5926114930725c88e2c34fe28ab5022b0369",
+      "size": 1398
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_011_distributed_ep_ad.exact_model.json.gz",
+      "sha256": "77f8eacb126f8f9a05b943af74948da60e0b56f1bf47aa833c2e67ab3702320d",
+      "size": 1844
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_012_distributed_vplpc_visam.exact_model.json.gz",
+      "sha256": "8a57167ec905f15582612326319d212a153d3cb68acc3d4586513c1c2b3a0855",
+      "size": 878
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_013_distributed_sczo_mob.exact_model.json.gz",
+      "sha256": "ed1dbc3bfa288b7835f787d94984d3cb6d13c8d7a16c1dd6fcab43528ce326ff",
+      "size": 5355
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_014_bilateral_dmh_vplpc.exact_model.json.gz",
+      "sha256": "9dec5e8f12b316eba5ca9f029f16ac71f4614f8e85a9762fab9cff860ef4d11a",
+      "size": 2641
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_015_bilateral_ep_visam.exact_model.json.gz",
+      "sha256": "b56ea10738bfa6d8f668eb509b4930a5136582c3e4b05798f5bddaa0df680424",
+      "size": 3348
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_016_bilateral_par_rt.exact_model.json.gz",
+      "sha256": "28c3248bd597b2f2677d774333f7d944e819b471c7383792469090cdc2584c70",
+      "size": 1819
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_017_triad_midbrain_hypothalamus.exact_model.json.gz",
+      "sha256": "24fe735cfc2f2853965d1bdaafc8131e397ca80f2d2f7123b774df1b02743462",
+      "size": 3375
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_018_quartet_distributed.exact_model.json.gz",
+      "sha256": "1b5d4e29315b958f9e911f3ff07ac7f76d08c8282726d2928358bc3af0c0157d",
+      "size": 5327
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_models/v021_v5_019_quintet_distributed.exact_model.json.gz",
+      "sha256": "e91edbc94b841a92a20f9aaefadaba23c2b500ce8c850e590a7f5b6c095e5136",
+      "size": 9307
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_oracle_cases.csv",
+      "sha256": "65e3cc8fe68f8017c871a017f63426b80514961b4a0bc8a8b26b88c7dd6572a4",
+      "size": 5055
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_oracle_contract.json",
+      "sha256": "811487ea213facf90e9d404be941e0f8fc3f7c46fe08ea840d64da4564e00f50",
+      "size": 2179
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_oracle_results.json",
+      "sha256": "1756f9cb96f5520ac4e46da8449ef2333d4beb049c0cf0caaf86bbf819a660b9",
+      "size": 35828
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_exact_oracle_summary.json",
+      "sha256": "481468dc87c82a50d0eaba102bbba8f4c054069805c70f48500b2e6ac8938f1e",
+      "size": 406
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_final_holdout_cases.csv",
+      "sha256": "7079516fb309a80df87d2021de0e50ddf2adb1f631f18cf5241847a16770618e",
+      "size": 2540
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_final_holdout_lock.json",
+      "sha256": "d9a6b8fb07b9d5b5c61ffee76552967e4ff5eb63fe20e0fbe65d418648115d75",
+      "size": 792
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_final_holdout_manifest.json",
+      "sha256": "b241575cb0f0bbccf54c2d166af1587655234a6c21fb4af2041a8fba5af0a7f1",
+      "size": 9849
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_final_holdout_manifest.sha256",
+      "sha256": "54e74e9505728a4a83b8a03e368316918404510b0790617962e63035e163e71b",
+      "size": 103
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_final_holdout_probes.csv",
+      "sha256": "e2271d3e03ae9bfc354ff17de859b43220130e75fafe3d80efe04b7f7d24c188",
+      "size": 7007
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_final_holdout_results.json",
+      "sha256": "f1a43881fa03df2de238cd182e41db22aad4fb7d77dcf2096f9f8d7f9c792043",
+      "size": 642511
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_final_holdout_run_contract.json",
+      "sha256": "ede6709914d983a2bdc59f8a23212492cedfb33ca75472af3c3298671ecd7607",
+      "size": 1668
+    },
+    {
+      "path": "paper_final_validation/07_v021_revision/v021_v5_final_holdout_summary.json",
+      "sha256": "c55eab61f007fe85916622d8411cad11007578ca1c865f622fcd696befc083fc",
+      "size": 450
+    },
+    {
+      "path": "paper_final_validation/FINAL_VALIDATION_SUMMARY.md",
+      "sha256": "6435cfa132c30b911dc33e1b654dc066203aabb07a87d5d436044d0fc65f58e3",
+      "size": 6322
+    },
+    {
+      "path": "paper_final_validation/PROVENANCE.md",
+      "sha256": "9a4b8e04153235f62b6d8bca2c1b4a3b93418a9a4a08602011dd36654db6b1e4",
+      "size": 3341
+    },
+    {
+      "path": "paper_final_validation/README.md",
+      "sha256": "9e183a52e8b32bf9bc684fcae369d965c08fd2a87e9e93adbaa6a0c92e9594d2",
+      "size": 2146
+    }
+  ],
+  "releaseTag": "v0.2.1-paper",
+  "schemaVersion": "probeplanner.paper_immutable_evidence.v1",
+  "scope": "byte-preserved validation evidence; local paths inside frozen records are provenance only"
+}

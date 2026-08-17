@@ -5,12 +5,13 @@ type: software
 authors:
   - family-names: Sha
     given-names: Yijun
+    affiliation: "University of Shanghai for Science and Technology"
 repository-code: "https://github.com/Shark04468/probeplanner"
 url: "https://github.com/Shark04468/probeplanner"
 license: MIT
-version: "0.2.0-paper"
-date-released: "2026-07-11"
-doi: "10.5281/zenodo.21307547"
+version: "0.2.1-paper"
+date-released: "2026-08-17"
+doi: "10.5281/zenodo.21307546"
 keywords:
   - mouse brain atlas
   - Allen CCF

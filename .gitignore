@@ -19,6 +19,7 @@ __pycache__/
 .probeplanner/
 .venv/
 /release/
+/paper_final_release/
 artifacts/
 paper_drafts/
 paper_upload_*/

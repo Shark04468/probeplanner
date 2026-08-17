@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import atexit
 import csv
 import hashlib
 import json
 import math
 import os
 import sys
+import tempfile
 import time
 from collections import Counter
 from copy import deepcopy
@@ -30,6 +32,81 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_PROFILE_ROOT = Path(os.environ.get("PROBEPLANNER_PROFILE_ROOT", "artifacts/ambmc_true_outer_full"))
 DEFAULT_EVIDENCE_DIR = REPO_ROOT / "docs" / "evidence"
 DEFAULT_STEM = "2026-07-09-auto-planning-stability"
+
+
+def available_memory_gb() -> float | None:
+    if os.name == "nt":
+        try:
+            import ctypes
+
+            class MemoryStatusEx(ctypes.Structure):
+                _fields_ = [
+                    ("dwLength", ctypes.c_ulong),
+                    ("dwMemoryLoad", ctypes.c_ulong),
+                    ("ullTotalPhys", ctypes.c_ulonglong),
+                    ("ullAvailPhys", ctypes.c_ulonglong),
+                    ("ullTotalPageFile", ctypes.c_ulonglong),
+                    ("ullAvailPageFile", ctypes.c_ulonglong),
+                    ("ullTotalVirtual", ctypes.c_ulonglong),
+                    ("ullAvailVirtual", ctypes.c_ulonglong),
+                    ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+                ]
+
+            status = MemoryStatusEx()
+            status.dwLength = ctypes.sizeof(status)
+            if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+                return float(status.ullAvailPhys / (1024**3))
+        except Exception:
+            return None
+    try:
+        pages = os.sysconf("SC_AVPHYS_PAGES")
+        page_size = os.sysconf("SC_PAGE_SIZE")
+        return float(pages * page_size / (1024**3))
+    except (AttributeError, OSError, ValueError):
+        return None
+
+
+def resolve_worker_count(
+    requested: int,
+    *,
+    policy: str,
+    available_gb: float | None,
+    reserve_gb: float,
+    memory_per_worker_gb: float,
+) -> int:
+    requested = max(1, int(requested))
+    if policy == "fixed" or available_gb is None:
+        return requested
+    usable_gb = max(0.0, float(available_gb) - max(0.0, float(reserve_gb)))
+    memory_limit = max(1, int(usable_gb // max(0.1, float(memory_per_worker_gb))))
+    return min(requested, memory_limit)
+
+
+def acquire_profile_run_lock(profile_root: Path) -> tuple[Any, Path]:
+    lock_id = hashlib.sha256(str(profile_root.resolve()).lower().encode("utf-8")).hexdigest()[:16]
+    lock_path = Path(tempfile.gettempdir()) / f"probeplanner-stability-{lock_id}.lock"
+    handle = lock_path.open("a+b")
+    handle.seek(0, os.SEEK_END)
+    if handle.tell() == 0:
+        handle.write(b"0")
+        handle.flush()
+    handle.seek(0)
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except (OSError, BlockingIOError) as exc:
+        handle.close()
+        raise RuntimeError(
+            f"Another stability run is already using profile {profile_root.resolve()}; "
+            "wait for it to finish or pass --allow-concurrent-runs explicitly."
+        ) from exc
+    return handle, lock_path
 
 
 def make_case(
@@ -796,7 +873,26 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile-root", default=str(DEFAULT_PROFILE_ROOT))
     parser.add_argument("--structures-json", default=str(atlas_util.DEFAULT_STRUCTURES_JSON))
     parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument(
+        "--worker-policy",
+        choices=("memory_aware", "fixed"),
+        default="memory_aware",
+        help="Clamp internal candidate workers to the current physical-memory budget by default.",
+    )
+    parser.add_argument("--memory-reserve-gb", type=float, default=8.0)
+    parser.add_argument("--memory-per-worker-gb", type=float, default=12.0)
+    parser.add_argument(
+        "--allow-concurrent-runs",
+        action="store_true",
+        help="Disable the profile-scoped cross-process lock. Use only with an explicit memory budget.",
+    )
     parser.add_argument("--repeats", type=int, default=10)
+    parser.add_argument(
+        "--case-start",
+        type=int,
+        default=1,
+        help="One-based index of the first stability case to run.",
+    )
     parser.add_argument("--case-limit", type=int, default=30)
     parser.add_argument("--min-case-count", type=int, default=30)
     parser.add_argument(
@@ -820,7 +916,31 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if int(args.repeats) < 2:
         raise ValueError("--repeats must be >= 2 for a stability audit")
-    cases = STABILITY_CASES[: int(args.case_limit)]
+    if int(args.case_start) < 1:
+        raise ValueError("--case-start must be >= 1")
+    start_index = int(args.case_start) - 1
+    cases = STABILITY_CASES[start_index : start_index + int(args.case_limit)]
+    profile_root = Path(args.profile_root).expanduser()
+    memory_available_gb = available_memory_gb()
+    effective_workers = resolve_worker_count(
+        int(args.workers),
+        policy=str(args.worker_policy),
+        available_gb=memory_available_gb,
+        reserve_gb=float(args.memory_reserve_gb),
+        memory_per_worker_gb=float(args.memory_per_worker_gb),
+    )
+    lock_handle = None
+    lock_path = None
+    if not args.allow_concurrent_runs:
+        lock_handle, lock_path = acquire_profile_run_lock(profile_root)
+        atexit.register(lock_handle.close)
+    print(
+        "Resource schedule: "
+        f"requested_workers={int(args.workers)} effective_workers={effective_workers} "
+        f"available_memory_gb={memory_available_gb if memory_available_gb is not None else 'unknown'} "
+        f"concurrent_runs={'allowed' if args.allow_concurrent_runs else 'blocked'}",
+        flush=True,
+    )
     out_json = Path(args.output_json).expanduser()
     checkpoint_path = (
         Path(args.checkpoint_json).expanduser()
@@ -828,9 +948,15 @@ def main(argv: list[str] | None = None) -> int:
         else out_json.with_name(f"{out_json.stem}-checkpoint.json")
     )
     checkpoint_config = {
+        "caseStart": int(args.case_start),
         "caseLimit": int(args.case_limit),
         "repeats": int(args.repeats),
-        "workers": int(args.workers),
+        "requestedWorkers": int(args.workers),
+        "workers": int(effective_workers),
+        "workerPolicy": str(args.worker_policy),
+        "memoryReserveGb": float(args.memory_reserve_gb),
+        "memoryPerWorkerGb": float(args.memory_per_worker_gb),
+        "concurrentRunsAllowed": bool(args.allow_concurrent_runs),
         "repeatScope": str(args.repeat_scope),
     }
     resumed_by_case: dict[str, dict[str, Any]] = {}
@@ -847,8 +973,7 @@ def main(argv: list[str] | None = None) -> int:
                 }
         except Exception:
             resumed_by_case = {}
-    profile_root = Path(args.profile_root).expanduser()
-    atlas_util.configure_backend_environment(profile_root, workers=int(args.workers))
+    atlas_util.configure_backend_environment(profile_root, workers=int(effective_workers))
     server = atlas_util.import_backend_server()
 
     started = time.time()
@@ -875,7 +1000,7 @@ def main(argv: list[str] | None = None) -> int:
                 result = run_case(
                     server,
                     case,
-                    workers=int(args.workers),
+                    workers=int(effective_workers),
                     repeats=int(args.repeats),
                     repeat_scope=str(args.repeat_scope),
                 )
@@ -925,10 +1050,20 @@ def main(argv: list[str] | None = None) -> int:
         "ontologyFallback": ontology_fallback,
         "targetRegions": target_regions,
         "runConfig": {
+            "caseStart": int(args.case_start),
             "caseLimit": int(args.case_limit),
             "minCaseCount": int(args.min_case_count),
             "repeats": int(args.repeats),
-            "workers": int(args.workers),
+            "requestedWorkers": int(args.workers),
+            "workers": int(effective_workers),
+            "workerPolicy": str(args.worker_policy),
+            "availableMemoryGbAtStart": (
+                round(float(memory_available_gb), 6) if memory_available_gb is not None else None
+            ),
+            "memoryReserveGb": float(args.memory_reserve_gb),
+            "memoryPerWorkerGb": float(args.memory_per_worker_gb),
+            "concurrentRunsAllowed": bool(args.allow_concurrent_runs),
+            "profileRunLockPath": str(lock_path) if lock_path is not None else None,
             "randomCandidateSampling": False,
             "seedSensitivity": "not_applicable_deterministic_candidate_generation_and_selector",
             "repeatScope": str(args.repeat_scope),

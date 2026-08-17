@@ -2493,6 +2493,7 @@ REGION_CENTROIDS_UM = {
     )
     for reg in PLANNER_REGIONS.values()
 }
+REGION_INDEX_CENTROID_POLICY = "canonical_left_v1"
 
 
 def _rebuild_region_centroids():
@@ -2534,6 +2535,9 @@ def _load_region_index_cache(atlas_mode, atlas_hash):
             return None
         if str(payload.get("atlasMode") or "") != str(atlas_mode or ""):
             return None
+        if str(payload.get("centroidPolicy") or "") != REGION_INDEX_CENTROID_POLICY:
+            log.info(f"Ignoring region index cache with stale centroid policy: {cache_path}")
+            return None
         planner_seed = payload.get("plannerSeed")
         structure_seed = payload.get("structureMap")
         descendant_seed = payload.get("descendantIds")
@@ -2568,6 +2572,7 @@ def _save_region_index_cache(atlas_mode, atlas_hash, planner_seed, structure_see
         "atlasHash": str(atlas_hash or ""),
         "voxelSizeUm": VOXEL_SIZE_UM,
         "atlasShape": list(ATLAS_SHAPE),
+        "centroidPolicy": REGION_INDEX_CENTROID_POLICY,
         "plannerSeed": planner_seed,
         "structureMap": structure_seed,
         "descendantIds": descendant_seed,
@@ -2707,7 +2712,7 @@ def _voxel_centroid_to_bregma_mm(centroid_ijk):
     return ap_mm, dv_mm, ml_mm
 
 
-def _compute_descendant_centroid(annotation, desc):
+def _compute_descendant_centroid(annotation, desc, hemisphere="left"):
     if annotation is None or not desc:
         return None
     try:
@@ -2721,6 +2726,10 @@ def _compute_descendant_centroid(annotation, desc):
     sum_j = 0.0
     sum_k = 0.0
     voxel_count = 0
+    hemisphere_key = str(hemisphere or "bilateral").strip().lower()
+    midline_k = float(BREGMA_UM[2]) / float(VOXEL_SIZE_UM)
+    if hemisphere_key not in {"bilateral", "left", "right"}:
+        raise ValueError("hemisphere must be bilateral, left, or right")
     for z0 in range(0, int(annotation.shape[0]), chunk_depth):
         z1 = min(int(annotation.shape[0]), z0 + chunk_depth)
         block = np.asarray(annotation[z0:z1], dtype=np.uint32)
@@ -2728,6 +2737,10 @@ def _compute_descendant_centroid(annotation, desc):
         if not np.any(local_mask):
             continue
         local_vox = np.argwhere(local_mask)
+        if hemisphere_key == "left":
+            local_vox = local_vox[local_vox[:, 2] < midline_k]
+        elif hemisphere_key == "right":
+            local_vox = local_vox[local_vox[:, 2] > midline_k]
         if local_vox.size == 0:
             continue
         voxel_count += int(local_vox.shape[0])
@@ -2749,7 +2762,12 @@ def _compute_descendant_centroid(annotation, desc):
     }
 
 
-def _compute_label_centroid_stats_chunked(annotation, label_ids=None, chunk_depth=16):
+def _compute_label_centroid_stats_chunked(
+    annotation,
+    label_ids=None,
+    chunk_depth=16,
+    hemisphere=None,
+):
     if annotation is None:
         return {}
     arr = np.asarray(annotation)
@@ -2774,6 +2792,10 @@ def _compute_label_centroid_stats_chunked(annotation, label_ids=None, chunk_dept
     nz = int(arr.shape[2])
     j_template = np.repeat(np.arange(ny, dtype=np.float64), nz)
     k_template = np.tile(np.arange(nz, dtype=np.float64), ny)
+    hemisphere_key = str(hemisphere or "bilateral").strip().lower()
+    midline_k = float(BREGMA_UM[2]) / float(VOXEL_SIZE_UM)
+    if hemisphere_key not in {"bilateral", "left", "right"}:
+        raise ValueError("hemisphere must be bilateral, left, or right")
     chunk_depth = max(4, int(chunk_depth))
 
     for z0 in range(0, int(arr.shape[0]), chunk_depth):
@@ -2789,6 +2811,10 @@ def _compute_label_centroid_stats_chunked(annotation, label_ids=None, chunk_dept
                 & (mapped < n_labels)
                 & (label_ids[np.clip(mapped, 0, n_labels - 1)] == plane)
             )
+            if hemisphere_key == "left":
+                valid &= k_template < midline_k
+            elif hemisphere_key == "right":
+                valid &= k_template > midline_k
             if not np.any(valid):
                 continue
             mapped_valid = mapped[valid]
@@ -2858,10 +2884,17 @@ def _descendant_centroid_from_label_stats(descendant_ids_set, label_stats):
 
 
 def _build_allen_full_region_seed(annotation, tree, records, descendant_map):
+    available_label_ids = np.unique(np.asarray(annotation, dtype=np.uint32))
     label_stats = _compute_label_centroid_stats_chunked(
         annotation,
-        label_ids=np.unique(np.asarray(annotation, dtype=np.uint32)),
+        label_ids=available_label_ids,
         chunk_depth=REGION_INDEX_CACHE_CHUNK_DEPTH,
+    )
+    left_label_stats = _compute_label_centroid_stats_chunked(
+        annotation,
+        label_ids=available_label_ids,
+        chunk_depth=REGION_INDEX_CACHE_CHUNK_DEPTH,
+        hemisphere="left",
     )
     planner_seed = {}
     structure_seed = {}
@@ -2880,7 +2913,10 @@ def _build_allen_full_region_seed(annotation, tree, records, descendant_map):
         desc = frozenset(int(v) for v in desc)
         descendant_seed[sid] = [int(v) for v in sorted(desc)]
 
-        centroid_info = _descendant_centroid_from_label_stats(desc, label_stats)
+        total_centroid_info = _descendant_centroid_from_label_stats(desc, label_stats)
+        centroid_info = _descendant_centroid_from_label_stats(desc, left_label_stats)
+        if centroid_info is None:
+            centroid_info = total_centroid_info
         if centroid_info is None:
             centroid_info = {
                 "ap_mm": 0.0,
@@ -2896,7 +2932,7 @@ def _build_allen_full_region_seed(annotation, tree, records, descendant_map):
             "ml": round(float(centroid_info["ml_mm"]), 3),
             "category": "atlas",
         }
-        vcount = int(centroid_info.get("voxel_count", 0) or 0)
+        vcount = int((total_centroid_info or {}).get("voxel_count", 0) or 0)
         structure_seed[sid] = {
             "acronym": acronym,
             "name": name,
@@ -2917,11 +2953,19 @@ def _merge_startup_planner_seed(planner_seed):
         clean_key = str(key or "").strip()
         if not clean_key:
             continue
-        existing = PLANNER_REGIONS.get(clean_key, {})
+        canonical_key = next(
+            (
+                existing_key
+                for existing_key in PLANNER_REGIONS
+                if str(existing_key).strip().lower() == clean_key.lower()
+            ),
+            clean_key,
+        )
+        existing = PLANNER_REGIONS.get(canonical_key, {})
         category = existing.get("category") if isinstance(existing, dict) else None
         if not category:
             category = rec.get("category", "atlas")
-        PLANNER_REGIONS[clean_key] = {
+        PLANNER_REGIONS[canonical_key] = {
             "id": int(rec.get("id")),
             "ap": float(rec.get("ap", 0.0)),
             "dv": float(rec.get("dv", 0.0)),
@@ -3266,6 +3310,11 @@ def _build_region_catalog(scope="all"):
     key_set = set(planner_snapshot.keys()) if include_planner_seed else set()
     if scope_norm not in ("planner", "curated", "selected"):
         sid_seen = set()
+        planner_key_by_sid = {
+            int(reg.get("id")): key
+            for key, reg in planner_snapshot.items()
+            if isinstance(reg, dict) and reg.get("id") is not None
+        }
         for rec in acronym_snapshot.values():
             if not isinstance(rec, dict):
                 continue
@@ -3282,7 +3331,7 @@ def _build_region_catalog(scope="all"):
                     if sid in sid_seen:
                         continue
                     sid_seen.add(sid)
-            key_set.add(acronym)
+            key_set.add(planner_key_by_sid.get(sid, acronym))
 
     out = {}
     for key in sorted(key_set):
@@ -6157,6 +6206,9 @@ def _update_reconstruction_quality_state(
         "residualMm": _metric_from_stats(stats, "residualMm", "residual"),
         "jacobianStd": _metric_from_stats(stats, "jacobianStd", "jacStd"),
     }
+    anatomical_tre_available = bool(
+        stats.get("anatomicalTreAvailable", registration_summary.get("anatomicalTreAvailable", True))
+    )
 
     def _seed_metric_evidence(metric_key):
         if metrics.get(metric_key) is None or metric_evidence.get(metric_key):
@@ -6215,7 +6267,7 @@ def _update_reconstruction_quality_state(
         metrics["hd95Mm"] = _metric_from_stats(registration_summary, "hd95Mm", "hd95")
         if metrics["hd95Mm"] is not None:
             metric_evidence["hd95Mm"] = "registration_summary"
-    if metrics["treMm"] is None:
+    if metrics["treMm"] is None and anatomical_tre_available:
         metrics["treMm"] = _metric_from_stats(registration_summary, "treMm", "tre")
         if metrics["treMm"] is not None:
             metric_evidence["treMm"] = "registration_summary"
@@ -6237,7 +6289,7 @@ def _update_reconstruction_quality_state(
             center_offset_norm_mm = float(np.linalg.norm(np.asarray(center_offset[:3], dtype=np.float64)))
         except Exception:
             center_offset_norm_mm = None
-    if metrics["treMm"] is None and center_offset_norm_mm is not None:
+    if metrics["treMm"] is None and center_offset_norm_mm is not None and anatomical_tre_available:
         metrics["treMm"] = center_offset_norm_mm
         metric_evidence["treMm"] = "registration_center_offset_proxy"
 
@@ -6353,6 +6405,8 @@ def _update_reconstruction_quality_state(
         "jacobianSummary": jacobian_summary or {},
         "thresholds": thresholds,
         "passed": len(reasons) == 0,
+        "status": "PASS" if len(reasons) == 0 and anatomical_tre_available else "INCOMPLETE_ANATOMICAL_TRE" if len(reasons) == 0 else "FAIL",
+        "anatomicalTreAvailable": anatomical_tre_available,
         "blockingReasons": reasons,
         "nonBlockingReasons": nonblocking_reasons,
         "proxyEvidenceOnly": bool(nonblocking_reasons) and not bool(reasons),
@@ -6647,6 +6701,12 @@ def _load_label_driven_atlas_mode(active_mode):
             label_ids=available_ids,
             chunk_depth=REGION_INDEX_CACHE_CHUNK_DEPTH,
         )
+        left_label_stats = _compute_label_centroid_stats_chunked(
+            _annotation,
+            label_ids=available_ids,
+            chunk_depth=REGION_INDEX_CACHE_CHUNK_DEPTH,
+            hemisphere="left",
+        )
         total_ids = max(1, len(available_ids))
         for idx, sid in enumerate(available_ids, start=1):
             vcount = int(id_count_map.get(sid, 0))
@@ -6660,7 +6720,7 @@ def _load_label_driven_atlas_mode(active_mode):
                 "volume_mm3": round(vcount * (VOXEL_SIZE_UM / 1000) ** 3, 4),
                 "n_subregions": 1,
             }
-            stat = label_stats.get(int(sid))
+            stat = left_label_stats.get(int(sid)) or label_stats.get(int(sid))
             if stat and int(stat.get("count", 0) or 0) > 0:
                 centroid = (
                     float(stat["sum_i"]) / float(stat["count"]),
@@ -6744,7 +6804,15 @@ def _load_label_driven_atlas_mode(active_mode):
                     "graph_order": None,
                     "structure_set_ids": [],
                 }
-            if acronym not in planner_seed:
+            seed_key = next(
+                (
+                    existing_key
+                    for existing_key in planner_seed
+                    if str(existing_key).strip().lower() == str(acronym).strip().lower()
+                ),
+                None,
+            )
+            if seed_key is None:
                 planner_seed[acronym] = {
                     "id": int(mapped_id),
                     "ap": float(reg.get("ap", 0.0)),
@@ -6752,6 +6820,8 @@ def _load_label_driven_atlas_mode(active_mode):
                     "ml": float(reg.get("ml", 0.0)),
                     "category": str(reg.get("category", "core")),
                 }
+            else:
+                planner_seed[seed_key]["category"] = str(reg.get("category", "core"))
 
     if active_mode == "qiu2018":
         _update_reconstruction_quality_state(_annotation, profile_source="qiu2018_stats_dynamic")
@@ -11639,6 +11709,43 @@ def generate_multi_target_candidates(target_keys, params):
     return candidates
 
 
+def _candidate_depth_variants(base_depth_um, max_depth_um, target_dv_um, enforce_brain_bounds):
+    base = float(max(500.0, min(float(base_depth_um), float(max_depth_um))))
+    values = [base]
+    if enforce_brain_bounds:
+        for margin_um in (500.0, 900.0, 1300.0, 1800.0, 2500.0):
+            values.append(max(500.0, min(base, float(target_dv_um) + margin_um)))
+    output = []
+    seen = set()
+    for value in values:
+        rounded = round(float(value), 1)
+        if rounded not in seen:
+            seen.add(rounded)
+            output.append(rounded)
+    return output
+
+
+def _target_local_ml_centers(ml_mm, bilateral):
+    centers = [round(float(ml_mm), 6)]
+    mirrored = round(-float(ml_mm), 6)
+    if bilateral and mirrored not in centers:
+        centers.append(mirrored)
+    return centers
+
+
+def _mirror_bilateral_candidate_spec(spec):
+    ap, ml, theta, phi, depth, source = spec
+    mirrored_phi = float(phi) if abs(float(theta)) <= 1e-12 else (-float(phi)) % 360.0
+    return (
+        float(ap),
+        round(-float(ml), 3),
+        float(theta),
+        round(mirrored_phi, 1),
+        float(depth),
+        str(source),
+    )
+
+
 def generate_candidates_voxel(
     target_keys,
     params,
@@ -11693,26 +11800,15 @@ def generate_candidates_voxel(
         [float(r.get("dv", 0.0)) * 1000.0 for r in regions.values()] or [float(depth_um)]
     )
 
-    def _depth_variants(base_depth_um):
+    def _depth_variants(base_depth_um, target_dv_override_um=None):
         if not bool(params.get("depthOptimizationEnabled", True)):
             return [float(depth_um)]
-        base = float(max(500.0, min(float(base_depth_um), float(depth_um))))
-        vals = [base]
-        if constraint_modes.get("brainBounds") == "enforce":
-            # Probe hardware may be longer than the brain span at this AP/ML.
-            # Generate explicit insertion-depth candidates around the target
-            # depth so the planner can choose an in-brain trajectory instead of
-            # relying on the final safety contract to reject a full-depth probe.
-            for margin_um in (500.0, 900.0, 1300.0, 1800.0, 2500.0):
-                vals.append(max(500.0, min(base, target_dv_um + margin_um)))
-        out = []
-        seen = set()
-        for v in vals:
-            vv = round(float(v), 1)
-            if vv not in seen:
-                seen.add(vv)
-                out.append(vv)
-        return out
+        return _candidate_depth_variants(
+            base_depth_um,
+            depth_um,
+            target_dv_um if target_dv_override_um is None else target_dv_override_um,
+            constraint_modes.get("brainBounds") == "enforce",
+        )
 
     # Use planner-region AP convention directly. Negating here can mirror the
     # search grid and wipe out candidates for posterior targets in MRI/CCF.
@@ -11759,29 +11855,31 @@ def generate_candidates_voxel(
     for target_key, region in regions.items():
         local_ap = float(region["ap"]) - margin
         local_ap_max = float(region["ap"]) + margin
+        target_dv = float(region.get("dv", 0.0)) * 1000.0
         while local_ap <= local_ap_max + 1e-9:
             ap_eval = local_ap * corr["ap"] + corr["apShift"]
             if constraint_modes.get("lambdaBoundary") == "enforce" and ap_eval < LAMBDA_AP_MM:
                 local_ap += grid_mm
                 continue
-            local_ml = float(region["ml"]) - margin
-            local_ml_max = float(region["ml"]) + margin
-            while local_ml <= local_ml_max + 1e-9:
-                for theta, phi in angle_dirs:
-                    if theta <= max_angle:
-                        for dep in _depth_variants(depth_um):
-                            raw_specs.append(
-                                (
-                                    round(local_ap, 3),
-                                    round(local_ml, 3),
-                                    theta,
-                                    phi,
-                                    dep,
-                                    f"target_grid_{target_key}",
+            for local_ml_center in _target_local_ml_centers(region["ml"], bilateral):
+                local_ml = local_ml_center - margin
+                local_ml_max = local_ml_center + margin
+                while local_ml <= local_ml_max + 1e-9:
+                    for theta, phi in angle_dirs:
+                        if theta <= max_angle:
+                            for dep in _depth_variants(depth_um, target_dv):
+                                raw_specs.append(
+                                    (
+                                        round(local_ap, 3),
+                                        round(local_ml, 3),
+                                        theta,
+                                        phi,
+                                        dep,
+                                        f"target_grid_{target_key}",
+                                    )
                                 )
-                            )
-                            n_target_local_grid += 1
-                local_ml += grid_mm
+                                n_target_local_grid += 1
+                    local_ml += grid_mm
             local_ap += grid_mm
     n_grid = len(raw_specs)
 
@@ -11881,6 +11979,7 @@ def generate_candidates_voxel(
         "brainMaskRecoverableKept": 0,
         "noCoverage": 0,
     }
+    coarse_reject_by_source = {}
     refine_reject_counts = {
         "bounds": 0,
         "emptyTrajectory": 0,
@@ -11892,14 +11991,24 @@ def generate_candidates_voxel(
     coarse_reject_lock = threading.Lock()
     refine_reject_lock = threading.Lock()
 
-    def _bump_coarse_reject(reason_key):
+    def _bump_coarse_reject(reason_key, source=None):
         key = str(reason_key or "unknown")
+        source_key = str(source or "unknown")
         with coarse_reject_lock:
             coarse_reject_counts[key] = int(coarse_reject_counts.get(key, 0)) + 1
+            source_counts = coarse_reject_by_source.setdefault(source_key, {})
+            source_counts[key] = int(source_counts.get(key, 0)) + 1
 
     def _coarse_reject_snapshot():
         with coarse_reject_lock:
             return {k: int(v) for k, v in coarse_reject_counts.items()}
+
+    def _coarse_reject_by_source_snapshot():
+        with coarse_reject_lock:
+            return {
+                str(source): {str(reason): int(count) for reason, count in counts.items()}
+                for source, counts in coarse_reject_by_source.items()
+            }
 
     def _bump_refine_reject(reason_key):
         key = str(reason_key or "unknown")
@@ -11971,7 +12080,7 @@ def generate_candidates_voxel(
                 ap_corr, ml_corr, dep_corr, entry, tip, direction, dv_corr,
             ) = _spec_geometry(spec)
             if not _bounds_ok(ap_corr, dep_corr, direction, dv_corr):
-                _bump_coarse_reject("bounds")
+                _bump_coarse_reject("bounds", source)
                 return None
             path_indices, path_depths_um = _sample_trajectory_path_indices(
                 ap_corr,
@@ -11983,7 +12092,7 @@ def generate_candidates_voxel(
                 step_um=coarse_step_um,
             )
             if not path_indices:
-                _bump_coarse_reject("emptyTrajectory")
+                _bump_coarse_reject("emptyTrajectory", source)
                 return None
             generation_brain_bounds_violation = None
             if constraint_modes.get("brainBounds") == "enforce":
@@ -11998,13 +12107,13 @@ def generate_candidates_voxel(
                     # the optimizer by default; repair/fallback should work from
                     # feasible geometry or explicitly generated local variants.
                     if reason == "no_brain_intersection":
-                        _bump_coarse_reject("brainMaskNoIntersection")
+                        _bump_coarse_reject("brainMaskNoIntersection", source)
                         return None
                     if bool(params.get("candidateKeepRecoverableBrainBounds", False)):
                         generation_brain_bounds_violation = reason or "brain_mask_violation"
-                        _bump_coarse_reject("brainMaskRecoverableKept")
+                        _bump_coarse_reject("brainMaskRecoverableKept", source)
                     else:
-                        _bump_coarse_reject("brainMaskRejected")
+                        _bump_coarse_reject("brainMaskRejected", source)
                         return None
             valid_path = [
                 (voxel, depth)
@@ -12014,7 +12123,7 @@ def generate_candidates_voxel(
             traj_voxels = [voxel for voxel, _ in valid_path]
             traj_depths_um = [depth for _, depth in valid_path]
             if not traj_voxels:
-                _bump_coarse_reject("emptyTrajectory")
+                _bump_coarse_reject("emptyTrajectory", source)
                 return None
             profile = compute_trajectory_profile(
                 traj_voxels,
@@ -12036,8 +12145,23 @@ def generate_candidates_voxel(
                     if dist_um <= coverage_radius_um:
                         covered_keys.append(key)
             if not covered_keys:
-                _bump_coarse_reject("noCoverage")
+                _bump_coarse_reject("noCoverage", source)
                 return None
+            covered_region_sides = {}
+            for key in covered_keys:
+                target_profile = profile.get(target_ids[key], {})
+                sides = [
+                    str(side) for side in (target_profile.get("coveredSides") or [])
+                    if str(side) in ("left", "right")
+                ]
+                if not sides:
+                    if int(target_profile.get("left_voxels", 0) or 0) > 0:
+                        sides.append("left")
+                    if int(target_profile.get("right_voxels", 0) or 0) > 0:
+                        sides.append("right")
+                if not sides:
+                    sides = ["right" if ml_corr > 0 else "left"]
+                covered_region_sides[key] = sorted(set(sides))
             overlap_score = float(
                 sum(float(profile.get(target_ids[k], {}).get("n_voxels", 0)) for k in covered_keys)
             )
@@ -12045,12 +12169,15 @@ def generate_candidates_voxel(
                 "idx": int(spec_idx),
                 "spec": spec,
                 "coveredKeys": covered_keys,
+                "coveredRegionSides": covered_region_sides,
                 "coveredCount": int(len(covered_keys)),
                 "overlapScore": overlap_score,
                 "forced": bool(str(source).lower().startswith(("pca_", "pair_"))),
                 "brainBoundsGenerationViolation": generation_brain_bounds_violation,
             }
         except Exception:
+            source = spec[5] if isinstance(spec, (list, tuple)) and len(spec) > 5 else "unknown"
+            _bump_coarse_reject("exception", source)
             return None
 
     indexed_specs = list(enumerate(deduped, start=1))
@@ -12080,6 +12207,74 @@ def generate_candidates_voxel(
                     except Exception:
                         pass
 
+    # Close only missing target sides under exact ML reflection. Lattices
+    # stepped from independent lower bounds can have different phases on the
+    # two sides, but mirroring every feasible ray needlessly doubles normal
+    # bilateral pools. Mirrored rays still pass all coarse constraints.
+    bilateral_mirror_spec_count = 0
+    bilateral_mirror_accepted_count = 0
+    bilateral_missing_tokens_before = []
+    bilateral_missing_tokens_after = []
+    if bilateral and coarse_rows:
+        required_side_tokens = {
+            f"{key}:{side}" for key in target_ids for side in ("left", "right")
+        }
+
+        def _coarse_side_tokens(rows):
+            tokens = set()
+            for coarse_row in rows:
+                for key, sides in (coarse_row.get("coveredRegionSides") or {}).items():
+                    for side in sides:
+                        if side in ("left", "right"):
+                            tokens.add(f"{key}:{side}")
+            return tokens
+
+        present_side_tokens = _coarse_side_tokens(coarse_rows)
+        missing_side_tokens = required_side_tokens - present_side_tokens
+        bilateral_missing_tokens_before = sorted(missing_side_tokens)
+        mirror_items = []
+        next_spec_idx = len(deduped) + 1
+        for coarse_row in list(coarse_rows):
+            mirrored_tokens = {
+                f"{key}:{'right' if side == 'left' else 'left'}"
+                for key, sides in (coarse_row.get("coveredRegionSides") or {}).items()
+                for side in sides
+                if side in ("left", "right")
+            }
+            if not (mirrored_tokens & missing_side_tokens):
+                continue
+            mirrored = _mirror_bilateral_candidate_spec(coarse_row["spec"])
+            key = (
+                mirrored[0], mirrored[1], mirrored[2], mirrored[3],
+                round(float(mirrored[4]), 1),
+            )
+            if key in seen_specs:
+                continue
+            seen_specs.add(key)
+            deduped.append(mirrored)
+            mirror_items.append((next_spec_idx, mirrored))
+            next_spec_idx += 1
+        bilateral_mirror_spec_count = len(mirror_items)
+        for item in mirror_items:
+            mirrored_row = _coarse_eval(item)
+            if mirrored_row is not None:
+                coarse_rows.append(mirrored_row)
+                bilateral_mirror_accepted_count += 1
+        candidate_gen_summary["specDeduped"] = int(len(deduped))
+        bilateral_missing_tokens_after = sorted(
+            required_side_tokens - _coarse_side_tokens(coarse_rows)
+        )
+    candidate_gen_summary["bilateralMirrorSpecCount"] = int(bilateral_mirror_spec_count)
+    candidate_gen_summary["bilateralMirrorAcceptedCount"] = int(
+        bilateral_mirror_accepted_count
+    )
+    candidate_gen_summary["bilateralMissingTokensBeforeMirror"] = (
+        bilateral_missing_tokens_before
+    )
+    candidate_gen_summary["bilateralMissingTokensAfterMirror"] = (
+        bilateral_missing_tokens_after
+    )
+
     if not coarse_rows:
         candidate_gen_summary.update(
             {
@@ -12091,6 +12286,7 @@ def generate_candidates_voxel(
                 "refineStepUm": float(refine_step_um),
                 "refineFraction": float(refine_fraction),
                 "coarseRejectReasons": _coarse_reject_snapshot(),
+                "coarseRejectReasonsBySource": _coarse_reject_by_source_snapshot(),
                 "refineRejectReasons": _refine_reject_snapshot(),
             }
         )
@@ -12098,6 +12294,21 @@ def generate_candidates_voxel(
         _emit_progress(1000.0)
         log.info(f"    0      ?   : {target_keys}")
         return []
+
+    coarse_accepted_counts_by_source = {}
+    coarse_coverage_counts_by_target = {str(key): 0 for key in target_ids}
+    coarse_coverage_counts_by_target_and_source = {str(key): {} for key in target_ids}
+    for row in coarse_rows:
+        spec = row.get("spec") or ()
+        source = str(spec[5]) if len(spec) > 5 else "unknown"
+        coarse_accepted_counts_by_source[source] = int(coarse_accepted_counts_by_source.get(source, 0)) + 1
+        for key in row.get("coveredKeys") or []:
+            target_key = str(key)
+            coarse_coverage_counts_by_target[target_key] = int(
+                coarse_coverage_counts_by_target.get(target_key, 0)
+            ) + 1
+            by_source = coarse_coverage_counts_by_target_and_source.setdefault(target_key, {})
+            by_source[source] = int(by_source.get(source, 0)) + 1
 
     forced_idxs = {int(r["idx"]) for r in coarse_rows if bool(r.get("forced"))}
     per_target_best = {}
@@ -12109,10 +12320,12 @@ def generate_candidates_voxel(
     )
     target_diversity_counts = {}
     target_entry_variant_counts = {}
+    target_side_seed_counts = {}
     for key in target_ids.keys():
         rows = [r for r in coarse_rows if key in (r.get("coveredKeys") or [])]
         if not rows:
             target_diversity_counts[key] = 0
+            target_side_seed_counts[key] = {"left": 0, "right": 0}
             continue
         ranked_target_rows = sorted(
             rows,
@@ -12127,6 +12340,18 @@ def generate_candidates_voxel(
         diversity_rows = ranked_target_rows[:target_diversity_seeds]
         forced_idxs |= {int(row["idx"]) for row in diversity_rows}
         target_diversity_counts[key] = int(len(diversity_rows))
+
+        side_counts = {"left": 0, "right": 0}
+        if bilateral:
+            for side in ("left", "right"):
+                side_rows = [
+                    row for row in ranked_target_rows
+                    if side in (row.get("coveredRegionSides", {}).get(key) or [])
+                ]
+                if side_rows:
+                    forced_idxs.add(int(side_rows[0]["idx"]))
+                    side_counts[side] = 1
+        target_side_seed_counts[key] = side_counts
 
         # Preserve several angle/depth variants for every target-local entry
         # point.  A high-overlap ray at one entry can violate the MRI-derived
@@ -12345,6 +12570,10 @@ def generate_candidates_voxel(
         cand.pop("_specIdx", None)
         cand["id"] = int(cand_id)
         candidates.append(cand)
+    refined_coverage_counts_by_target = {
+        str(key): int(sum(1 for cand in candidates if key in (cand.get("coveredRegions") or [])))
+        for key in target_ids
+    }
 
     endpoint_policy = str(params.get("targetEndpointPolicy", "trajectory_intersects")).strip().lower()
     if endpoint_policy == "tip_in_target":
@@ -12390,12 +12619,26 @@ def generate_candidates_voxel(
     candidate_gen_summary["targetDiversitySeedCounts"] = {
         str(key): int(count) for key, count in target_diversity_counts.items()
     }
+    candidate_gen_summary["targetSideDiversitySeedCounts"] = target_side_seed_counts
     candidate_gen_summary["targetEntryVariantsPerLocalEntry"] = int(target_entry_variants)
     candidate_gen_summary["targetEntryVariantForcedSpecCount"] = int(
         sum(target_entry_variant_counts.values())
     )
     candidate_gen_summary["targetEntryVariantSeedCounts"] = {
         str(key): int(count) for key, count in target_entry_variant_counts.items()
+    }
+    candidate_gen_summary["coarseAcceptedCountsBySource"] = {
+        str(source): int(count) for source, count in coarse_accepted_counts_by_source.items()
+    }
+    candidate_gen_summary["coarseRejectReasonsBySource"] = _coarse_reject_by_source_snapshot()
+    candidate_gen_summary["coarseCoverageCountsByTarget"] = coarse_coverage_counts_by_target
+    candidate_gen_summary["coarseCoverageCountsByTargetAndSource"] = (
+        coarse_coverage_counts_by_target_and_source
+    )
+    candidate_gen_summary["refinedCoverageCountsByTarget"] = refined_coverage_counts_by_target
+    candidate_gen_summary["finalCoverageCountsByTarget"] = {
+        str(key): int(sum(1 for cand in candidates if key in (cand.get("coveredRegions") or [])))
+        for key in target_ids
     }
 
     log.info(
@@ -12412,6 +12655,7 @@ def generate_candidates_voxel(
             "refineStepUm": float(refine_step_um),
             "refineFraction": float(refine_fraction),
             "coarseRejectReasons": _coarse_reject_snapshot(),
+            "coarseRejectReasonsBySource": _coarse_reject_by_source_snapshot(),
             "refineRejectReasons": _refine_reject_snapshot(),
         }
     )
@@ -17803,7 +18047,8 @@ def _candidate_region_side_map(candidate, target_keys):
     for key in candidate.get("coveredRegions", []) or []:
         if key not in target_set:
             continue
-        out.setdefault(key, set()).add(fallback_side)
+        if key not in out:
+            out[key] = {fallback_side}
 
     return {k: sorted(v) for k, v in out.items()}
 
@@ -17831,6 +18076,89 @@ def _candidate_coverage_tokens(candidate, target_keys, targeting_mode):
     return tokens
 
 
+def _bounded_exact_token_cover_selection(
+    candidates,
+    target_keys,
+    targeting_mode,
+    min_clearance,
+    min_entry,
+    incumbent,
+    time_limit_s=1.0,
+):
+    required = _required_coverage_tokens(target_keys, targeting_mode)
+    viable = []
+    for candidate in candidates:
+        tokens = _candidate_coverage_tokens(candidate, target_keys, targeting_mode) & required
+        if tokens:
+            viable.append((candidate, frozenset(tokens)))
+    if not viable or not required:
+        return list(incumbent or [])
+
+    incumbent = list(incumbent or [])
+    incumbent_covered = set()
+    for candidate in incumbent:
+        incumbent_covered |= _candidate_coverage_tokens(candidate, target_keys, targeting_mode)
+    best = [list(incumbent)] if required <= incumbent_covered else [None]
+    best_limit = len(incumbent) if best[0] is not None else len(required) + 1
+    deadline = time.perf_counter() + max(0.01, float(time_limit_s))
+    visited = set()
+
+    def search(selected_indices, covered):
+        nonlocal best_limit
+        if time.perf_counter() >= deadline:
+            return
+        key = tuple(sorted(selected_indices))
+        if key in visited:
+            return
+        visited.add(key)
+        if required <= covered:
+            if len(selected_indices) < best_limit:
+                best[0] = [viable[index][0] for index in selected_indices]
+                best_limit = len(selected_indices)
+            return
+        if len(selected_indices) + 1 >= best_limit:
+            return
+
+        selected_candidates = [viable[index][0] for index in selected_indices]
+        missing = required - covered
+        compatible = []
+        for index, (candidate, tokens) in enumerate(viable):
+            if index in selected_indices or not (tokens & missing):
+                continue
+            if any(trajs_collide(candidate, chosen, min_clearance, min_entry) for chosen in selected_candidates):
+                continue
+            compatible.append(index)
+        if not compatible:
+            return
+        max_gain = max(len(viable[index][1] & missing) for index in compatible)
+        lower_bound = int(math.ceil(len(missing) / max(1, max_gain)))
+        if len(selected_indices) + lower_bound >= best_limit:
+            return
+
+        options_by_token = {
+            token: [index for index in compatible if token in viable[index][1]]
+            for token in missing
+        }
+        branch_token = min(missing, key=lambda token: (len(options_by_token[token]), token))
+        options = sorted(
+            options_by_token[branch_token],
+            key=lambda index: (
+                -len(viable[index][1] & missing),
+                int(viable[index][0].get("paretoRank", 10**6)),
+                -float(viable[index][0].get("explainScore", 0.0)),
+                _candidate_signature(viable[index][0]),
+            ),
+        )
+        for index in options:
+            search(
+                tuple(sorted((*selected_indices, index))),
+                covered | set(viable[index][1]),
+            )
+
+    search(tuple(), set())
+    return best[0] if best[0] is not None else incumbent
+
+
 def _augment_selection_for_targeting_mode(selected, candidates, target_keys, targeting_mode, min_clearance, min_entry):
     required_tokens = _required_coverage_tokens(target_keys, targeting_mode)
     covered_tokens = set()
@@ -17839,6 +18167,25 @@ def _augment_selection_for_targeting_mode(selected, candidates, target_keys, tar
 
     if targeting_mode != "bilateral_symmetric":
         missing = sorted(required_tokens - covered_tokens)
+        if missing and len(candidates) <= 256 and len(required_tokens) <= 12:
+            exact_selected = _bounded_exact_token_cover_selection(
+                candidates,
+                target_keys,
+                targeting_mode,
+                min_clearance,
+                min_entry,
+                selected,
+                time_limit_s=1.0,
+            )
+            exact_covered = set()
+            for probe in exact_selected:
+                exact_covered |= _candidate_coverage_tokens(
+                    probe, target_keys, targeting_mode
+                )
+            if required_tokens <= exact_covered:
+                selected = exact_selected
+                covered_tokens = exact_covered
+                missing = []
         return selected, missing, covered_tokens, required_tokens
 
     remaining = set(required_tokens - covered_tokens)
@@ -17893,6 +18240,25 @@ def _augment_selection_for_targeting_mode(selected, candidates, target_keys, tar
         remaining -= best_gain
 
     missing = sorted(remaining)
+    if len(candidates) <= 256 and len(required_tokens) <= 12:
+        exact_selected = _bounded_exact_token_cover_selection(
+            candidates,
+            target_keys,
+            targeting_mode,
+            min_clearance,
+            min_entry,
+            selected_aug,
+            time_limit_s=1.0,
+        )
+        exact_covered = set()
+        for probe in exact_selected:
+            exact_covered |= _candidate_coverage_tokens(probe, target_keys, targeting_mode)
+        if required_tokens <= exact_covered and (
+            missing or len(exact_selected) < len(selected_aug)
+        ):
+            selected_aug = exact_selected
+            covered_tokens = exact_covered
+            missing = []
     return selected_aug, missing, covered_tokens, required_tokens
 
 
@@ -20331,6 +20697,9 @@ def api_mri_registration_summary():
     configured = bool(payload.get("registrationSummaryConfigured"))
     summary = _load_mri_hybrid_registration_summary() if configured else {}
     stats = _load_mri_hybrid_stats() if bool(payload.get("statsConfigured")) else {}
+    anatomical_tre_available = bool(
+        stats.get("anatomicalTreAvailable", summary.get("anatomicalTreAvailable", True))
+    )
     # Keep the QC panel tied to the active profile contract.  The registration
     # summary often contains intermediate/proxy metrics, while stats.json is the
     # final quality report produced for the activated profile.
@@ -20405,7 +20774,7 @@ def api_mri_registration_summary():
             metrics[mk] = fallback_metrics[mk]
             metric_evidence[mk] = fallback_label
     reg_block = summary.get("registration") if isinstance(summary.get("registration"), dict) else {}
-    if metrics["treMm"] is None:
+    if metrics["treMm"] is None and anatomical_tre_available:
         off = reg_block.get("initialCenterOffset")
         if isinstance(off, (list, tuple)) and len(off) >= 3:
             try:
@@ -20470,6 +20839,9 @@ def api_mri_registration_summary():
             "pathConsistency": deepcopy(payload.get("pathConsistency") or {}),
             "summary": summary,
             "metrics": metrics,
+            "anatomicalTreAvailable": anatomical_tre_available,
+            "controlPointResidual": stats.get("controlPointResidual") or summary.get("controlPointResidual"),
+            "qualityGateStatus": quality_snapshot.get("status"),
             "qualityGatePassed": quality_snapshot.get("passed"),
             "qualityGateReasons": quality_snapshot.get("blockingReasons") or quality_snapshot.get("reasons") or [],
             "thresholds": quality_snapshot.get("thresholds") or {},
@@ -20631,6 +21003,8 @@ def _build_mri_registration_qc_payload():
     quality_reasons = summary_payload.get("qualityGateReasons")
     if not isinstance(quality_reasons, list):
         quality_reasons = []
+    anatomical_tre_available = summary_payload.get("anatomicalTreAvailable") is not False
+    control_point_residual = summary_payload.get("controlPointResidual")
 
     reg_block = summary.get("registration") if isinstance(summary.get("registration"), dict) else {}
     tre_mean = _qc_metric(metrics_raw, "treMeanMm", "treMm", "tre")
@@ -20818,6 +21192,7 @@ def _build_mri_registration_qc_payload():
     quality_passed = (upstream_passed is not False) and len(combined_reasons) == 0
     quality_gate = {
         "passed": bool(quality_passed),
+        "status": "PASS" if quality_passed and anatomical_tre_available else "INCOMPLETE_ANATOMICAL_TRE" if quality_passed else "FAIL",
         "blockingReasons": combined_reasons,
         "thresholds": thresholds,
         "failureCard": _quality_gate_failure_card(),
@@ -20832,6 +21207,8 @@ def _build_mri_registration_qc_payload():
         "registrationSummaryPath": summary_payload.get("path"),
         "pathConsistency": deepcopy(summary_payload.get("pathConsistency") or overlay_payload.get("pathConsistency") or {}),
         "metrics": metrics,
+        "anatomicalTreAvailable": anatomical_tre_available,
+        "controlPointResidual": control_point_residual,
         "metricEvidence": deepcopy(summary_payload.get("metricEvidence") or {}),
         "jacobianSummary": jacobian,
         "transform": transform_stages,

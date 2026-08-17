@@ -12,3 +12,14 @@ supplementary-data/**/*.md text eol=lf
 supplementary-data/**/*.svg text eol=lf
 supplementary-data/**/*.txt text eol=lf
 supplementary-data/SHA256SUMS text eol=lf
+
+# v0.2.1 paper-validation source is byte-bound by frozen run contracts.
+apps/backend-compat/src/optimizer_server.py -text
+apps/backend-compat/scripts/audit_registration_perturbation_sensitivity.py -text
+apps/backend-compat/scripts/audit_registration_trajectory_stability.py -text
+apps/backend-compat/scripts/benchmark_auto_planning_stability.py -text
+apps/backend-compat/scripts/benchmark_auto_probe_count_planning.py -text
+apps/backend-compat/scripts/build_strict_final_benchmark.py -text
+apps/backend-compat/scripts/diagnose_target_candidate_feasibility.py -text
+apps/backend-compat/tests/test_validation_scripts.py -text
+scripts/release/build_supplementary_data.py -text

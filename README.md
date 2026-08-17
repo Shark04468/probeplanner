@@ -1,18 +1,20 @@
 # ProbePlanner
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21307547.svg)](https://doi.org/10.5281/zenodo.21307547)
+[![Concept DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21307546.svg)](https://doi.org/10.5281/zenodo.21307546)
 
 ProbePlanner is an auditable planning workflow for mouse electrophysiology probe trajectories. It combines an Allen CCF/MRI-derived artifact profile, a React planning interface, a Flask compatibility API, a Rust native planning engine, replay/performance tooling, and paper-facing evidence exports.
 
-This repository is the source-code release used for the Frontiers in Neuroinformatics Technology & Code manuscript draft.
+The current paper source release is `v0.2.1-paper`. It freezes the corrected
+planner source that produced the final v5 validation; it does not modify or
+replace the historical `v0.2.0-paper` tag.
 
 ## Repository
 
 - Project link: https://github.com/Shark04468/probeplanner
 - License: MIT
-- Release tag used for the manuscript: `v0.2.0-paper`
-- Archived release commit: `0d5748e05c05e54d1330d05009747bcb4fa915a5`
-- Version DOI: `10.5281/zenodo.21307547`
+- Current paper release tag: `v0.2.1-paper`
+- Previous paper release: `v0.2.0-paper` at commit `0d5748e05c05e54d1330d05009747bcb4fa915a5`
+- Previous Version DOI: `10.5281/zenodo.21307547`
 - Concept DOI: `10.5281/zenodo.21307546`
 - Primary tested operating system: Windows 11 with PowerShell 7/Windows PowerShell 5.1
 - Experimental support: Linux/macOS for TypeScript and Rust checks; MRI artifact scripts and launcher commands are Windows-first
@@ -79,7 +81,10 @@ Validate the profile:
 npm run mri:qc -- --manifest "$env:PROBEPLANNER_ARTIFACT_ROOT\$env:PROBEPLANNER_MRI_CCF_PROFILE_NAME\artifact_manifest.json" --expected-shape 528,320,456
 ```
 
-Expected result for the default delivery profile: manifest/hash validation passes and registration QC passes the configured Dice, HD95, and TRE thresholds. Failed QC must be treated as an artifact blocker, not as a UI/backend failure.
+Expected result for the default delivery profile: manifest/hash, overlap,
+boundary-distance, and Jacobian checks pass. Anatomical landmark TRE is
+unavailable in the public population-atlas profile and must not be inferred
+from automatic control points. Failed QC remains an artifact blocker.
 
 ## Minimal native-engine example
 
@@ -164,15 +169,35 @@ Expected interpretation:
 - Native DRCC supports `exact_pool`, `hybrid`, `heuristic`, and `cvar_relax`; MISOCP is legacy Python only and fails closed when the native engine service is enabled.
 - Replay metrics should not be interpreted as prospective surgical accuracy.
 
-## Frontiers manuscript evidence
+## Final paper validation
 
-The manuscript evidence package generated during local preparation includes:
+The release preserves three distinct evidence phases:
 
-- locked MRI/CCF profile validation summary,
-- representative rejected CA1 example,
-- representative accepted CA1 example,
-- replay and ablation summaries,
-- figure generation scripts,
-- Word manuscript and supplementary material generated from the Frontiers template.
+- **v4 first execution:** 16 positive full, 3 partial, and 1 expected
+  fail-closed case. Its failed acceptance gate is preserved unchanged.
+- **Post-hoc remediation:** the three v4 partial cases became full and strict
+  pass after ontology, selector-completion, and bilateral candidate-generation
+  fixes. This is repair evidence, not untouched evidence.
+- **v5 frozen confirmation:** 19/19 positive cases were full and strict pass;
+  the single negative control failed closed; there were no partial cases or
+  errors.
 
-The public repository DOI should be created from the tagged GitHub release through Zenodo or another persistent archive.
+The v5 candidate-pool oracle proved 19/19 minima with 19/19 ProbePlanner
+matches and no timeout. The historical exact regression proved 48/48 minima
+with 48/48 matches and no timeout. Exactness means minimum cardinality within
+the regenerated strictly filtered candidate pool, not a continuous-space
+global optimum.
+
+The GitHub release assets contain the byte-preserved v4/v5 evidence, per-file
+hash manifest, test report, release provenance, and manuscript update values.
+
+## Claim boundary
+
+Supported claims are software behavior on the locked cohorts, strict
+constraint auditing, fail-closed behavior, and candidate-pool minimum probe
+count.
+
+This release does not establish subject-specific anatomical TRE,
+bregma/lambda or skull-landmark accuracy, native-space surgical safety for an
+individual animal, vascular or ventricular avoidance where masks are absent,
+histological implantation accuracy, or continuous-space global optimality.

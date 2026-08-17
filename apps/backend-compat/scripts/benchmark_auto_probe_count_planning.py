@@ -9,6 +9,8 @@ import itertools
 import json
 import math
 import os
+import signal
+import subprocess
 import sys
 import time
 from copy import deepcopy
@@ -273,6 +275,25 @@ def probe_payload(server: Any, probe: dict[str, Any], index: int) -> dict[str, A
     }
 
 
+def exception_pipeline_diagnostics(
+    exc: Exception,
+) -> tuple[dict[str, Any] | None, dict[str, Any], dict[str, Any]]:
+    raw_extra = getattr(exc, "extra", None)
+    error_extra = deepcopy(raw_extra) if isinstance(raw_extra, dict) else None
+    compute_profile = (
+        (error_extra or {}).get("computeProfile")
+        if isinstance((error_extra or {}).get("computeProfile"), dict)
+        else {}
+    )
+    candidate_generation = deepcopy(compute_profile.get("candidateGeneration") or {})
+    candidate_stage_breakdown = (
+        deepcopy((error_extra or {}).get("candidateStageBreakdown") or {})
+        if isinstance(error_extra, dict)
+        else {}
+    )
+    return error_extra, candidate_generation, candidate_stage_breakdown
+
+
 def run_case(
     server: Any,
     case: BenchmarkCase,
@@ -297,7 +318,6 @@ def run_case(
         pipeline = server._run_optimize_pipeline(request)
         candidates = list(pipeline.get("candidatePreview") or [])
         selected = list(pipeline.get("selected") or [])
-        missing_tokens = set(pipeline.get("uncovered") or [])
         required_tokens = server._required_coverage_tokens(
             target_keys,
             params.get("targetingMode", "single_hemisphere"),
@@ -309,6 +329,7 @@ def run_case(
                 target_keys,
                 params.get("targetingMode", "single_hemisphere"),
             )
+        missing_tokens = set(required_tokens) - covered_tokens
         candidate_generation = deepcopy(
             ((pipeline.get("computeProfile") or {}).get("candidateGeneration") or {})
         )
@@ -316,20 +337,17 @@ def run_case(
     except Exception as exc:
         candidates = []
         selected = []
-        missing_tokens = set(target_keys)
         covered_tokens = set()
         required_tokens = server._required_coverage_tokens(
             target_keys,
             params.get("targetingMode", "single_hemisphere"),
         )
-        candidate_generation = {}
-        candidate_stage_breakdown = deepcopy(
-            (error_extra or {}).get("candidateStageBreakdown") or {}
-        ) if isinstance(error_extra, dict) else {}
+        missing_tokens = set(required_tokens)
+        error_extra, candidate_generation, candidate_stage_breakdown = (
+            exception_pipeline_diagnostics(exc)
+        )
         error = f"{exc.__class__.__name__}: {exc}"
         error_code = getattr(exc, "code", None)
-        raw_extra = getattr(exc, "extra", None)
-        error_extra = deepcopy(raw_extra) if isinstance(raw_extra, dict) else None
     annotated = atlas_util.annotate_selected_with_risk(server, list(selected), params)
     uncovered_targets, uncovered_sides = summarize_uncovered(
         params.get("targetingMode", "single_hemisphere"),
@@ -402,6 +420,187 @@ def run_case(
         "candidateStageBreakdown": candidate_stage_breakdown,
         "selectedProbes": [probe_payload(server, probe, idx) for idx, probe in enumerate(annotated, start=1)],
     }
+
+
+def failed_case_result(
+    case: BenchmarkCase,
+    *,
+    status: str,
+    failure_reason: str,
+    error: str,
+    runtime_sec: float | None = None,
+) -> dict[str, Any]:
+    return {
+        "caseId": case.case_id,
+        "caseType": case.case_type,
+        "purpose": case.purpose,
+        "requestedTargets": list(case.requested_targets),
+        "targetingMode": case.targeting_mode,
+        "expectedProbeCount": case.expected_probe_count,
+        "expectFailClosed": bool(case.expect_fail_closed),
+        "status": status,
+        "failureReason": failure_reason,
+        "error": error,
+        "timedOut": status == "timeout",
+        "candidateCount": 0,
+        "selectedProbeCount": 0,
+        "exactMinProbeCount": None,
+        "exactValidationStatus": "not_completed",
+        "optimalityMatch": False,
+        "expectedMatch": False,
+        "requiredCoverageUnits": 0,
+        "coveredCoverageUnits": 0,
+        "coveredTokens": [],
+        "uncoveredTargets": list(case.requested_targets),
+        "uncoveredSides": [],
+        "sideCoverage": {},
+        "runtimeSec": runtime_sec,
+        "candidateGeneration": {},
+        "candidateStageBreakdown": {},
+        "selectedProbes": [],
+    }
+
+
+def atomic_write_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def write_checkpoint(
+    path: Path,
+    *,
+    run_config: dict[str, Any],
+    results: list[dict[str, Any]],
+) -> None:
+    atomic_write_json(
+        path,
+        {
+            "schemaVersion": "probeplanner.auto_probe_count_benchmark.checkpoint.v1",
+            "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "runConfig": run_config,
+            "cases": results,
+        },
+    )
+
+
+def terminate_process_tree(process: subprocess.Popen[Any]) -> None:
+    if process.poll() is not None:
+        return
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        return
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+        process.wait(timeout=5.0)
+    except (ProcessLookupError, subprocess.TimeoutExpired):
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
+def run_isolated_case(
+    case: BenchmarkCase,
+    *,
+    profile_root: Path,
+    structures_json: Path,
+    workers: int,
+    timeout_sec: float,
+    worker_dir: Path,
+) -> dict[str, Any]:
+    worker_dir.mkdir(parents=True, exist_ok=True)
+    result_path = worker_dir / f"{case.case_id}.json"
+    log_path = worker_dir / f"{case.case_id}.log"
+    result_path.unlink(missing_ok=True)
+    command = [
+        sys.executable,
+        str(Path(__file__).resolve()),
+        "--profile-root",
+        str(profile_root),
+        "--structures-json",
+        str(structures_json),
+        "--workers",
+        str(workers),
+        "--_worker-case-id",
+        case.case_id,
+        "--_worker-output-json",
+        str(result_path),
+    ]
+    popen_kwargs: dict[str, Any] = {}
+    if os.name == "nt":
+        popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        popen_kwargs["start_new_session"] = True
+    started = time.time()
+    with log_path.open("w", encoding="utf-8") as log:
+        process = subprocess.Popen(
+            command,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            text=True,
+            **popen_kwargs,
+        )
+        try:
+            process.wait(timeout=timeout_sec)
+        except subprocess.TimeoutExpired:
+            terminate_process_tree(process)
+            return failed_case_result(
+                case,
+                status="timeout",
+                failure_reason="case_timeout",
+                error=f"Case exceeded hard timeout of {timeout_sec:.3f} seconds; see {log_path}",
+                runtime_sec=round(float(time.time() - started), 6),
+            )
+    if process.returncode != 0:
+        return failed_case_result(
+            case,
+            status="error",
+            failure_reason="isolated_worker_failed",
+            error=f"Isolated worker exited with code {process.returncode}; see {log_path}",
+            runtime_sec=round(float(time.time() - started), 6),
+        )
+    try:
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return failed_case_result(
+            case,
+            status="error",
+            failure_reason="isolated_worker_result_invalid",
+            error=f"{exc.__class__.__name__}: {exc}; see {log_path}",
+            runtime_sec=round(float(time.time() - started), 6),
+        )
+    result["executionIsolation"] = "subprocess"
+    result["workerLogPath"] = str(log_path.resolve())
+    return result
+
+
+def run_worker_case(args: argparse.Namespace) -> int:
+    case = next((row for row in CASES if row.case_id == args._worker_case_id), None)
+    if case is None:
+        raise ValueError(f"Unknown worker case: {args._worker_case_id}")
+    output_path = Path(args._worker_output_json).expanduser()
+    profile_root = Path(args.profile_root).expanduser()
+    atlas_util.configure_backend_environment(profile_root, workers=int(args.workers))
+    server = atlas_util.import_backend_server()
+    server.load_atlas()
+    if not getattr(server, "atlas_loaded", False):
+        raise RuntimeError(f"Atlas failed to load: {getattr(server, 'atlas_error', None)}")
+    atlas_util.apply_structure_tree_descendant_fallback(
+        server,
+        list(case.requested_targets),
+        Path(args.structures_json).expanduser(),
+    )
+    with server.app.app_context():
+        result = run_case(server, case, workers=int(args.workers))
+    atomic_write_json(output_path, result)
+    return 0
 
 
 def target_region_payload(server: Any, target_keys: list[str]) -> list[dict[str, Any]]:
@@ -577,15 +776,77 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile-root", default=str(DEFAULT_PROFILE_ROOT))
     parser.add_argument("--structures-json", default=str(atlas_util.DEFAULT_STRUCTURES_JSON))
     parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument("--case-start", type=int, default=1, help="One-based first benchmark case.")
+    parser.add_argument("--case-limit", type=int, default=len(CASES))
+    parser.add_argument(
+        "--case-timeout-sec",
+        type=float,
+        default=0.0,
+        help="Hard per-case timeout. Values > 0 run each case in an isolated subprocess.",
+    )
     parser.add_argument("--output-json", default=str(DEFAULT_EVIDENCE_DIR / f"{DEFAULT_STEM}.json"))
     parser.add_argument("--output-md", default=str(DEFAULT_EVIDENCE_DIR / f"{DEFAULT_STEM}.md"))
     parser.add_argument("--output-csv", default=str(DEFAULT_EVIDENCE_DIR / f"{DEFAULT_STEM}.csv"))
+    parser.add_argument(
+        "--checkpoint-json",
+        default=None,
+        help="Checkpoint path; defaults beside --output-json and is updated after every case.",
+    )
+    parser.add_argument(
+        "--resume",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Resume completed non-error cases from a matching checkpoint.",
+    )
+    parser.add_argument("--_worker-case-id", default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--_worker-output-json", default=None, help=argparse.SUPPRESS)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args._worker_case_id:
+        if not args._worker_output_json:
+            raise ValueError("--_worker-output-json is required in worker mode")
+        return run_worker_case(args)
+    if int(args.case_start) < 1:
+        raise ValueError("--case-start must be >= 1")
+    if int(args.case_limit) < 1:
+        raise ValueError("--case-limit must be >= 1")
+    start_index = int(args.case_start) - 1
+    cases = CASES[start_index : start_index + int(args.case_limit)]
+    if not cases:
+        raise ValueError("Selected benchmark case range is empty")
     profile_root = Path(args.profile_root).expanduser()
+    structures_json = Path(args.structures_json).expanduser()
+    out_json = Path(args.output_json).expanduser()
+    checkpoint_path = (
+        Path(args.checkpoint_json).expanduser()
+        if args.checkpoint_json
+        else out_json.with_name(f"{out_json.stem}-checkpoint.json")
+    )
+    checkpoint_config = {
+        "profileRoot": str(profile_root.resolve()),
+        "structuresJson": str(structures_json.resolve()),
+        "workers": int(args.workers),
+        "caseStart": int(args.case_start),
+        "caseLimit": int(args.case_limit),
+        "caseTimeoutSec": float(args.case_timeout_sec),
+    }
+    resumed_by_case: dict[str, dict[str, Any]] = {}
+    if args.resume and checkpoint_path.exists():
+        try:
+            checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+            if checkpoint.get("runConfig") == checkpoint_config:
+                resumed_by_case = {
+                    str(row.get("caseId")): row
+                    for row in checkpoint.get("cases", [])
+                    if isinstance(row, dict) and str(row.get("status")) not in {"error", "timeout"}
+                }
+            else:
+                print(f"Ignoring incompatible checkpoint: {checkpoint_path}", file=sys.stderr, flush=True)
+        except Exception as exc:
+            print(f"Ignoring unreadable checkpoint {checkpoint_path}: {exc}", file=sys.stderr, flush=True)
     atlas_util.configure_backend_environment(profile_root, workers=int(args.workers))
     server = atlas_util.import_backend_server()
 
@@ -594,45 +855,51 @@ def main(argv: list[str] | None = None) -> int:
     if not getattr(server, "atlas_loaded", False):
         raise RuntimeError(f"Atlas failed to load: {getattr(server, 'atlas_error', None)}")
 
-    all_targets = sorted({target for case in CASES for target in case.requested_targets})
+    all_targets = sorted({target for case in cases for target in case.requested_targets})
     ontology_fallback = atlas_util.apply_structure_tree_descendant_fallback(
         server,
         all_targets,
-        Path(args.structures_json).expanduser(),
+        structures_json,
     )
     target_regions = target_region_payload(server, all_targets)
 
-    results = []
+    results_by_case: dict[str, dict[str, Any]] = dict(resumed_by_case)
+    worker_dir = checkpoint_path.parent / f"{checkpoint_path.stem}-workers"
     with server.app.app_context():
-        for idx, case in enumerate(CASES, start=1):
-            print(f"[{idx}/{len(CASES)}] {case.case_id}", flush=True)
+        for idx, case in enumerate(cases, start=1):
+            if case.case_id in results_by_case:
+                print(f"[{idx}/{len(cases)}] {case.case_id} resume-skip", flush=True)
+                continue
+            print(f"[{idx}/{len(cases)}] {case.case_id}", flush=True)
             try:
-                result = run_case(server, case, workers=int(args.workers))
+                if float(args.case_timeout_sec) > 0.0:
+                    result = run_isolated_case(
+                        case,
+                        profile_root=profile_root.resolve(),
+                        structures_json=structures_json.resolve(),
+                        workers=int(args.workers),
+                        timeout_sec=float(args.case_timeout_sec),
+                        worker_dir=worker_dir,
+                    )
+                else:
+                    result = run_case(server, case, workers=int(args.workers))
+                    result["executionIsolation"] = "in_process"
             except Exception as exc:
-                result = {
-                    "caseId": case.case_id,
-                    "caseType": case.case_type,
-                    "purpose": case.purpose,
-                    "requestedTargets": list(case.requested_targets),
-                    "targetingMode": case.targeting_mode,
-                    "expectedProbeCount": case.expected_probe_count,
-                    "expectFailClosed": bool(case.expect_fail_closed),
-                    "status": "error",
-                    "failureReason": f"{exc.__class__.__name__}: {exc}",
-                    "candidateCount": 0,
-                    "selectedProbeCount": 0,
-                    "exactMinProbeCount": None,
-                    "optimalityMatch": False,
-                    "expectedMatch": False,
-                    "requiredCoverageUnits": 0,
-                    "coveredCoverageUnits": 0,
-                    "uncoveredTargets": list(case.requested_targets),
-                    "uncoveredSides": [],
-                    "sideCoverage": {},
-                    "runtimeSec": None,
-                    "selectedProbes": [],
-                }
-            results.append(result)
+                result = failed_case_result(
+                    case,
+                    status="error",
+                    failure_reason="case_execution_error",
+                    error=f"{exc.__class__.__name__}: {exc}",
+                )
+            results_by_case[case.case_id] = result
+            ordered_checkpoint = [
+                results_by_case[case_def.case_id]
+                for case_def in cases
+                if case_def.case_id in results_by_case
+            ]
+            write_checkpoint(checkpoint_path, run_config=checkpoint_config, results=ordered_checkpoint)
+
+    results = [results_by_case[case.case_id] for case in cases if case.case_id in results_by_case]
 
     feasible = [case for case in results if case.get("status") == "ok"]
     fail_closed = [case for case in results if case.get("status") == "fail_closed"]
@@ -640,31 +907,34 @@ def main(argv: list[str] | None = None) -> int:
         "caseCount": int(len(results)),
         "successfulCoverageCases": int(len(feasible)),
         "failClosedCases": int(len(fail_closed)),
+        "errorCases": int(sum(1 for case in results if case.get("status") == "error")),
+        "timeoutCases": int(sum(1 for case in results if case.get("status") == "timeout")),
         "selectedProbeCountsObserved": sorted({int(case.get("selectedProbeCount", 0)) for case in results}),
         "optimalityMatchCount": int(sum(1 for case in feasible if case.get("optimalityMatch"))),
         "expectedMatchCount": int(sum(1 for case in results if case.get("expectedMatch"))),
         "totalRuntimeSec": round(float(time.time() - started), 6),
     }
     payload = {
-        "schemaVersion": "probeplanner.auto_probe_count_benchmark.v1",
+        "schemaVersion": "probeplanner.auto_probe_count_benchmark.v2",
         "createdAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "profileRoot": str(profile_root.resolve()),
         "atlasSignature": deepcopy(getattr(server, "atlas_signature", {})),
         "ontologyFallback": ontology_fallback,
         "targetRegions": target_regions,
+        "runConfig": checkpoint_config,
+        "checkpointPath": str(checkpoint_path.resolve()),
         "summary": summary,
         "cases": results,
     }
 
-    out_json = Path(args.output_json).expanduser()
     out_md = Path(args.output_md).expanduser()
     out_csv = Path(args.output_csv).expanduser()
     out_json.parent.mkdir(parents=True, exist_ok=True)
-    out_json.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    atomic_write_json(out_json, payload)
     write_csv(out_csv, results)
     write_markdown(out_md, payload)
     print(json.dumps({"summary": summary, "json": str(out_json), "md": str(out_md), "csv": str(out_csv)}, indent=2))
-    return 0
+    return 2 if summary["errorCases"] or summary["timeoutCases"] else 0
 
 
 if __name__ == "__main__":

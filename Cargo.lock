@@ -480,7 +480,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "planner-engine"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "approx",
  "axum",
@@ -495,7 +495,7 @@ dependencies = [
 
 [[package]]
 name = "planner-engine-py"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "planner-engine",
  "pyo3",

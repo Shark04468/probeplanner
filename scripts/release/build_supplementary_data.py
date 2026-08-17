@@ -14,12 +14,14 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "docs" / "evidence" / "2026-07-10-strict-full-rerun"
+BASE_SOURCE = ROOT / "docs" / "evidence" / "2026-07-10-strict-full-rerun"
+LATEST_SOURCE = ROOT / "docs" / "evidence" / "2026-07-12-062-full-rerun"
 OUTPUT = ROOT / "supplementary-data"
 TEXT_SUFFIXES = {".json", ".csv", ".md", ".svg", ".txt"}
 SKIP_NAMES = {"run.log", "run.err.log", "run.stderr.log", "run.stdout.log"}
 
 KNOWN_ROOTS = (
+    (re.compile(r"D:\\mri_ccf\\planner_artifacts\\mri_allen_062_production", re.I), "${PROBEPLANNER_PROFILE_ROOT}"),
     (re.compile(r"D:\\mri_ccf\\planner_artifacts\\ambmc_true_outer_full", re.I), "${PROBEPLANNER_PROFILE_ROOT}"),
     (re.compile(r"D:\\mri_ccf\\planner_artifacts\\mri_allen_bridge_v2_candidate", re.I), "${PROBEPLANNER_REGISTRATION_PROFILE_ROOT}"),
     (re.compile(r"D:\\mri_ccf\\raw\\allen_ccf", re.I), "${ALLEN_CCF_ROOT}"),
@@ -41,13 +43,20 @@ def sanitize_text(value: str) -> str:
     return out.rstrip() + "\n"
 
 
+def sanitize_string(value: str) -> str:
+    out = value
+    for pattern, replacement in KNOWN_ROOTS:
+        out = pattern.sub(lambda _: replacement, out)
+    return GENERIC_WINDOWS_PATH.sub(lambda match: f"${{LOCAL_DATA_ROOT}}/{Path(match.group(0)).name}", out)
+
+
 def sanitize_json(value: Any) -> Any:
     if isinstance(value, dict):
         return {key: sanitize_json(item) for key, item in value.items()}
     if isinstance(value, list):
         return [sanitize_json(item) for item in value]
     if isinstance(value, str):
-        return sanitize_text(value)
+        return sanitize_string(value)
     return value
 
 
@@ -100,10 +109,24 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=OUTPUT)
     parser.add_argument("--tag", default="v0.2.0-paper")
+    parser.add_argument("--source-commit", default=None)
+    parser.add_argument("--release-status", choices=("draft", "released"), default="released")
     args = parser.parse_args()
     output = args.output.resolve()
 
-    required = [SOURCE, ROOT / "docs" / "evidence" / "2026-07-11-strict-final-benchmark"]
+    experiment_sources = {
+        1: BASE_SOURCE / "experiment_01_allensdk",
+        2: BASE_SOURCE / "experiment_02_registration_qc",
+        3: BASE_SOURCE / "experiment_03_coordinate_roundtrip",
+        4: LATEST_SOURCE / "experiment_04_registration_perturbation",
+        5: LATEST_SOURCE / "strict-benchmark",
+        6: BASE_SOURCE / "experiment_06_digital_phantom",
+        7: LATEST_SOURCE / "experiment_07_08_baseline_ablation",
+        8: LATEST_SOURCE / "experiment_07_08_baseline_ablation",
+        9: LATEST_SOURCE / "experiment_09_stability",
+        10: LATEST_SOURCE / "experiment_10_real_atlas",
+    }
+    required = [BASE_SOURCE, LATEST_SOURCE, *experiment_sources.values()]
     missing = [str(path) for path in required if not path.exists()]
     if missing:
         raise FileNotFoundError("Missing required evidence: " + ", ".join(missing))
@@ -113,27 +136,30 @@ def main() -> int:
     output.mkdir(parents=True)
 
     provenance: list[tuple[str, str]] = []
-    for number in range(1, 11):
-        candidates = sorted(SOURCE.glob(f"experiment_{number:02d}_*"))
-        if len(candidates) != 1:
-            raise RuntimeError(f"Expected one source directory for experiment {number}, found {len(candidates)}")
-        provenance.extend(copy_tree(candidates[0], output / "experiments" / f"experiment_{number:02d}"))
+    for number, source in experiment_sources.items():
+        provenance.extend(copy_tree(source, output / "experiments" / f"experiment_{number:02d}"))
 
     validation_sources = {
-        "final-benchmark": ROOT / "docs" / "evidence" / "2026-07-11-strict-final-benchmark",
-        "baseline-ablation": ROOT / "docs" / "evidence" / "2026-07-11-strict-baseline-ablation",
-        "registration-stability": ROOT / "docs" / "evidence" / "2026-07-11-trajectory-stability",
+        "final-benchmark": LATEST_SOURCE / "strict-benchmark",
+        "baseline-ablation": LATEST_SOURCE / "experiment_07_08_baseline_ablation",
+        "registration-stability": LATEST_SOURCE / "trajectory-stability",
+        "planning-stability": LATEST_SOURCE / "experiment_09_stability",
     }
     for label, source in validation_sources.items():
         provenance.extend(copy_tree(source, output / "validation" / label))
 
-    contract = SOURCE / "RUN_CONTRACT.md"
+    contract = LATEST_SOURCE / "PLAN.md"
     copy_public_file(contract, output / "RUN_CONTRACT.md")
     provenance.append((contract.relative_to(ROOT).as_posix(), "RUN_CONTRACT.md"))
 
+    release_statement = (
+        f"associated with release `{args.tag}`"
+        if args.release_status == "released"
+        else f"prepared as a draft for the pending release `{args.tag}`; this package is not yet DOI-locked"
+    )
     readme = f"""# ProbePlanner Supplementary Data
 
-This directory contains the path-sanitized results, tables, and figures for experiments 1-10 and the final strict validation runs associated with release `{args.tag}`.
+This directory contains the path-sanitized results, tables, and figures for experiments 1-10 and the final strict validation runs {release_statement}.
 
 ## Contents
 
@@ -141,7 +167,7 @@ This directory contains the path-sanitized results, tables, and figures for expe
 - `validation/final-benchmark`: locked 32-case strict benchmark and single-target diagnostics.
 - `validation/baseline-ablation`: baselines and six objective/constraint ablations on the full-coverage benchmark.
 - `validation/registration-stability`: registration-perturbation spatial-stability analysis and lambda sweep.
-- `RUN_CONTRACT.md`: experiment execution contract.
+- `RUN_CONTRACT.md`: locked 062 experiment execution plan and acceptance contract.
 - `manifest.json` and `SHA256SUMS`: provenance and integrity records.
 
 Absolute workstation paths were replaced with environment placeholders. Raw Allen CCF and MRI volumes are not redistributed; obtain them from their cited sources and set the roots documented in `docs/reproducibility.md`.
@@ -161,8 +187,9 @@ These files support computational reproducibility and atlas-defined trajectory a
     manifest = {
         "schemaVersion": 1,
         "releaseTag": args.tag,
-        "releaseDate": date(2026, 7, 11).isoformat(),
-        "sourceCommit": f"tag:{args.tag}",
+        "releaseStatus": args.release_status,
+        "releaseDate": date(2026, 7, 12).isoformat(),
+        "sourceCommit": args.source_commit or f"tag:{args.tag}",
         "pathPolicy": "No absolute workstation paths; placeholders identify required external roots.",
         "provenance": [{"source": source, "publicPath": target} for source, target in provenance],
         "files": files,

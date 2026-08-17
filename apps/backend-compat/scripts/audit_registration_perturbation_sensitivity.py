@@ -166,17 +166,17 @@ def apply_structure_tree_descendant_fallback(
     target_sids: dict[str, int] = {}
     all_label_ids: set[int] = set()
     for key in target_keys:
+        # Exact ontology acronyms are authoritative. Curated planner seeds can
+        # be stale or alias-collided, so only use a seed when the requested
+        # acronym is absent from the ontology.
+        rec = by_acronym.get(str(key).lower())
+        sid = int(rec.get("id")) if rec is not None else None
         reg = server.PLANNER_REGIONS.get(key)
-        sid = None
-        if isinstance(reg, dict) and reg.get("id") is not None:
+        if sid is None and isinstance(reg, dict) and reg.get("id") is not None:
             try:
                 sid = int(reg.get("id"))
             except Exception:
                 sid = None
-        if sid is None:
-            rec = by_acronym.get(str(key).lower())
-            if rec is not None:
-                sid = int(rec.get("id"))
         if sid is None:
             continue
         target_sids[key] = sid
@@ -194,11 +194,19 @@ def apply_structure_tree_descendant_fallback(
         label_ids=sorted(all_label_ids),
         chunk_depth=getattr(server, "REGION_INDEX_CACHE_CHUNK_DEPTH", 16),
     )
+    left_label_stats = server._compute_label_centroid_stats_chunked(
+        server.atlas_annotation,
+        label_ids=sorted(all_label_ids),
+        chunk_depth=getattr(server, "REGION_INDEX_CACHE_CHUNK_DEPTH", 16),
+        hemisphere="left",
+    )
     updated = []
     for key, sid in target_sids.items():
         desc = frozenset(int(v) for v in descendants.get(sid, {sid}))
         total_count = 0
         total_i = total_j = total_k = 0.0
+        left_count = 0
+        left_i = left_j = left_k = 0.0
         for child_sid in desc:
             stat = label_stats.get(int(child_sid))
             if not stat:
@@ -210,10 +218,23 @@ def apply_structure_tree_descendant_fallback(
             total_i += float(stat.get("sum_i", 0.0))
             total_j += float(stat.get("sum_j", 0.0))
             total_k += float(stat.get("sum_k", 0.0))
+            left_stat = left_label_stats.get(int(child_sid))
+            if left_stat:
+                count = int(left_stat.get("count", 0) or 0)
+                if count > 0:
+                    left_count += count
+                    left_i += float(left_stat.get("sum_i", 0.0))
+                    left_j += float(left_stat.get("sum_j", 0.0))
+                    left_k += float(left_stat.get("sum_k", 0.0))
         if total_count <= 0:
             continue
 
-        centroid = (total_i / total_count, total_j / total_count, total_k / total_count)
+        if left_count > 0:
+            centroid = (left_i / left_count, left_j / left_count, left_k / left_count)
+            centroid_hemisphere = "left"
+        else:
+            centroid = (total_i / total_count, total_j / total_count, total_k / total_count)
+            centroid_hemisphere = "bilateral_fallback"
         ap_mm, dv_mm, ml_mm = server._voxel_centroid_to_bregma_mm(centroid)
         rec = by_id.get(sid, {})
         acronym = str(rec.get("acronym") or key)
@@ -227,21 +248,26 @@ def apply_structure_tree_descendant_fallback(
             "volume_mm3": round(float(total_count) * (float(server.VOXEL_SIZE_UM) / 1000.0) ** 3, 4),
             "n_subregions": int(len(desc)),
         }
-        if key in server.PLANNER_REGIONS:
-            server.PLANNER_REGIONS[key] = {
-                **server.PLANNER_REGIONS[key],
-                "id": int(sid),
-                "ap": round(float(ap_mm), 3),
-                "dv": round(float(dv_mm), 3),
-                "ml": round(float(ml_mm), 3),
-                "category": server.PLANNER_REGIONS[key].get("category", "atlas"),
-            }
+        existing_region = server.PLANNER_REGIONS.get(key, {})
+        server.PLANNER_REGIONS[key] = {
+            **existing_region,
+            "id": int(sid),
+            "ap": round(float(ap_mm), 3),
+            "dv": round(float(dv_mm), 3),
+            "ml": round(float(ml_mm), 3),
+            "category": existing_region.get("category", "atlas"),
+        }
+        acronym_cache = getattr(server, "acronym_record_map", None)
+        if isinstance(acronym_cache, dict):
+            acronym_cache[str(key).lower()] = rec
         updated.append(
             {
                 "acronym": key,
                 "regionId": int(sid),
                 "descendantCount": int(len(desc)),
                 "voxelCount": int(total_count),
+                "plannerCentroidHemisphere": centroid_hemisphere,
+                "plannerCentroidMlMm": round(float(ml_mm), 6),
             }
         )
 

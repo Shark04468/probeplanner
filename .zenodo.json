@@ -1,11 +1,12 @@
 {
   "title": "ProbePlanner: an auditable software workflow for MRI-CCF probe trajectory planning in mouse electrophysiology",
   "upload_type": "software",
-  "version": "0.2.0-paper",
-  "description": "Source-code release for ProbePlanner, an auditable workflow for MRI-CCF probe trajectory planning in mouse electrophysiology. The release includes the React interface, Flask compatibility API, Rust native planning engine, replay/performance tooling, installation instructions, minimal examples, replay commands, and expected outputs.",
+  "version": "0.2.1-paper",
+  "description": "Corrected final-source paper release for ProbePlanner after the preserved v4 failure, post-hoc remediation, and frozen v5 confirmation. Evidence supports software behavior and candidate-pool exactness only; it does not establish subject-specific anatomical accuracy, stereotaxic landmark accuracy, surgical safety, or histological implantation accuracy.",
   "creators": [
     {
-      "name": "Sha, Yijun"
+      "name": "Sha, Yijun",
+      "affiliation": "University of Shanghai for Science and Technology"
     }
   ],
   "license": "MIT",
@@ -19,6 +20,11 @@
     "reproducible workflow"
   ],
   "related_identifiers": [
+    {
+      "identifier": "10.5281/zenodo.21307547",
+      "relation": "isNewVersionOf",
+      "resource_type": "software"
+    },
     {
       "identifier": "https://github.com/Shark04468/probeplanner",
       "relation": "isSupplementTo",

@@ -1,5 +1,36 @@
 # Release notes
 
+## v0.2.1-paper
+
+This is the corrected final-source paper release after `v0.2.0-paper`. The old
+tag and its evidence are unchanged.
+
+- The frozen v4 first execution is preserved as a failed gate: 16 positive
+  full, 3 partial, and 1 expected fail-closed case.
+- The v4 diagnosis and repair are explicitly post-hoc. The repair corrected
+  stale exact-acronym ontology resolution, incomplete token-cover completion,
+  and missing bilateral mirror closure.
+- A newly frozen v5 untouched confirmation produced 19/19 positive full and
+  strict-pass cases, 1/1 expected negative fail-closed case, 0 partial cases,
+  and 0 errors.
+- The v5 exact oracle proved the candidate-pool minimum in 19/19 cases and
+  matched ProbePlanner in 19/19, with 0 timeouts.
+- The final-source historical exact regression proved 48/48 candidate-pool
+  optima and matched ProbePlanner in 48/48, with 0 timeouts.
+- The release gate requires exactly 112 backend and validation tests to pass.
+- Frozen raw validation records are distributed as a byte-preserving release
+  asset with per-member SHA-256 hashes. Historical machine paths inside that
+  archive are provenance fields, not executable configuration.
+
+Supported claims are limited to the locked cohort results, fail-closed
+behavior, strict constraint auditing, and minimum probe count within each
+regenerated strictly filtered candidate pool.
+
+This release does not support claims of continuous-space global optimality,
+subject-specific landmark TRE, bregma/lambda or skull localization accuracy,
+individual-animal native-space surgical safety, vascular or ventricular safety
+when masks are unavailable, or histological implantation accuracy.
+
 ## v0.2.0-paper
 
 This is the locked manuscript release for the final strict ProbePlanner experiments.

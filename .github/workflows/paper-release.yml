@@ -18,26 +18,47 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10.20"
+          cache: pip
+          cache-dependency-path: apps/backend-compat/requirements-lock-py310.txt
+      - name: Install locked Python dependencies
+        run: python -m pip install --requirement apps/backend-compat/requirements-lock-py310.txt
+      - name: Run exact 112-test gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+          output=$(python -m pytest \
+            apps/backend-compat/tests/test_optimizer_server.py \
+            apps/backend-compat/tests/test_validation_scripts.py -q 2>&1)
+          printf '%s\n' "$output"
+          grep -Eq '(^|[^0-9])112 passed([^0-9]|$)' <<< "$output"
       - name: Verify tag, paths, cases, and Supplementary Data
         run: python scripts/release/verify_release.py --require-clean --tag "$GITHUB_REF_NAME"
+      - name: Verify immutable validation evidence
+        run: python scripts/release/verify_release.py --paper-release-dir "release-evidence/$GITHUB_REF_NAME"
+      - name: Re-solve archived exact-oracle models
+        run: |
+          python scripts/release/verify_exact_oracle_models.py \
+            --evidence-zip "release-evidence/$GITHUB_REF_NAME/ProbePlanner-$GITHUB_REF_NAME-immutable-evidence.zip" \
+            --output "$RUNNER_TEMP/exact-oracle-reverification.json"
       - name: Build immutable release assets
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p release-assets/ProbePlanner-supplementary-${GITHUB_REF_NAME}
-          cp -R supplementary-data/. release-assets/ProbePlanner-supplementary-${GITHUB_REF_NAME}/
-          printf '%s\n' "$GITHUB_SHA" > release-assets/ProbePlanner-supplementary-${GITHUB_REF_NAME}/SOURCE_COMMIT.txt
+          mkdir -p release-assets
+          cp "release-evidence/$GITHUB_REF_NAME/ProbePlanner-$GITHUB_REF_NAME-immutable-evidence.zip" release-assets/
+          cp "release-evidence/$GITHUB_REF_NAME/IMMUTABLE_EVIDENCE_MANIFEST.json" release-assets/
           cd release-assets
-          zip -qr ProbePlanner-supplementary-${GITHUB_REF_NAME}.zip ProbePlanner-supplementary-${GITHUB_REF_NAME}
-          sha256sum ProbePlanner-supplementary-${GITHUB_REF_NAME}.zip > ProbePlanner-supplementary-${GITHUB_REF_NAME}.zip.sha256
+          sha256sum "ProbePlanner-$GITHUB_REF_NAME-immutable-evidence.zip" > "ProbePlanner-$GITHUB_REF_NAME-immutable-evidence.zip.sha256"
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            release-assets/ProbePlanner-supplementary-${GITHUB_REF_NAME}.zip \
-            release-assets/ProbePlanner-supplementary-${GITHUB_REF_NAME}.zip.sha256 \
+            release-assets/ProbePlanner-${GITHUB_REF_NAME}-immutable-evidence.zip \
+            release-assets/ProbePlanner-${GITHUB_REF_NAME}-immutable-evidence.zip.sha256 \
+            release-assets/IMMUTABLE_EVIDENCE_MANIFEST.json \
             --repo "$GITHUB_REPOSITORY" \
             --title "ProbePlanner $GITHUB_REF_NAME" \
-            --notes-file RELEASE_NOTES.md \
+            --notes-file "docs/release/$GITHUB_REF_NAME.md" \
             --verify-tag
