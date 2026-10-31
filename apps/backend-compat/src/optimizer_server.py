@@ -9001,30 +9001,39 @@ def _compute_probe_contact_profile(
 #        Optimization helpers                                                                                                             
 
 def seg_seg_dist(p0, p1, q0, q1):
-    """Minimum distance between two line segments (Eberly algorithm)."""
-    u  = p1 - p0; v  = q1 - q0; w0 = p0 - q0
-    a  = np.dot(u, u); b = np.dot(u, v); c = np.dot(v, v)
-    d  = np.dot(u, w0); e = np.dot(v, w0)
-    D  = a * c - b * b
-    EPS = 1e-12
-    if D < EPS:
+    """Minimum Euclidean distance between finite segments, including points."""
+    p0, p1, q0, q1 = (np.asarray(p, dtype=np.float64) for p in (p0, p1, q0, q1))
+    u = p1 - p0
+    v = q1 - q0
+    w0 = p0 - q0
+    a, b, c = np.dot(u, u), np.dot(u, v), np.dot(v, v)
+    d, e = np.dot(u, w0), np.dot(v, w0)
+    eps = 1e-12
+    if a <= eps and c <= eps:
+        return float(np.linalg.norm(w0))
+    if a <= eps:
+        return float(np.linalg.norm(w0 - np.clip(e / c, 0.0, 1.0) * v))
+    if c <= eps:
+        return float(np.linalg.norm(w0 + np.clip(-d / a, 0.0, 1.0) * u))
+    determinant = a * c - b * b
+    if determinant <= eps * a * c:
         sN, sD, tN, tD = 0.0, 1.0, e, c
     else:
-        sN = b * e - c * d
-        tN = a * e - b * d
-        sD = D; tD = D
-        if sN < 0:     sN = 0; tN = e; tD = c
-        elif sN > sD:  sN = sD; tN = e + b; tD = c
+        sN, tN = b * e - c * d, a * e - b * d
+        sD = tD = determinant
+        if sN < 0:
+            sN, tN, tD = 0.0, e, c
+        elif sN > sD:
+            sN, tN, tD = sD, e + b, c
+    # These endpoint projections are already normalized, so their denominator is one.
     if tN < 0:
-        tN = 0
-        sN = max(0, min(-d / a if a > EPS else 0, sD))
+        tN = 0.0
+        sN, sD = float(np.clip(-d / a, 0.0, 1.0)), 1.0
     elif tN > tD:
         tN = tD
-        sN = max(0, min((-d + b) / a if a > EPS else 0, sD))
-    s    = 0 if abs(sN) < EPS else sN / sD
-    t    = 0 if abs(tN) < EPS else tN / tD
-    diff = (w0 + s * u) - t * v
-    return float(np.linalg.norm(diff))
+        sN, sD = float(np.clip((b - d) / a, 0.0, 1.0)), 1.0
+    s, t = sN / sD, tN / tD
+    return float(np.linalg.norm(w0 + s * u - t * v))
 
 
 def _probe_radius_um(probe):
