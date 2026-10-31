@@ -9006,34 +9006,26 @@ def seg_seg_dist(p0, p1, q0, q1):
     u = p1 - p0
     v = q1 - q0
     w0 = p0 - q0
-    a, b, c = np.dot(u, u), np.dot(u, v), np.dot(v, v)
-    d, e = np.dot(u, w0), np.dot(v, w0)
-    eps = 1e-12
-    if a <= eps and c <= eps:
-        return float(np.linalg.norm(w0))
-    if a <= eps:
-        return float(np.linalg.norm(w0 - np.clip(e / c, 0.0, 1.0) * v))
-    if c <= eps:
-        return float(np.linalg.norm(w0 + np.clip(-d / a, 0.0, 1.0) * u))
-    determinant = a * c - b * b
-    if determinant <= eps * a * c:
-        sN, sD, tN, tD = 0.0, 1.0, e, c
-    else:
-        sN, tN = b * e - c * d, a * e - b * d
-        sD = tD = determinant
-        if sN < 0:
-            sN, tN, tD = 0.0, e, c
-        elif sN > sD:
-            sN, tN, tD = sD, e + b, c
-    # These endpoint projections are already normalized, so their denominator is one.
-    if tN < 0:
-        tN = 0.0
-        sN, sD = float(np.clip(-d / a, 0.0, 1.0)), 1.0
-    elif tN > tD:
-        tN = tD
-        sN, sD = float(np.clip((b - d) / a, 0.0, 1.0)), 1.0
-    s, t = sN / sD, tN / tD
-    return float(np.linalg.norm(w0 + s * u - t * v))
+    a, c = float(np.dot(u, u)), float(np.dot(v, v))
+
+    def point_segment_squared(offset, direction, length_squared):
+        t = min(1.0, max(0.0, float(np.dot(offset, direction)) / length_squared)) if length_squared else 0.0
+        residual = offset - t * direction
+        return float(np.dot(residual, residual))
+
+    # A constrained minimum lies on one of four boundaries or at an interior
+    # least-squares solution. SVD avoids cancellation in a*c - dot(u,v)**2.
+    best = min(point_segment_squared(w0, v, c),
+               point_segment_squared(p1 - q0, v, c),
+               point_segment_squared(-w0, u, a),
+               point_segment_squared(q1 - p0, u, a))
+    if a and c:
+        parameters = np.linalg.lstsq(np.column_stack((u, -v)), -w0, rcond=None)[0]
+        s, t = parameters
+        if 0.0 <= s <= 1.0 and 0.0 <= t <= 1.0:
+            residual = w0 + s * u - t * v
+            best = min(best, float(np.dot(residual, residual)))
+    return float(math.sqrt(best))
 
 
 def _probe_radius_um(probe):
