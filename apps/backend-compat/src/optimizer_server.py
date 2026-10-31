@@ -67,6 +67,8 @@ from backend.api import (
     TASK_STATE_COMPLETED,
 )
 from backend.candidate import summarize_candidate_pool
+from backend.token_cover import bounded_token_cover
+from backend.planning_policy import run_density_policy
 from backend.contract import validate_optimize_schema, sanitize_risk_thresholds
 from backend.risk_model import (
     classify_risk_source,
@@ -14568,6 +14570,7 @@ def _payload_for_deterministic_hash(payload):
         "requestHash",
         "responseHash",
         "timeMs",
+        "elapsedMs",
         "planningTimeMs",
         "candidateCache",
         "computeProfile",
@@ -15761,6 +15764,7 @@ def _normalize_optimize_payload(raw_body):
         "gridSpacing": _require_number(
             "params.gridSpacing", params_in.get("gridSpacing", 600), minimum=50, maximum=5000
         ),
+        "candidateExpansionEnabled": _coerce_bool(params_in.get("candidateExpansionEnabled"), True),
         "angleStep": _require_number(
             "params.angleStep", params_in.get("angleStep", 5), minimum=1, maximum=30, integer=True
         ),
@@ -18084,83 +18088,39 @@ def _bounded_exact_token_cover_selection(
     min_clearance,
     min_entry,
     incumbent,
-    time_limit_s=1.0,
+    time_limit_s=5.0,
+    audit=None,
+    cancel=None,
 ):
     required = _required_coverage_tokens(target_keys, targeting_mode)
-    viable = []
-    for candidate in candidates:
-        tokens = _candidate_coverage_tokens(candidate, target_keys, targeting_mode) & required
-        if tokens:
-            viable.append((candidate, frozenset(tokens)))
-    if not viable or not required:
-        return list(incumbent or [])
-
-    incumbent = list(incumbent or [])
-    incumbent_covered = set()
-    for candidate in incumbent:
-        incumbent_covered |= _candidate_coverage_tokens(candidate, target_keys, targeting_mode)
-    best = [list(incumbent)] if required <= incumbent_covered else [None]
-    best_limit = len(incumbent) if best[0] is not None else len(required) + 1
-    deadline = time.perf_counter() + max(0.01, float(time_limit_s))
-    visited = set()
-
-    def search(selected_indices, covered):
-        nonlocal best_limit
-        if time.perf_counter() >= deadline:
-            return
-        key = tuple(sorted(selected_indices))
-        if key in visited:
-            return
-        visited.add(key)
-        if required <= covered:
-            if len(selected_indices) < best_limit:
-                best[0] = [viable[index][0] for index in selected_indices]
-                best_limit = len(selected_indices)
-            return
-        if len(selected_indices) + 1 >= best_limit:
-            return
-
-        selected_candidates = [viable[index][0] for index in selected_indices]
-        missing = required - covered
-        compatible = []
-        for index, (candidate, tokens) in enumerate(viable):
-            if index in selected_indices or not (tokens & missing):
-                continue
-            if any(trajs_collide(candidate, chosen, min_clearance, min_entry) for chosen in selected_candidates):
-                continue
-            compatible.append(index)
-        if not compatible:
-            return
-        max_gain = max(len(viable[index][1] & missing) for index in compatible)
-        lower_bound = int(math.ceil(len(missing) / max(1, max_gain)))
-        if len(selected_indices) + lower_bound >= best_limit:
-            return
-
-        options_by_token = {
-            token: [index for index in compatible if token in viable[index][1]]
-            for token in missing
-        }
-        branch_token = min(missing, key=lambda token: (len(options_by_token[token]), token))
-        options = sorted(
-            options_by_token[branch_token],
-            key=lambda index: (
-                -len(viable[index][1] & missing),
-                int(viable[index][0].get("paretoRank", 10**6)),
-                -float(viable[index][0].get("explainScore", 0.0)),
-                _candidate_signature(viable[index][0]),
-            ),
-        )
-        for index in options:
-            search(
-                tuple(sorted((*selected_indices, index))),
-                covered | set(viable[index][1]),
-            )
-
-    search(tuple(), set())
-    return best[0] if best[0] is not None else incumbent
+    token_sets = [_candidate_coverage_tokens(c, target_keys, targeting_mode) for c in candidates]
+    indices_by_identity = {id(c): i for i, c in enumerate(candidates)}
+    indices_by_signature = {_candidate_signature(c): i for i, c in enumerate(candidates)}
+    incumbent_indices = []
+    for c in incumbent or []:
+        index = indices_by_identity.get(id(c), indices_by_signature.get(_candidate_signature(c)))
+        if index is None:
+            # Recovery candidates outside the supplied pool cannot support a pool certificate.
+            if audit is not None:
+                audit.update(status="not_run_external_incumbent", domain="supplied finite pool")
+            return list(incumbent)
+        incumbent_indices.append(index)
+    keys = [(int(c.get("paretoRank", 10**6)), -float(c.get("explainScore", 0.0)),
+             -int(sum((c.get("overlapVoxels", {}) or {}).values())), _candidate_signature(c))
+            for c in candidates]
+    indices, diagnostics = bounded_token_cover(
+        token_sets, required,
+        lambda a, b: trajs_collide(candidates[a], candidates[b], min_clearance, min_entry),
+        incumbent_indices, keys, time_limit_s=time_limit_s, node_limit=100000, cancel=cancel,
+    )
+    if audit is not None:
+        audit.update(diagnostics)
+        audit["stageScope"] = "selection before auto-repair and fallback"
+    return [candidates[i] for i in indices]
 
 
-def _augment_selection_for_targeting_mode(selected, candidates, target_keys, targeting_mode, min_clearance, min_entry):
+def _augment_selection_for_targeting_mode(selected, candidates, target_keys, targeting_mode, min_clearance, min_entry,
+                                         audit=None, cancel=None):
     required_tokens = _required_coverage_tokens(target_keys, targeting_mode)
     covered_tokens = set()
     for probe in selected:
@@ -18168,7 +18128,7 @@ def _augment_selection_for_targeting_mode(selected, candidates, target_keys, tar
 
     if targeting_mode != "bilateral_symmetric":
         missing = sorted(required_tokens - covered_tokens)
-        if missing and len(candidates) <= 256 and len(required_tokens) <= 12:
+        if required_tokens:
             exact_selected = _bounded_exact_token_cover_selection(
                 candidates,
                 target_keys,
@@ -18176,7 +18136,9 @@ def _augment_selection_for_targeting_mode(selected, candidates, target_keys, tar
                 min_clearance,
                 min_entry,
                 selected,
-                time_limit_s=1.0,
+                time_limit_s=5.0,
+                audit=audit,
+                cancel=cancel,
             )
             exact_covered = set()
             for probe in exact_selected:
@@ -18190,9 +18152,6 @@ def _augment_selection_for_targeting_mode(selected, candidates, target_keys, tar
         return selected, missing, covered_tokens, required_tokens
 
     remaining = set(required_tokens - covered_tokens)
-    if not remaining:
-        return selected, [], covered_tokens, required_tokens
-
     selected_aug = list(selected)
     selected_id_set = {probe.get("id") for probe in selected_aug if probe.get("id") is not None}
 
@@ -18241,7 +18200,7 @@ def _augment_selection_for_targeting_mode(selected, candidates, target_keys, tar
         remaining -= best_gain
 
     missing = sorted(remaining)
-    if len(candidates) <= 256 and len(required_tokens) <= 12:
+    if required_tokens:
         exact_selected = _bounded_exact_token_cover_selection(
             candidates,
             target_keys,
@@ -18249,7 +18208,9 @@ def _augment_selection_for_targeting_mode(selected, candidates, target_keys, tar
             min_clearance,
             min_entry,
             selected_aug,
-            time_limit_s=1.0,
+            time_limit_s=5.0,
+            audit=audit,
+            cancel=cancel,
         )
         exact_covered = set()
         for probe in exact_selected:
@@ -19378,6 +19339,21 @@ def _build_candidate_funnel_diagnostics(
 
 def _run_optimize_pipeline(raw_body, task_id=None):
     task_id = task_id or _request_id()
+    normalized = _normalize_optimize_payload(raw_body)
+    params = normalized["params"]
+    result = run_density_policy(
+        raw_body, params["gridSpacing"], params["angleStep"], params["candidateExpansionEnabled"],
+        lambda body: _run_optimize_pipeline_once(body, task_id=task_id),
+        cancel=lambda: _check_task_cancelled(task_id, "density_retry"),
+    )
+    partial = bool(result.get("uncovered") or result.get("uncoveredSides"))
+    _update_task_progress(task_id, "completed", 1.0, "Planning policy completed",
+                          status="partial" if partial else "completed")
+    return result
+
+
+def _run_optimize_pipeline_once(raw_body, task_id=None):
+    task_id = task_id or _request_id()
     _update_task_progress(task_id, "pre_validation", 0.02, "Validating request payload")
     _check_task_cancelled(task_id, "pre_validation")
     if version_freeze_state.get("frozen"):
@@ -19814,6 +19790,7 @@ def _run_optimize_pipeline(raw_body, task_id=None):
     _update_task_progress(task_id, "coverage_boosted", 0.82, "Coverage boost completed")
     _check_task_cancelled(task_id, "coverage_boosted")
 
+    token_cover_audit = {}
     selected_aug, missing_tokens, covered_tokens, required_tokens = _augment_selection_for_targeting_mode(
         result.get("selected", []),
         candidates,
@@ -19821,6 +19798,8 @@ def _run_optimize_pipeline(raw_body, task_id=None):
         targeting_mode,
         min_clearance,
         min_entry,
+        audit=token_cover_audit,
+        cancel=lambda: _check_task_cancelled(task_id, "token_cover_search"),
     )
     result["selected"] = selected_aug
     _update_task_progress(task_id, "targeting_mode_augmented", 0.88, "Targeting mode augmentation completed")
@@ -20152,7 +20131,7 @@ def _run_optimize_pipeline(raw_body, task_id=None):
         candidatePool=summarize_candidate_pool(candidates),
         cacheHits=int((score_cache_stats or {}).get("cacheHits", 0)),
     )
-    _update_task_progress(task_id, "completed", 1.0, "Optimization completed", status="completed")
+    _update_task_progress(task_id, "candidate_round_completed", 0.98, "Candidate round completed")
 
     return {
         "ok": True,
@@ -20257,6 +20236,7 @@ def _run_optimize_pipeline(raw_body, task_id=None):
         "paretoSummary": pareto_summary,
         "milpStatus": result.get("milpStatus"),
         "milpNodes": result.get("milpNodes"),
+        "tokenCoverSearch": token_cover_audit,
         "solverRuntimePolicy": result.get("solverRuntimePolicy", solver_runtime_policy),
         "candidateCount": len(candidates),
         "candidateUniverseCount": len(candidate_universe),
