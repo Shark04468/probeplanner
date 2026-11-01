@@ -118,7 +118,7 @@ jobs:
     env:
       STAGED_TAG: v0.3.0-paper
       CANDIDATE_COMMIT: ${{ inputs.source_commit }}
-      GATE_ROOT: ${{ runner.temp }}/probeplanner-release-checks
+      GATE_ROOT: ${{ github.workspace }}/../probeplanner-release-checks
     steps:
       - uses: actions/checkout@v4
         with:

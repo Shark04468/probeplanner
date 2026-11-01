@@ -104,3 +104,12 @@ def test_release_preserves_evaluated_bytes_across_git_platforms():
     lines = (checks.ROOT / '.gitattributes').read_text().splitlines()
     rules = [line.strip() for line in lines if line.strip() and not line.lstrip().startswith('#')]
     assert rules[-1] == '* -text'
+
+
+def test_job_environment_does_not_use_runner_context():
+    import yaml
+    path = checks.ROOT / '.github/workflows/paper-release.yml'
+    workflow = yaml.load(path.read_text(encoding='utf-8'), Loader=yaml.BaseLoader)
+    for job in workflow['jobs'].values():
+        for value in job.get('env', {}).values():
+            assert 'runner.' not in value, 'Runner context is unavailable in job-level env'
