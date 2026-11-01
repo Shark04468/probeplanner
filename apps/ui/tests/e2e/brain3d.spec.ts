@@ -7,6 +7,7 @@ test.describe('Brain3D interaction regression', () => {
     const toggle3d = page.getByTestId('probeplanner-toggle-3d');
     await expect(toggle3d).toBeVisible();
     await toggle3d.click();
+    await page.getByTestId('brain3d-display-controls').locator('summary').click();
 
     await expect(page.getByTestId('brain3d-view-iso')).toBeVisible();
     await expect(page.getByTestId('brain3d-view-top')).toBeVisible();
@@ -21,12 +22,14 @@ test.describe('Brain3D interaction regression', () => {
     const fullscreenBtn = page.getByTestId('brain3d-fullscreen');
     await expect(fullscreenBtn).toBeVisible();
     await fullscreenBtn.click();
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement !== null)).toBe(true);
   });
 
   test('language switch updates 3D overlay labels end-to-end', async ({ page }) => {
     await page.goto('/');
 
     await page.getByTestId('probeplanner-toggle-3d').click();
+    await page.getByTestId('brain3d-display-controls').locator('summary').click();
     await expect(page.getByTestId('brain3d-opacity-slider')).toBeVisible();
 
     await page.getByRole('button', { name: 'EN', exact: true }).click();
@@ -39,6 +42,7 @@ test.describe('Brain3D interaction regression', () => {
     await page.goto('/');
 
     await page.getByTestId('probeplanner-toggle-3d').click();
+    await page.getByTestId('brain3d-display-controls').locator('summary').click();
     await expect(page.getByTestId('brain3d-opacity-slider')).toBeVisible();
 
     await page.getByTestId('brain3d-selected-only').click();
@@ -59,6 +63,7 @@ test.describe('Brain3D interaction regression', () => {
   test('bridge snapshot state can be acknowledged from Unity channel messages', async ({ page }) => {
     await page.goto('/');
     await page.getByTestId('probeplanner-toggle-3d').click();
+    await page.getByTestId('brain3d-display-controls').locator('summary').click();
     await expect(page.getByTestId('brain3d-opacity-slider')).toBeVisible();
     await page.locator('iframe[title="Brain Planner Unity"]').waitFor({ state: 'visible' });
 
@@ -89,6 +94,7 @@ test.describe('Brain3D interaction regression', () => {
   test('contact panel controls and depth table remain interactive', async ({ page }) => {
     await page.goto('/');
     await page.getByTestId('probeplanner-toggle-3d').click();
+    await page.getByTestId('brain3d-slice-controls').locator('summary').click();
 
     await expect(page.getByTestId('brain3d-contact-depth-table')).toBeVisible();
     await page.getByTestId('brain3d-contact-mode-standard').click();
@@ -105,6 +111,7 @@ test.describe('Brain3D interaction regression', () => {
   test('clinical export bundle action is reachable from slice panel', async ({ page }) => {
     await page.goto('/');
     await page.getByTestId('probeplanner-toggle-3d').click();
+    await page.getByTestId('brain3d-slice-controls').locator('summary').click();
 
     const exportBtn = page.getByTestId('brain3d-export-bundle');
     await expect(exportBtn).toBeVisible();

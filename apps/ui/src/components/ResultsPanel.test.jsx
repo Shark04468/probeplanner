@@ -23,6 +23,34 @@ const auditedProbe = {
 };
 
 describe('ResultsPanel strict planning contract', () => {
+  test('reports resolved insertion depth while preserving raw controls', () => {
+    render(<ResultsPanel lang="en" results={{ probes: [{ ...auditedProbe, depthUm_corrected: 1500 }],
+      algorithm: 'import', coverage: { covered: 1, total: 1 } }} />);
+    fireEvent.click(screen.getByRole('button', { name: /Probe.*1/i }));
+    expect(screen.getByText('1.500 mm')).toBeInTheDocument();
+    expect(screen.queryByText('4.125 mm')).not.toBeInTheDocument();
+  });
+  test.each([[undefined, 'Unavailable'], [null, 'Unavailable'], [false, 'Failed'], [true, 'Passed']])(
+    'distinguishes missing audit evidence (%s) from measured failure or pass', (value, expected) => {
+      const probe = { ...auditedProbe, brainContainmentPassed: value, tipInTarget: value };
+      render(<ResultsPanel lang="en" results={{ probes: [probe], algorithm: 'import', coverage: { covered: 1, total: 1 } }} />);
+      fireEvent.click(screen.getByRole('button', { name: /Probe.*1/i }));
+      for (const label of ['Brain containment', 'Tip in target']) {
+        expect(screen.getAllByText(label).at(-1).parentElement).toHaveTextContent(expected);
+      }
+      expect(screen.getByText('Imported geometry: not revalidated')).toBeInTheDocument();
+    },
+  );
+  test('does not certify imported geometry and identifies restored history', () => {
+    render(<ResultsPanel lang="en" results={{ probes: [], algorithm: 'import',
+      historyRecord: { id: 'saved', savedAt: 1 }, coverage: { covered: 0, total: 1 } }} />);
+    expect(screen.getByText('Imported geometry: not revalidated')).toBeInTheDocument();
+    expect(screen.queryByText('Feasible plan')).not.toBeInTheDocument();
+    expect(screen.getByText(/Restored plan/)).toBeInTheDocument();
+    expect(screen.getByText('Imported coverage (unverified)')).toBeInTheDocument();
+    expect(screen.getByText(/target units/)).toBeInTheDocument();
+    expect(screen.queryByText(/voxels/)).not.toBeInTheDocument();
+  });
   test('shows selected depth and does not convert unavailable internal-risk evidence into zero margin', () => {
     render(
       <ResultsPanel

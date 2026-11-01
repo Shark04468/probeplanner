@@ -31,3 +31,13 @@ docs/evidence/2026-*.*
 docs/evidence/*.zip
 docs/evidence/figures/
 cases/requests/*.generated.json
+apps/unity/Library/
+apps/unity/Temp/
+apps/unity/Logs/
+apps/unity/Obj/
+apps/unity/UserSettings/
+apps/unity/WebGL-Build/
+apps/unity/*.csproj
+apps/unity/*.sln
+apps/unity/.vs/
+apps/unity/**/.idea/

@@ -1,8 +1,8 @@
 {
   "title": "ProbePlanner: an auditable software workflow for MRI-CCF probe trajectory planning in mouse electrophysiology",
   "upload_type": "software",
-  "version": "0.2.1-paper",
-  "description": "Corrected final-source paper release for ProbePlanner after the preserved v4 failure, post-hoc remediation, and frozen v5 confirmation. Evidence supports software behavior and candidate-pool exactness only; it does not establish subject-specific anatomical accuracy, stereotaxic landmark accuracy, surgical safety, or histological implantation accuracy.",
+  "version": "0.3.0-paper",
+  "description": "Post-review corrected-source paper release of ProbePlanner. Historical v4 failures, post-hoc remediation and frozen v5 confirmation are preserved unchanged and remain distinct from revised-source evidence. Revised-source retrospective regeneration comprises 89 positive and 9 expected negative requests; subsequent frozen request confirmation comprises 12 positive requests and one reused negative. All positive cases were full and strict, and exact counts matched within their regenerated strictly filtered finite candidate pools. Evidence supports software behavior and finite-pool exactness, not continuous-space global optimality, subject-specific TRE, bregma/lambda accuracy, native-space surgical safety or histological implantation accuracy. Public population-atlas data retain their separate notices and licenses; the MIT license applies to software.",
   "creators": [
     {
       "name": "Sha, Yijun",
@@ -21,7 +21,7 @@
   ],
   "related_identifiers": [
     {
-      "identifier": "10.5281/zenodo.21307547",
+      "identifier": "10.5281/zenodo.21974187",
       "relation": "isNewVersionOf",
       "resource_type": "software"
     },

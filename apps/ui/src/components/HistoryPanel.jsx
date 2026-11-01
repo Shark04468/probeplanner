@@ -45,8 +45,12 @@ export default function HistoryPanel({ currentState, onRestore, lang = 'cn' }) {
       savedAt:     Date.now(),
       regions:     currentState.regions     ?? [],
       params:      currentState.params      ?? {},
+      probePreset: currentState.probePreset  ?? null,
+      probeParams: currentState.probeParams  ?? null,
+      correction: currentState.correction ?? null,
       results:     currentState.results     ?? null,
       constraints: currentState.constraints ?? {},
+      safetyIssues: currentState.safetyIssues ?? [],
     };
     setHistory(h => [entry, ...h]);
   }, [currentState, history.length, tr]);

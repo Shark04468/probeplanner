@@ -26,30 +26,18 @@ test.describe('System UI regression', () => {
   });
 
   test('backend + atlas readiness is reflected by status badge and atlas stage', async ({ page }) => {
-    let statusResp;
-    try {
-      statusResp = await page.request.get('http://127.0.0.1:5000/api/status?includeRegions=0');
-    } catch {
-      test.skip(true, 'Backend is not reachable for live alignment check.');
-      return;
-    }
-
-    test.skip(!statusResp.ok(), 'Backend is not reachable for live alignment check.');
+    const backendBase = process.env.REACT_APP_FLASK_BASE || 'http://127.0.0.1:5000';
+    const statusResp = await page.request.get(new URL('/api/status?includeRegions=0', backendBase).href);
+    expect(statusResp.ok(), 'Configured backend must be reachable for the live readiness check.').toBeTruthy();
 
     const status = await statusResp.json();
-    test.skip(!status?.atlasLoaded, 'Atlas not loaded yet in backend.');
+    expect(status?.atlasLoaded, 'Atlas must be loaded in the configured backend.').toBe(true);
 
     await page.goto('/');
 
     const statusBadge = page.getByTestId('backend-status-badge');
     await expect(statusBadge).toBeVisible();
-    if (!(await statusBadge.textContent())?.match(/在线|online/i)) {
-      const connectBtn = page.getByRole('button', { name: /连接|connect/i }).first();
-      if (await connectBtn.isVisible().catch(() => false)) {
-        await connectBtn.click();
-      }
-    }
-
+    // Wait for the configured auto-connect; do not race its connect/disconnect toggle.
     await expect(statusBadge).toContainText(/在线|online/i, { timeout: 20000 });
 
     const atlasStage = page.getByTestId('global-stage-atlas');

@@ -8,6 +8,7 @@ import {
 import { ANATOMY } from "../constants/anatomy.js";
 import { t } from "../constants/i18n.js";
 import { useZoomPan } from "../hooks/useZoomPan.js";
+import { ccfUmToViewer, normalizeProbeSegment } from './brain3d/ccfCoordinates';
 
 const SVW = 480;
 const SVH = 310;
@@ -72,7 +73,7 @@ export default function BrainSideView({
         </div>
 
         {trajList.map((traj, i) => {
-          const ml = traj.ml ?? traj.ml_mm ?? 0;
+          const ml = traj.ml_mm_corrected ?? traj.ml ?? traj.ml_mm ?? 0;
           return (
             <button
               key={i}
@@ -204,15 +205,18 @@ export default function BrainSideView({
           {trajList.map((traj, idx) => {
             const color = PROBE_COLORS[idx % PROBE_COLORS.length];
             const isHover = hoveredProbe === idx;
-            const ap = traj.ap ?? traj.ap_mm ?? 0;
-            const ml = traj.ml ?? traj.ml_mm ?? 0;
-            const entryDv = traj.dvEntry ?? traj.entryDvCorr_mm ?? 0;
-            const [x1, y1] = toSagSVG(ap, entryDv);
-            const dir = traj.dir ?? [0, 1, 0];
-            const depthUm = traj.depthUm ?? (traj.depth ? traj.depth * 1000 : 10000);
-            const tipAp = ap + dir[0] * depthUm / 1000;
-            const tipDv = entryDv + dir[1] * depthUm / 1000;
-            const [x2, y2] = toSagSVG(tipAp, tipDv);
+            const hasEndpoints = [traj.entry_xyz, traj.tip_xyz]
+              .every(point => Array.isArray(point) && point.length === 3 && point.every(Number.isFinite));
+            const segment = hasEndpoints
+              ? { entry: ccfUmToViewer(traj.entry_xyz), tip: ccfUmToViewer(traj.tip_xyz) }
+              : normalizeProbeSegment({ ...traj, ap_mm: traj.ap_mm ?? traj.ap ?? 0,
+                ml_mm: traj.ml_mm ?? traj.ml ?? 0, entryDvCorr_mm: traj.entryDvCorr_mm ?? traj.dvEntry ?? 0,
+                theta_deg: traj.theta_deg ?? (traj.elevation != null ? 90 - traj.elevation : 0),
+                phi_deg: traj.phi_deg ?? traj.azimuth ?? 0,
+                depthUm: traj.depthUm ?? (traj.depth != null ? traj.depth * 1000 : 10000) });
+            const ml = segment.entry.x;
+            const [x1, y1] = toSagSVG(segment.entry.z, -segment.entry.y);
+            const [x2, y2] = toSagSVG(segment.tip.z, -segment.tip.y);
 
             const mlDist = Math.abs(ml - sagML);
             const opacity = mlDist < ML_FILTER ? 1 : Math.max(0.15, 1 - mlDist * 0.4);

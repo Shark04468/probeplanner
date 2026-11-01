@@ -174,6 +174,8 @@ const S = {
   },
   sectionHdr: {
     position: 'absolute',
+    height: SECTION_HEIGHT - 4,
+    boxSizing: 'border-box',
     left: 8,
     right: 8,
     display: 'flex',
@@ -197,7 +199,9 @@ const S = {
     alignItems: 'center',
     gap: 6,
     minWidth: 0,
+    flex: 1,
   },
+  sectionLabel: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   sectionChevron: {
     width: 12,
     textAlign: 'center',
@@ -206,6 +210,7 @@ const S = {
     flexShrink: 0,
   },
   sectionCount: {
+    flexShrink: 0,
     borderRadius: 999,
     border: '1px solid #1e3d5e',
     color: '#5a9ab8',
@@ -214,15 +219,20 @@ const S = {
   },
   row: {
     position: 'absolute',
+    height: ROW_HEIGHT - 4,
+    boxSizing: 'border-box',
     left: 16,
     right: 16,
-    display: 'flex',
+    display: 'grid',
+    gridTemplateColumns: '18px minmax(0, 1fr)',
+    gridTemplateRows: '28px 18px',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
+    columnGap: 8,
+    rowGap: 2,
     border: '1px solid #162d48',
     borderRadius: 6,
-    padding: '6px 8px',
+    padding: '4px 8px',
     background: '#08121f',
     cursor: 'pointer',
     fontFamily: 'inherit',
@@ -246,6 +256,7 @@ const S = {
     borderStyle: 'dashed',
   },
   check: {
+    gridRow: '1 / 3',
     width: 18,
     height: 18,
     borderRadius: 9,
@@ -263,19 +274,29 @@ const S = {
     background: '#00d4ff22',
     color: '#00d4ff',
   },
-  left: { minWidth: 0, flex: 1 },
+  left: { minWidth: 0, gridColumn: 2, gridRow: 1 },
   title: {
     color: '#d8eefa',
     fontSize: 12,
+    lineHeight: '14px',
     fontWeight: 600,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
-  subtitle: { color: '#5a9ab8', fontSize: 10 },
+  subtitle: { color: '#5a9ab8', fontSize: 10, lineHeight: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   tag: {
+    gridColumn: 2,
+    gridRow: 2,
+    justifySelf: 'start',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    lineHeight: '14px',
     borderRadius: 10,
-    padding: '2px 7px',
+    padding: '0 5px',
     fontSize: 10,
     border: '1px solid #1e3d5e',
     color: '#90c8e4',
@@ -898,12 +919,13 @@ export default function RegionSelector({
                     key={item.id}
                     style={{ ...S.sectionHdr, top: item.top }}
                     data-testid={`region-section-${item.sectionKey}`}
+                    title={`${item.sectionClassLabel} / ${item.sectionLabel}`}
                     onClick={() => toggleSection(item.sectionKey)}
                     aria-expanded={expanded}
                   >
                     <span style={S.sectionHdrLeft}>
                       <span style={S.sectionChevron}>{expanded ? 'v' : '>'}</span>
-                      <span>{item.sectionClassLabel} / {item.sectionLabel}</span>
+                      <span style={S.sectionLabel}>{item.sectionClassLabel} / {item.sectionLabel}</span>
                     </span>
                     <span style={S.sectionCount}>{item.count}</span>
                   </button>
@@ -943,14 +965,15 @@ export default function RegionSelector({
                     ...(!supported ? S.rowUnsupported : null),
                   }}
                   onClick={() => onToggleRegion?.(key)}
-                  title={supportHint}
+                  title={`${label} (${key}) - ${item.sectionClassLabel} / ${item.sectionLabel}${supportHint ? ` - ${supportHint}` : ''}`}
+                  data-region-key={key}
                   aria-pressed={selected}
                 >
                   <div style={{ ...S.check, ...(selected ? S.checkOn : null) }}>{selected ? 'v' : ''}</div>
 
                   <div style={S.left}>
                     <div style={S.title}>{label}</div>
-                    <div style={S.subtitle}>
+                    <div style={S.subtitle} data-region-subtitle>
                       {key} - {item.sectionClassLabel} / {item.sectionLabel}
                     </div>
                   </div>

@@ -1,0 +1,4 @@
+# Optional offline surface-building tools, added to the paper Python lock.
+# The planner runtime does not import VTK.
+-r requirements-lock-py310.txt
+vtk==9.5.2

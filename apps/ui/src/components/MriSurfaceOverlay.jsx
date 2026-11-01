@@ -1,10 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { ccfUmToViewer } from './brain3d/ccfCoordinates';
 
-const BREGMA_UM = { ap: 5400, dv: 440, ml: 5700 };
 const CAMERA_PIVOT = new THREE.Vector3(0, -2.8, -0.8);
 const UNITY_FOV_DEG = 38;
 const LOD_SETTLE_DELAY_MS = 700;
+
+export function surfaceLodMetadata(headers, requestedLod) {
+  const raw = headers.get('X-Lod');
+  const value = raw !== null && raw.trim() !== '' ? Number(raw) : NaN;
+  return { requestedLod, resolvedLod: Number.isInteger(value) && value >= 0 ? value : null,
+    cacheSource: headers.get('X-Cache-Source') || 'unknown' };
+}
 
 const SURFACE_LAYERS = [
   {
@@ -60,10 +67,8 @@ function parseObjIndex(raw, size) {
 }
 
 function atlasUmToUnityWorld(apUm, dvUm, mlUm) {
-  const apMm = (BREGMA_UM.ap - apUm) / 1000;
-  const dvMm = (dvUm - BREGMA_UM.dv) / 1000;
-  const mlMm = (mlUm - BREGMA_UM.ml) / 1000;
-  return [mlMm, -dvMm, -apMm];
+  const point = ccfUmToViewer([apUm, dvUm, mlUm]);
+  return [point.x, point.y, point.z];
 }
 
 function atlasNormalToUnityWorld(ap, dv, ml) {
@@ -74,7 +79,7 @@ function atlasNormalToUnityWorld(ap, dv, ml) {
   return [nx / len, ny / len, nz / len];
 }
 
-function parseSurfaceObj(text) {
+export function parseSurfaceObj(text) {
   const vertices = [];
   const normals = [];
   const positions = [];
@@ -154,22 +159,48 @@ function disposeMesh(mesh) {
   mesh.material?.dispose?.();
 }
 
-function cameraPositionFromState(cameraState) {
+export function cameraPivotFromState(cameraState) {
+  const pivot = cameraState?.pivot;
+  return pivot && ['x', 'y', 'z'].every(axis => Number.isFinite(pivot[axis]))
+    ? new THREE.Vector3(pivot.x, pivot.y, pivot.z) : CAMERA_PIVOT.clone();
+}
+
+export function synchronizeCamera(camera, cameraState) {
+  camera.position.copy(cameraPositionFromState(cameraState));
+  camera.up.set(0, 1, 0);
+  camera.lookAt(cameraPivotFromState(cameraState));
+  camera.fov = Number.isFinite(cameraState?.fov) ? clamp(cameraState.fov, 1, 179) : UNITY_FOV_DEG;
+  updateUnityProjection(camera);
+  camera.updateMatrixWorld();
+}
+
+export function updateUnityProjection(camera) {
+  camera.updateProjectionMatrix();
+  // Unity's +Z camera-forward basis has the opposite screen-right direction to Three.js.
+  camera.projectionMatrix.elements[0] *= -1;
+  camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+}
+
+export function cameraPositionFromState(cameraState) {
   const theta = Number.isFinite(cameraState?.theta) ? Number(cameraState.theta) : 0.55;
   const phi = clamp(cameraState?.phi, 0.05, Math.PI - 0.05);
   const distance = clamp(cameraState?.distance, 4, 55);
   const sinPhi = Math.sin(phi);
+  const pivot = cameraPivotFromState(cameraState);
   return new THREE.Vector3(
-    CAMERA_PIVOT.x + distance * sinPhi * Math.cos(theta),
-    CAMERA_PIVOT.y + distance * Math.cos(phi),
-    CAMERA_PIVOT.z + distance * sinPhi * Math.sin(theta),
+    pivot.x + distance * sinPhi * Math.cos(theta),
+    pivot.y + distance * Math.cos(phi),
+    pivot.z + distance * sinPhi * Math.sin(theta),
   );
 }
 
-function buildClippingPlanes(slice) {
-  if (!slice?.enabled) return [];
+export function buildClippingPlanes(slice, hemisphere = 'all') {
+  const planes = hemisphere === 'left'
+    ? [new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0)]
+    : hemisphere === 'right' ? [new THREE.Plane(new THREE.Vector3(1, 0, 0), 0)] : [];
+  if (!slice?.enabled) return planes;
   const coord = Number(slice.coord);
-  if (!Number.isFinite(coord)) return [];
+  if (!Number.isFinite(coord)) return planes;
   const axis = ['x', 'y', 'z'].includes(slice.axis) ? slice.axis : 'y';
   const normal = new THREE.Vector3(
     axis === 'x' ? 1 : 0,
@@ -179,15 +210,15 @@ function buildClippingPlanes(slice) {
   const thickness = Math.max(0.02, Number(slice.thicknessMm) || 0.3);
   if (slice.mode === 'slab') {
     const half = thickness / 2;
-    return [
+    return [...planes,
       new THREE.Plane(normal.clone(), -(coord - half)),
       new THREE.Plane(normal.clone().negate(), coord + half),
     ];
   }
   const keepAbove = slice.mode === 'above';
   return keepAbove
-    ? [new THREE.Plane(normal, -coord)]
-    : [new THREE.Plane(normal.negate(), coord)];
+    ? [...planes, new THREE.Plane(normal, -coord)]
+    : [...planes, new THREE.Plane(normal.negate(), coord)];
 }
 
 export default function MriSurfaceOverlay({
@@ -199,7 +230,13 @@ export default function MriSurfaceOverlay({
   viewportSize,
   interactive,
   slice,
+  hemisphere = 'all',
+  onRendererFault,
 }) {
+  const faultCallbackRef = useRef(onRendererFault);
+  faultCallbackRef.current = onRendererFault;
+  const activeRef = useRef(active);
+  activeRef.current = active;
   const mountRef = useRef(null);
   const rendererRef = useRef(null);
   const sceneRef = useRef(null);
@@ -209,6 +246,10 @@ export default function MriSurfaceOverlay({
   const cacheRef = useRef(new Map());
   const loadingRef = useRef(new Map());
   const visibleLayerRef = useRef(new Map());
+  const sliceRef = useRef(slice);
+  sliceRef.current = slice;
+  const hemisphereRef = useRef(hemisphere);
+  hemisphereRef.current = hemisphere;
   const [lodLevel, setLodLevel] = useState(2);
 
   const desiredLod = useMemo(() => (interactive ? 2 : 1), [interactive]);
@@ -231,11 +272,25 @@ export default function MriSurfaceOverlay({
     const cache = cacheRef.current;
     const loading = loadingRef.current;
 
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      powerPreference: 'high-performance',
-    });
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        powerPreference: 'high-performance',
+      });
+    } catch (error) {
+      console.error('[MriSurfaceOverlay] renderer initialization failed', error);
+      faultCallbackRef.current?.('MRI surface');
+      return undefined;
+    }
+    let contextFailed = false;
+    const onContextLost = (event) => {
+      event.preventDefault();
+      contextFailed = true;
+      faultCallbackRef.current?.('MRI surface');
+    };
+    renderer.domElement.addEventListener('webglcontextlost', onContextLost);
     renderer.setClearColor(0x000000, 0);
     renderer.localClippingEnabled = true;
     renderer.domElement.style.width = '100%';
@@ -262,7 +317,7 @@ export default function MriSurfaceOverlay({
 
     const render = () => {
       frameRef.current = window.requestAnimationFrame(render);
-      if (!active) return;
+      if (!activeRef.current || contextFailed) return;
       renderer.render(scene, camera);
     };
     render();
@@ -272,7 +327,9 @@ export default function MriSurfaceOverlay({
       cache.forEach((mesh) => disposeMesh(mesh));
       cache.clear();
       loading.clear();
+      renderer.domElement.removeEventListener('webglcontextlost', onContextLost);
       renderer.dispose();
+      renderer.forceContextLoss();
       if (renderer.domElement.parentElement === mount) {
         mount.removeChild(renderer.domElement);
       }
@@ -281,7 +338,7 @@ export default function MriSurfaceOverlay({
       cameraRef.current = null;
       groupRef.current = null;
     };
-  }, [active]);
+  }, []);
 
   useEffect(() => {
     const renderer = rendererRef.current;
@@ -293,38 +350,40 @@ export default function MriSurfaceOverlay({
     renderer.setSize(width, height, false);
     renderer.setPixelRatio(Math.min(1.75, window.devicePixelRatio || 1));
     camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-  }, [viewportSize?.height, viewportSize?.width]);
+    updateUnityProjection(camera);
+  }, [active, viewportSize?.height, viewportSize?.width]);
 
   useEffect(() => {
     const camera = cameraRef.current;
     if (!camera) return;
-    camera.position.copy(cameraPositionFromState(cameraState));
-    camera.up.set(0, 1, 0);
-    camera.lookAt(CAMERA_PIVOT);
-    camera.updateMatrixWorld();
-  }, [cameraState]);
+    synchronizeCamera(camera, cameraState);
+  }, [active, cameraState]);
 
   useEffect(() => {
-    const planes = buildClippingPlanes(slice);
+    const planes = buildClippingPlanes(slice, hemisphere);
     cacheRef.current.forEach((mesh) => {
       if (mesh.material) {
         mesh.material.clippingPlanes = planes;
         mesh.material.needsUpdate = true;
       }
     });
-  }, [slice]);
+  }, [slice, hemisphere]);
 
   useEffect(() => {
     const group = groupRef.current;
     if (!group) return undefined;
     let cancelled = false;
+    const ownedRequests = new Map();
 
     const applyVisibility = () => {
       const visibleByLayer = visibleLayerRef.current;
       cacheRef.current.forEach((mesh, key) => {
         mesh.visible = Boolean(active && visibleByLayer.get(mesh.userData.apiLayer) === key);
       });
+      if (rendererRef.current) {
+        rendererRef.current.domElement.dataset.loadedSurfaceLayers = [...cacheRef.current.values()]
+          .filter(mesh => mesh.visible).map(mesh => mesh.name).join(',');
+      }
     };
 
     const addMeshToGroup = (mesh) => {
@@ -359,25 +418,27 @@ export default function MriSurfaceOverlay({
       applyVisibility();
       if (loadingRef.current.has(requestedKey)) return;
 
+      const controller = new AbortController();
       const task = fetch(
         apiUrl(backendBaseUrl, `/api/mri_surface_mesh_lod/${encodeURIComponent(layer.apiLayer)}?lod=${lod}`),
-        fetchOptions(authToken),
+        fetchOptions(authToken, controller.signal),
       )
         .then((res) => {
           if (!res.ok) throw new Error(`MRI surface ${layer.apiLayer} LOD${lod} HTTP ${res.status}`);
-          return res.text();
+          const identity = surfaceLodMetadata(res.headers, lod);
+          return res.text().then(text => ({ text, identity }));
         })
-        .then((objText) => {
+        .then(({ text: objText, identity }) => {
           if (cancelled) return null;
           const geometry = parseSurfaceObj(objText);
           const material = makeMaterial(layer);
-          material.clippingPlanes = buildClippingPlanes(slice);
+          material.clippingPlanes = buildClippingPlanes(sliceRef.current, hemisphereRef.current);
           const mesh = new THREE.Mesh(geometry, material);
-          mesh.name = `mri-surface-${layer.apiLayer}-lod${lod}`;
+          mesh.name = `mri-surface-${layer.apiLayer}-lod${identity.resolvedLod ?? 'unknown'}`;
           mesh.renderOrder = layer.renderOrder;
           mesh.userData = {
             apiLayer: layer.apiLayer,
-            lod,
+            ...identity,
             cacheKey: requestedKey,
           };
           cacheRef.current.set(requestedKey, mesh);
@@ -394,9 +455,10 @@ export default function MriSurfaceOverlay({
           return null;
         })
         .finally(() => {
-          loadingRef.current.delete(requestedKey);
+          if (loadingRef.current.get(requestedKey) === task) loadingRef.current.delete(requestedKey);
         });
       loadingRef.current.set(requestedKey, task);
+      ownedRequests.set(requestedKey, { controller, task });
     };
 
     const wantedLayerNames = new Set(activeLayers.map((layer) => layer.apiLayer));
@@ -412,8 +474,12 @@ export default function MriSurfaceOverlay({
 
     return () => {
       cancelled = true;
+      ownedRequests.forEach(({ controller, task }, key) => {
+        controller.abort();
+        if (loadingRef.current.get(key) === task) loadingRef.current.delete(key);
+      });
     };
-  }, [active, activeLayers, authToken, backendBaseUrl, lodLevel, slice]);
+  }, [active, activeLayers, authToken, backendBaseUrl, lodLevel]);
 
   const display = active && activeLayers.length > 0 ? 'block' : 'none';
 

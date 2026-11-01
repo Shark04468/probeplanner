@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "probeplanner.public_resource_identities.v1",
+  "ambmc": {
+    "sourceUrl": "https://osf.io/download/g8p6a/",
+    "archiveSha256": "e446bc49657cf0938779af1b85faf46c21e0e9f94b3ea0290121030504115904",
+    "nativeNiftiSha256": "a433cde20e3972951eee50e29729df202c19b40a57decccaab02085d81831322",
+    "copyingSha256": "36bacf7541541613c3c937f7ce135f3c3dab427d3a9c5434b50a8f64458e33c9",
+    "fileLicense": "CC BY 3.0 AU",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0/au/",
+    "osfProjectLicenseField": "No license",
+    "nativeFileExactMatchVerified": true
+  },
+  "allen": {
+    "sourceUrl": "https://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/annotation_25.nrrd",
+    "downloadedNrrdSha256": "c620cbcc562183e4dcd40250d440130501781f74b41de35b1c1bdabace290c42",
+    "deployedAnnotationSha256": "8cd42d0f72ae4e2fb3eea35736b907ae8a64c46b04e95dcf9d803c7df39a7c44",
+    "decodedVoxelValuesMatchVerified": true,
+    "historicalOrdinalNrrdSha256": "6f51f58b457e10c5889b5ce0df287ce82c3004d98f462a75d5c61705cd32d18d",
+    "historicalAndDeployedContainersIdentical": false,
+    "publishedMappingDirectAcronyms": 663,
+    "publishedMappingUniqueNormalizedAcronyms": 8,
+    "mappingMismatchVoxels": 0,
+    "comparedVoxelCount": 77045760,
+    "termsUrl": "https://alleninstitute.org/legal/terms-of-use",
+    "citationPolicyUrl": "https://alleninstitute.org/legal/citation-policy"
+  },
+  "registrationReplayValidated": false,
+  "subjectSpecificAccuracyValidated": false,
+  "nativeSpaceSurgicalSafetyValidated": false
+}

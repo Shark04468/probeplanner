@@ -28,6 +28,7 @@ import BackendPanel          from './components/BackendPanel';
 import BrainTopView          from './components/BrainTopView';
 import BrainSideView         from './components/BrainSideView';
 import Brain3DView           from './components/Brain3DView';
+import { formatProbeModels } from './components/probeModelLabels';
 import ResultsPanel          from './components/ResultsPanel';
 import HistoryPanel          from './components/HistoryPanel';
 import CoordCorrectionPanel  from './components/CoordCorrectionPanel';
@@ -108,26 +109,18 @@ const ALGO_INFO = {
   greedy: {
     labelKey: 'algoGreedyLabel',
     descKey: 'algoGreedyDesc',
-    complexity: 'O(n*k)',
-    expectedMs: [100, 800],
   },
   exact: {
     labelKey: 'algoExactLabel',
     descKey: 'algoExactDesc',
-    complexity: 'O(2^n) pruned',
-    expectedMs: [3000, 15000],
   },
   milp: {
     labelKey: 'algoMilpLabel',
     descKey: 'algoMilpDesc',
-    complexity: 'O(n^2) avg',
-    expectedMs: [1000, 8000],
   },
   drcc: {
     labelKey: 'algoDrccLabel',
     descKey: 'algoDrccDesc',
-    complexity: 'Risk-constrained MO',
-    expectedMs: [1500, 12000],
   },
 };
 const LANG_LABEL_KEY = { en: 'langEnLabel', cn: 'langCnLabel' };
@@ -1254,15 +1247,17 @@ export default function ProbeplannerGUI() {
   }, [results]);
 
   const handlePinpointImport = useCallback((importedProbes) => {
+    if (optimizer.isRunning) return;
     // importedProbes are raw trajectory objects from parsePinpoint (fields: ap_mm, ml_mm, etc.)
     // Normalise to the shape ResultsPanel / BrainViews expect
     const probes = importedProbes.map((p, i) => ({
-      ap:        p.ap_mm       ?? 0,
-      ml:        p.ml_mm       ?? 0,
-      dvEntry:   p.entryDvCorr_mm ?? 0,
+      ...p,
+      ap:        p.ap_mm_corrected ?? p.ap_mm ?? 0,
+      ml:        p.ml_mm_corrected ?? p.ml_mm ?? 0,
+      dvEntry:   p.entryDvCorr_mm_corrected ?? p.entryDvCorr_mm ?? 0,
       azimuth:   p.phi_deg     ?? 0,
       elevation: 90 - (p.theta_deg ?? 0),
-      depth:     (p.depthUm    ?? 10000) / 1000,
+      depth:     (p.depthUm_corrected ?? p.depthUm ?? 10000) / 1000,
       regionsHit: p.coveredRegions || [],
       violations: [],
     }));
@@ -1281,21 +1276,39 @@ export default function ProbeplannerGUI() {
       warnings:  [],
       elapsedMs: 0,
       algorithm: 'import',
+      validationStatus: 'imported_unverified',
     });
     optimizer.setSafetyIssues([]);
   }, [optimizer, selectedRegions]);
 
   const currentSnapshot = useMemo(() => ({
-    regions: [...selectedRegions], params: { ...params }, probePreset,
-    results: resultsForPanel, constraints,
-  }), [selectedRegions, params, probePreset, resultsForPanel, constraints]);
+    regions: [...selectedRegions], params: { ...params }, probePreset, probeParams, correction,
+    results: resultsForPanel, constraints, safetyIssues: optimizer.safetyIssues,
+  }), [selectedRegions, params, probePreset, probeParams, correction, resultsForPanel, constraints, optimizer.safetyIssues]);
 
   const restoreSnap = useCallback((snap) => {
+    if (optimizer.isRunning) return;
     if (snap.regions)     setSelectedRegions(new Set(snap.regions));
     if (snap.params)      setParams(p => ({ ...p, ...snap.params }));
-    if (snap.probePreset) setProbePreset(snap.probePreset);
+    const savedPreset = snap.probePreset || snap.results?.selected?.[0]?.probeType || snap.results?.probes?.[0]?.probeType;
+    if (savedPreset && PROBE_PRESETS[savedPreset]) setProbePreset(savedPreset);
+    else if (snap.results?.selected?.[0]?.shankCount) {
+      const probe = snap.results.selected[0];
+      setProbePreset('custom');
+      setProbeParams({ shanks: probe.shankCount, shankPitchUm: probe.shankPitchUm ?? probe.shankSpacingUm ?? 0,
+        radiusUm: probe.radiusUm ?? probe.probeRadiusUm, depthUm: probe.depthUm });
+    }
+    if (snap.probeParams) setProbeParams({ ...snap.probeParams });
+    if (Object.hasOwn(snap, 'correction')) setCorrection(snap.correction);
     if (snap.constraints) setConstraints(sanitizeConstraintModes(snap.constraints));
-  }, []);
+    if (snap.results) {
+      optimizer.setResults({ ...snap.results, historyRecord: { id: snap.id, savedAt: snap.savedAt } });
+      optimizer.setSafetyIssues(snap.safetyIssues || snap.results.safetyIssues || (snap.results.warnings || []).map(w => ({
+        probeIdx: w.probeIdx, msgEn: w.message, msgCn: w.message,
+      })));
+      setActiveTab('results');
+    }
+  }, [optimizer.isRunning, optimizer.setResults, optimizer.setSafetyIssues]);
 
   // Current algorithm metadata.
   const algoInfo = ALGO_INFO[params.algorithm] || ALGO_INFO.greedy;
@@ -1337,11 +1350,6 @@ export default function ProbeplannerGUI() {
                     borderColor:params.algorithm===k ? C.accent+'44' : C.border,
                   }}>
                   {tr(info.labelKey)}
-                  {params.algorithm===k && (
-                    <span style={{ fontSize:8, color:C.textMuted, display:'block', lineHeight:1.2 }}>
-                      ~{(info.expectedMs[0] / 1000).toFixed(1)}-{(info.expectedMs[1] / 1000).toFixed(1)}s
-                    </span>
-                  )}
                 </button>
               ))}
             </div>
@@ -1621,8 +1629,8 @@ export default function ProbeplannerGUI() {
             </nav>
 
             {/* View tabs */}
-            {activeTab === 'views' && (
-              <div style={S.viewsArea}>
+            {(activeTab === 'views' || show3D) && (
+              <div style={{ ...S.viewsArea, display: activeTab === 'views' ? S.viewsArea.display : 'none' }}>
                 <div style={S.viewGrid} className="pp-view-grid">
                   <div style={S.viewPane}>
                     <PaneHdr icon="T" label={tr('topView')} />
@@ -1657,7 +1665,11 @@ export default function ProbeplannerGUI() {
                   >
                     <span style={{ fontSize:9, color:C.textMuted }}>{show3D ? '-' : '+'}</span>
                     <span style={S.d3Label}>{tr('view3d')}</span>
-                    {probePreset && <span style={S.smallTag}>{probePreset}</span>}
+                    <span style={{ ...S.smallTag, whiteSpace: 'normal', overflowWrap: 'anywhere', textAlign: 'left' }}>
+                      {probesFor3D.length
+                        ? formatProbeModels(probesFor3D, tr('unspecifiedProbeModelLabel'))
+                        : `${tr('configuredProbeModelLabel')}: ${probePreset}`}
+                    </span>
                     {probesFor3D.length > 0 && (
                       <span style={{ ...S.smallTag, color:C.success, background:C.success+'18',
                         borderColor:C.success+'44' }}>
@@ -1805,22 +1817,15 @@ export default function ProbeplannerGUI() {
               }}>
                 <div style={{ color:C.accent, fontWeight:700, marginBottom:2 }}>
                   {tr(algoInfo.labelKey)}
-                  <span style={{ marginLeft:8, color:C.textMuted, fontWeight:400,
-                    fontFamily:'monospace', fontSize:9 }}>
-                    {algoInfo.complexity}
-                  </span>
                 </div>
                 <div style={{ color:C.textDim, lineHeight:1.5 }}>
                   {tr(algoInfo.descKey)}
                 </div>
-                <div style={{ marginTop:4, color:C.textMuted }}>
-                  {tr('expectedTimeLabel')}: {(algoInfo.expectedMs[0] / 1000).toFixed(1)}-{(algoInfo.expectedMs[1] / 1000).toFixed(1)}s
-                  {lastRunMs && lastAlgo===params.algorithm && (
-                    <span style={{ color:C.success, marginLeft:8 }}>
-                      {tr('actualTimeLabel')}: {lastRunMs<1000 ? `${lastRunMs}ms` : `${(lastRunMs/1000).toFixed(1)}s`}
-                    </span>
-                  )}
-                </div>
+                {lastRunMs !== null && lastAlgo===params.algorithm && (
+                  <div style={{ marginTop:4, color:C.textMuted }}>
+                    {tr('actualTimeLabel')}: {lastRunMs<1000 ? `${lastRunMs}ms` : `${(lastRunMs/1000).toFixed(1)}s`}
+                  </div>
+                )}
               </div>
 
               <ACard icon="P" title={tr('parameters')}

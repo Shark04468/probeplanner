@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:yousandi.cn,2023:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: shader_5_0
+  m_Shader: {fileID: 4800000, guid: 1cecc40941668ab43b5d77d130bd654e, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _ContactHighlight: 0
+    - _ContactOverride: 0
+    - _ContactStyle: 2
+    - _FocusedScale: 1
+    - _HemisphereFilter: 0
+    - _OutlineAlpha: 0.22
+    - _RimIntensity: 0
+    - _SliceAxis: 1
+    - _SliceCenter: 0
+    - _SliceEnabled: 0
+    - _SliceThickness: 0.25
+    - _SliceUseSlab: 0
+    - _SliceY: 0
+    - _WireWidth: 0.008
+    m_Colors:
+    - _ContactHemispheres: {r: 0, g: 0, b: 0, a: 0}
+    - _RegionColor: {r: 0.09999997, g: 0.8, b: 0.8, a: 1}
+  m_BuildTextureStacks: []

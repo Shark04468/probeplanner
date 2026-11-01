@@ -4,9 +4,22 @@ import { PROBE_COLORS } from '../constants/brainRegions';
 import { t } from '../constants/i18n';
 
 const fmt = (n, d = 2) => (typeof n === 'number' && Number.isFinite(n) ? n.toFixed(d) : '--');
-const hasFiniteValue = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+const hasFiniteValue = (value) => (
+  (typeof value === 'number' || (typeof value === 'string' && value.trim() !== '')) && Number.isFinite(Number(value))
+);
+const numericValue = (value) => hasFiniteValue(value) ? Number(value) : NaN;
+
+// A boundary-only threshold does not certify an unavailable internal-risk layer.
+function hasSupportedRiskProbability(probe) {
+  const audit = probe?.internalRiskAudit;
+  const riskClass = probe?.statisticalSafety?.thresholdClass;
+  const layer = audit?.classes?.[riskClass];
+  return ['partial', 'complete'].includes(audit?.claimStatus)
+    && Array.isArray(audit?.availableClasses) && audit.availableClasses.includes(riskClass)
+    && layer?.available === true && hasFiniteValue(layer.distanceMm);
+}
 const fmtCcfVectorMm = (value) => (
-  Array.isArray(value) && value.length === 3 && value.every((item) => Number.isFinite(Number(item)))
+  Array.isArray(value) && value.length === 3 && value.every(hasFiniteValue)
     ? value.map((item) => (Number(item) / 1000).toFixed(3)).join(', ')
     : '--'
 );
@@ -85,6 +98,7 @@ export default function ResultsPanel({
       <div style={styles.header}>
         <span style={styles.title}>{tr('resultsPanelTitle')}</span>
         <span style={styles.metaBadge}>
+          {results.historyRecord ? `${tr('resultsRestoredPlan')} | ` : ''}
           {algorithm} | {results.plannerExecutionBackend || tr('backendLabel')} | {fmt((elapsedMs ?? 0) / 1000, 1)}s
         </span>
       </div>
@@ -94,6 +108,7 @@ export default function ResultsPanel({
         total={coverage?.total}
         pct={covPct}
         frac={covFrac}
+        imported={results.validationStatus === 'imported_unverified' || algorithm === 'import'}
         tr={tr}
       />
       <PlanningOutcomeSummary results={results} probes={probes} tr={tr} />
@@ -145,7 +160,7 @@ export default function ResultsPanel({
           context={results.clinicalContext}
           tr={tr}
         />
-        <PrimaryEndpointsSummary summary={results.primaryEndpointSummary} tr={tr} />
+        <PrimaryEndpointsSummary summary={results.primaryEndpointSummary} probes={probes} tr={tr} />
         <CandidateStageBreakdown breakdown={results.candidateStageBreakdown} tr={tr} />
         <StatisticalReliabilitySummary results={results} tr={tr} />
         {(results.rankingMode || results.paretoEnabled) && (
@@ -172,11 +187,12 @@ function PlanningOutcomeSummary({ results, probes, tr }) {
   const uncovered = Array.isArray(results?.uncovered) ? results.uncovered : [];
   const failClosed = uncovered.length > 0 && probes.length === 0;
   const partial = uncovered.length > 0 && probes.length > 0;
-  const color = failClosed ? '#fb7185' : partial ? '#facc15' : '#4ade80';
+  const imported = results?.validationStatus === 'imported_unverified' || results?.algorithm === 'import';
+  const color = imported ? '#94a3b8' : failClosed ? '#fb7185' : partial ? '#facc15' : '#4ade80';
   return (
     <div style={{ ...styles.outcomeBox, borderColor: `${color}66` }}>
       <div style={styles.outcomeHead}>
-        <span style={{ color }}>{failClosed ? tr('planningFailClosed') : partial ? tr('planningPartial') : tr('planningFeasible')}</span>
+        <span style={{ color }}>{imported ? tr('planningImportedUnverified') : failClosed ? tr('planningFailClosed') : partial ? tr('planningPartial') : tr('planningFeasible')}</span>
         <span style={styles.outcomeProbeCount}>
           {tr('selectedProbeCountLabel')}: {probes.length}
         </span>
@@ -339,33 +355,26 @@ function ClinicalContractSummary({ contract, context, tr }) {
   );
 }
 
-function PrimaryEndpointsSummary({ summary, tr }) {
+function PrimaryEndpointsSummary({ summary, probes, tr }) {
   if (!summary) return null;
-  const cov = Number(summary.coverageRate);
-  const safetyP = Number(summary.safetyPassProbability);
-  const minD = Number(summary.continuousMinSafetyDistanceMm);
+  const cov = numericValue(summary.coverageRate);
+  const safetyP = probes.length > 0 && probes.every(hasSupportedRiskProbability)
+    ? numericValue(summary.safetyPassProbability) : NaN;
+  const minD = numericValue(summary.continuousMinSafetyDistanceMm);
   return (
-    <div style={styles.summaryBox}>
+    <div style={styles.summaryBox} data-testid="primary-endpoint-summary">
       <div style={styles.summaryTitle}>
         {tr('primaryEndpointSummaryTitle')}
       </div>
-      <div style={styles.summaryLine}>
-        {tr('coverageRateLabel')}: {Number.isFinite(cov) ? `${(cov * 100).toFixed(1)}%` : '--'}
-      </div>
-      <div style={styles.summaryLine}>
-        {tr('continuousMinSafetyDistanceLabel')}: {Number.isFinite(minD) ? `${minD.toFixed(3)} mm` : '--'}
-      </div>
-      <div style={styles.summaryLine}>
-        {tr('safetyProbabilityLabel')}: {Number.isFinite(safetyP) ? `${(safetyP * 100).toFixed(1)}%` : '--'}
-      </div>
+      <DetailRow label={tr('coverageRateLabel')} value={Number.isFinite(cov) ? `${(cov * 100).toFixed(1)}%` : tr('unavailableLabel')} />
+      <DetailRow label={tr('availableLayerDistanceLabel')} value={Number.isFinite(minD) ? `${minD.toFixed(3)} mm` : tr('unavailableLabel')} />
+      <DetailRow label={tr('availableLayerProbabilityLabel')} value={Number.isFinite(safetyP) ? `${(safetyP * 100).toFixed(1)}%` : tr('unavailableLabel')} />
+      <div style={styles.summaryLine}>{tr('modelEvidenceScope')}</div>
       <div style={styles.summaryLine}>
         {tr('planningTimeLabel')}: {summary.planningTimeMs ?? '--'} ms
       </div>
-      <div style={styles.summaryLine}>
-        {tr('expertAcceptanceRateLabel')}: {Number.isFinite(Number(summary.expertAcceptanceRate))
-          ? `${(Number(summary.expertAcceptanceRate) * 100).toFixed(1)}%`
-          : '--'}
-      </div>
+      <DetailRow label={tr('expertAcceptanceRateLabel')} value={hasFiniteValue(summary.expertAcceptanceRate)
+        ? `${(Number(summary.expertAcceptanceRate) * 100).toFixed(1)}%` : tr('unavailableLabel')} />
     </div>
   );
 }
@@ -542,21 +551,16 @@ function ProbeCriticalDigest({ probes, tr }) {
     const segText = Number.isFinite(segStart) && Number.isFinite(segEnd)
       ? `${segClass} ${fmt(segStart, 3)}~${fmt(segEnd, 3)} mm`
       : (segClass && segClass !== '--' ? segClass : tr('probeCriticalNoRiskLabel'));
-    const minDist = Number(
+    const minDist = numericValue(
       probe?.statisticalSafety?.minDistanceMm ??
       probe?.minRiskDistanceMm ??
       riskDiag?.minDistanceMm,
-    );
-    const safetyProb = Number(
-      probe?.statisticalSafety?.pSafetyGtThreshold ??
-      probe?.safetyDistanceConfidence?.probability,
     );
     return {
       id: idx,
       contacts: Number.isFinite(contacts) ? contacts : 0,
       segText,
       minDist,
-      safetyProb,
     };
   });
 
@@ -567,9 +571,9 @@ function ProbeCriticalDigest({ probes, tr }) {
         <div style={styles.criticalHead}>
           <span>{tr('probeCriticalProbeLabel')}</span>
           <span>{tr('probeCriticalContactsLabel')}</span>
-          <span>{tr('probeCriticalTopRiskLabel')}</span>
-          <span>{tr('probeCriticalMinRiskDistanceLabel')}</span>
-          <span>{tr('probeCriticalSafetyProbLabel')}</span>
+          <span>{tr('reportedSegmentLabel')}</span>
+          <span>{tr('availableLayerDistanceLabel')}</span>
+          <span>{tr('internalRiskClaimLabel')}</span>
         </div>
         {rows.map((row) => (
           <div key={`critical-${row.id}`} style={styles.criticalRow}>
@@ -577,7 +581,7 @@ function ProbeCriticalDigest({ probes, tr }) {
             <span>{row.contacts}</span>
             <span>{row.segText}</span>
             <span>{Number.isFinite(row.minDist) ? `${fmt(row.minDist, 3)} mm` : '--'}</span>
-            <span>{Number.isFinite(row.safetyProb) ? `${(row.safetyProb * 100).toFixed(1)}%` : '--'}</span>
+            <span>{tr(`internalRiskStatus_${probes[row.id]?.internalRiskAudit?.claimStatus || 'unavailable'}`)}</span>
           </div>
         ))}
       </div>
@@ -642,7 +646,7 @@ function ExplainSummary({ results, tr }) {
       )}
       {results.uncertaintySummary && (
         <div style={styles.summaryLine}>
-          {tr('uncertaintySummaryLabel')}: meanCoverage={fmt(us.meanCoverage, 3)} | meanPassRate={fmt(us.meanPassRate, 3)} | meanSafetyP={fmt(us.meanSafetyPassProbability, 3)} | n={us.probeCount ?? 0}
+          {tr('uncertaintySummaryLabel')}: meanCoverage={fmt(us.meanCoverage, 3)} | meanPassRate={fmt(us.meanPassRate, 3)} | n={us.probeCount ?? 0}
         </div>
       )}
       {riskPolicy?.constraint && (
@@ -672,7 +676,7 @@ function ExplainSummary({ results, tr }) {
       )}
       {stratGlobal?.count > 0 && (
         <div style={styles.summaryLine}>
-          {tr('stratifiedCalibrationLabel')}: n={stratGlobal.count} | {tr('calibrationEceLabel')}={fmt(stratGlobal.ece, 3)} | {tr('calibrationBrierLabel')}={fmt(stratGlobal.brier, 3)}
+          {tr('internalModelConsistencyLabel')}: n={stratGlobal.count} | {tr('calibrationEceLabel')}={fmt(stratGlobal.ece, 3)} | {tr('calibrationBrierLabel')}={fmt(stratGlobal.brier, 3)}
         </div>
       )}
       {prefPreview?.balanced?.top?.[0] && (
@@ -719,8 +723,9 @@ function StatisticalReliabilitySummary({ results, tr }) {
   return (
     <div style={styles.summaryBox}>
       <div style={styles.summaryTitle}>
-        {tr('statisticalReliabilityTitle')}
+        {tr('internalModelConsistencyLabel')}
       </div>
+      <div style={styles.summaryLine}>{tr('internalModelConsistencyScope')}</div>
       <div style={styles.summaryLine}>
         {tr('probeCountLabel')}: {contract?.probeCount ?? 0}
       </div>
@@ -731,7 +736,7 @@ function StatisticalReliabilitySummary({ results, tr }) {
       ) : null}
       {Number(global?.count ?? 0) > 0 ? (
         <div style={styles.summaryLine}>
-          {tr('stratifiedCalibrationLabel')}: n={global.count} | {tr('calibrationEceLabel')}={fmt(global.ece, 3)} | {tr('calibrationBrierLabel')}={fmt(global.brier, 3)} | {tr('calibrationSlopeLabel')}={fmt(global.calibrationSlope, 3)}
+          n={global.count} | {tr('calibrationEceLabel')}={fmt(global.ece, 3)} | {tr('calibrationBrierLabel')}={fmt(global.brier, 3)} | {tr('calibrationSlopeLabel')}={fmt(global.calibrationSlope, 3)}
         </div>
       ) : null}
       {dimensions.length > 0 && (
@@ -749,9 +754,10 @@ function StatisticalReliabilitySummary({ results, tr }) {
               <span>{row.dimension}</span>
               <span>{row.groupCount ?? '--'}</span>
               <span>{row.sampleCount ?? '--'}</span>
-              <span>{fmt(Number(row.eceWeighted), 3)}</span>
-              <span>{fmt(Number(row.brierWeighted), 3)}</span>
-              <span>{fmt(Number(row.calibrationSlopeWeighted), 3)}</span>
+              <span>{fmt(numericValue(row.eceWeighted), 3)}</span>
+              <span>{fmt(numericValue(row.brierWeighted), 3)}</span>
+              <span>{groups.some(group => group.dimension === row.dimension && hasFiniteValue(group.calibrationSlope))
+                ? fmt(numericValue(row.calibrationSlopeWeighted), 3) : '--'}</span>
             </div>
           ))}
         </div>
@@ -759,7 +765,7 @@ function StatisticalReliabilitySummary({ results, tr }) {
       {focusGroups.length > 0 && (
         <div style={styles.summaryLine}>
           {tr('stratifiedGroupsPreviewLabel')}: {focusGroups
-            .map((row) => `${row.dimension}/${row.label}:n${row.count},ECE${fmt(Number(row.ece), 3)},B${fmt(Number(row.brier), 3)}`)
+            .map((row) => `${row.dimension}/${row.label}:n${row.count},ECE${fmt(numericValue(row.ece), 3)},B${fmt(numericValue(row.brier), 3)}`)
             .join(' | ')}
         </div>
       )}
@@ -1075,14 +1081,15 @@ function SideCoverageSummary({ sideCoverage, tr }) {
   );
 }
 
-function CoverageBar({ covered, total, pct, frac, tr }) {
+function CoverageBar({ covered, total, pct, frac, tr, imported = false }) {
+  const color = imported ? '#94a3b8' : coverageColor(frac);
   return (
     <div style={styles.covBox}>
       <div style={styles.covRow}>
-        <span style={styles.covLabel}>{tr('coverageLabel')}</span>
-        <span style={{ ...styles.covPct, color: coverageColor(frac) }}>{pct}%</span>
+        <span style={styles.covLabel}>{tr(imported ? 'importedCoverageLabel' : 'coverageLabel')}</span>
+        <span style={{ ...styles.covPct, color }}>{pct}%</span>
         <span style={styles.covDetail}>
-          ({covered ?? '?'} / {total ?? '?'} {tr('voxels')})
+          ({covered ?? '?'} / {total ?? '?'} {tr('targetUnitsLabel')})
         </span>
       </div>
       <div style={styles.barTrack}>
@@ -1090,7 +1097,7 @@ function CoverageBar({ covered, total, pct, frac, tr }) {
           style={{
             ...styles.barFill,
             width: `${Math.min(100, frac * 100)}%`,
-            background: coverageColor(frac),
+            background: color,
           }}
         />
       </div>
@@ -1114,16 +1121,16 @@ function WarningList({ warnings, tr, lang }) {
 
 function ProbeCard({ idx, probe, probeSpec, expanded, onToggle, onMouseEnter, onMouseLeave, lang, tr }) {
   const color = PROBE_COLORS[idx % PROBE_COLORS.length] ?? '#60a5fa';
-  const robustScore = Number(probe.robustScore);
-  const explainScore = Number(probe.explainScore);
-  const covMean = Number(probe.coverageConfidence?.mean);
+  const robustScore = numericValue(probe.robustScore);
+  const explainScore = numericValue(probe.explainScore);
+  const covMean = numericValue(probe.coverageConfidence?.mean);
   const covCi = probe.coverageConfidence?.ci95;
-  const passRate = Number(probe.coverageConfidence?.passRate);
+  const passRate = numericValue(probe.coverageConfidence?.passRate);
   const safetyCi = probe.safetyMarginCi95;
   const statisticalSafety = probe.statisticalSafety && typeof probe.statisticalSafety === 'object'
     ? probe.statisticalSafety
     : null;
-  const minSafetyDistance = Number(
+  const minSafetyDistance = numericValue(
     statisticalSafety?.minDistanceMm ?? probe.minSafetyDistanceMm ?? probe.minSafetyDistanceMeanMm
   );
   const minSafetyDistanceCi = statisticalSafety?.minDistanceCi95 ?? probe.minSafetyDistanceCi95;
@@ -1139,8 +1146,12 @@ function ProbeCard({ idx, probe, probeSpec, expanded, onToggle, onMouseEnter, on
   const sc = probe.selectiveConformal;
   const unc = probe.uncertainty;
   const primaryEp = probe.primaryEndpoints;
-  const actualDepthMm = Number(probe.depthUm) / 1000;
+  const actualDepthMm = numericValue(probe.depthUm_corrected ?? probe.depthUm) / 1000;
   const internalClaimStatus = String(probe.internalRiskAudit?.claimStatus || 'unavailable');
+  const probabilityAvailable = hasSupportedRiskProbability(probe) && hasFiniteValue(safetyDistConf?.probability);
+  const probabilityCi = Array.isArray(safetyDistConf?.ci95) && safetyDistConf.ci95.length === 2
+    && safetyDistConf.ci95.every(hasFiniteValue)
+    ? ` [${safetyDistConf.ci95.map((value) => (Number(value) * 100).toFixed(1)).join(', ')}]` : '';
 
   return (
     <div
@@ -1179,13 +1190,13 @@ function ProbeCard({ idx, probe, probeSpec, expanded, onToggle, onMouseEnter, on
           <DetailRow label={tr('elevation')} value={`${fmt(probe.elevation, 1)}deg`} />
           <DetailRow
             label={tr('brainContainmentLabel')}
-            value={probe.brainContainmentPassed === true ? tr('auditPassed') : tr('auditFailed')}
-            valueColor={probe.brainContainmentPassed === true ? '#4ade80' : '#f87171'}
+            value={probe.brainContainmentPassed === true ? tr('auditPassed') : probe.brainContainmentPassed === false ? tr('auditFailed') : tr('unavailableLabel')}
+            valueColor={probe.brainContainmentPassed === true ? '#4ade80' : probe.brainContainmentPassed === false ? '#f87171' : '#94a3b8'}
           />
           <DetailRow
             label={tr('tipInTargetLabel')}
-            value={probe.tipInTarget === true ? tr('auditPassed') : tr('auditFailed')}
-            valueColor={probe.tipInTarget === true ? '#4ade80' : '#f87171'}
+            value={probe.tipInTarget === true ? tr('auditPassed') : probe.tipInTarget === false ? tr('auditFailed') : tr('unavailableLabel')}
+            valueColor={probe.tipInTarget === true ? '#4ade80' : probe.tipInTarget === false ? '#f87171' : '#94a3b8'}
           />
           <DetailRow
             label={tr('distalOvershootLabel')}
@@ -1264,7 +1275,7 @@ function ProbeCard({ idx, probe, probeSpec, expanded, onToggle, onMouseEnter, on
             <DetailRow
               label={tr('endpointCoverageLabel')}
               value={
-                Number.isFinite(Number(primaryEp.coverageRate))
+                hasFiniteValue(primaryEp.coverageRate)
                   ? `${(Number(primaryEp.coverageRate) * 100).toFixed(1)}%`
                   : '--'
               }
@@ -1278,9 +1289,8 @@ function ProbeCard({ idx, probe, probeSpec, expanded, onToggle, onMouseEnter, on
           )}
           {Number.isFinite(minSafetyDistance) && (
             <DetailRow
-              label={tr('continuousMinSafetyDistanceLabel')}
+              label={tr('availableLayerDistanceLabel')}
               value={`${fmt(minSafetyDistance, 3)} mm`}
-              valueColor={scoreColor(minSafetyDistance >= 0.35 ? 0.9 : minSafetyDistance >= 0.2 ? 0.55 : 0.2)}
             />
           )}
           {Array.isArray(minSafetyDistanceCi) && (
@@ -1291,14 +1301,15 @@ function ProbeCard({ idx, probe, probeSpec, expanded, onToggle, onMouseEnter, on
           )}
           {safetyDistConf && (
             <DetailRow
-              label={tr('safetyProbThresholdLabel')}
+              label={tr('availableLayerProbabilityLabel')}
               value={
-                Number.isFinite(Number(safetyDistConf.probability))
-                  ? `${(Number(safetyDistConf.probability) * 100).toFixed(1)}% [${(Number(safetyDistConf.ci95?.[0] ?? 0) * 100).toFixed(1)}, ${(Number(safetyDistConf.ci95?.[1] ?? 0) * 100).toFixed(1)}], thr=${fmt(safetyDistConf.thresholdMm, 3)} mm`
-                  : '--'
+                probabilityAvailable
+                  ? `${(Number(safetyDistConf.probability) * 100).toFixed(1)}%${probabilityCi}, thr=${fmt(safetyDistConf.thresholdMm, 3)} mm (${statisticalSafety.thresholdClass})`
+                  : tr('unavailableLabel')
               }
             />
           )}
+          {safetyDistConf && <div style={styles.summaryLine}>{tr('modelEvidenceScope')}</div>}
           {drcc && (
             <DetailRow
               label={tr('drccWorstCaseProbLabel')}
@@ -1314,8 +1325,10 @@ function ProbeCard({ idx, probe, probeSpec, expanded, onToggle, onMouseEnter, on
           )}
           {sc && (
             <DetailRow
-              label={tr('selectiveConformalDecisionLabel')}
-              value={`${sc.decision || '--'} | p*=${fmt(sc.probabilityGuaranteed, 3)} | lb=${fmt(sc.guaranteedLowerBoundMm, 3)} mm`}
+              label={tr('modelBoundDecisionLabel')}
+              value={probabilityAvailable
+                ? `${sc.decision || '--'} | p*=${fmt(sc.probabilityGuaranteed, 3)} | lb=${fmt(sc.guaranteedLowerBoundMm, 3)} mm`
+                : tr('unavailableLabel')}
             />
           )}
           {riskDiag && (
@@ -1611,14 +1624,17 @@ const styles = {
     borderTop: '1px solid #1e3a5f',
     padding: 8,
     display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
     gap: 8,
   },
   summaryBox: {
+    minWidth: 0,
     background: '#051426',
     border: '1px solid #1e3a5f',
     borderRadius: 6,
     padding: '8px 10px',
     display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
     gap: 3,
   },
   summaryTitle: {
@@ -1628,6 +1644,7 @@ const styles = {
     marginBottom: 2,
   },
   summaryLine: {
+    overflowWrap: 'anywhere',
     color: '#94a3b8',
     fontSize: 10.5,
     fontFamily: 'monospace',
@@ -1649,25 +1666,29 @@ const styles = {
   },
   candidateStageHead: {
     display: 'grid',
-    gridTemplateColumns: '1.4fr 1fr 1.3fr',
+    gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1.3fr)',
+    overflowWrap: 'anywhere',
     gap: 6,
     fontSize: 9.5,
     color: '#cbd5e1',
     fontFamily: 'monospace',
   },
   candidateStageReasonLine: {
+    overflowWrap: 'anywhere',
     fontSize: 9.5,
     color: '#9fb3ca',
     fontFamily: 'monospace',
   },
   matrixTable: {
+    minWidth: 0,
     marginTop: 4,
     border: '1px solid #1b3758',
     borderRadius: 5,
-    overflow: 'hidden',
+    overflowX: 'auto',
     background: '#061628',
   },
   matrixHead: {
+    minWidth: 480,
     display: 'grid',
     gridTemplateColumns: '1.4fr 0.8fr 0.8fr 0.9fr 0.9fr 1fr',
     gap: 6,
@@ -1678,6 +1699,7 @@ const styles = {
     padding: '4px 6px',
   },
   matrixRow: {
+    minWidth: 480,
     display: 'grid',
     gridTemplateColumns: '1.4fr 0.8fr 0.8fr 0.9fr 0.9fr 1fr',
     gap: 6,
@@ -1688,13 +1710,15 @@ const styles = {
     fontFamily: 'monospace',
   },
   criticalTable: {
+    minWidth: 0,
     marginTop: 4,
     border: '1px solid #1b3758',
     borderRadius: 5,
-    overflow: 'hidden',
+    overflowX: 'auto',
     background: '#061628',
   },
   criticalHead: {
+    minWidth: 480,
     display: 'grid',
     gridTemplateColumns: '0.7fr 0.9fr 2.2fr 1.2fr 1.1fr',
     gap: 6,
@@ -1705,6 +1729,7 @@ const styles = {
     padding: '4px 6px',
   },
   criticalRow: {
+    minWidth: 480,
     display: 'grid',
     gridTemplateColumns: '0.7fr 0.9fr 2.2fr 1.2fr 1.1fr',
     gap: 6,
@@ -1877,12 +1902,14 @@ const styles = {
     gap: 4,
   },
   detailRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+    gap: 8,
+    overflowWrap: 'anywhere',
     fontSize: 11,
   },
   detailLabel: { color: THEME.textSecondary },
-  detailValue: { fontFamily: 'monospace' },
+  detailValue: { fontFamily: 'monospace', textAlign: 'right' },
   objBox: {
     marginTop: 4,
     padding: '5px 6px',

@@ -15,17 +15,6 @@ if (-not (Test-Path -LiteralPath $scriptPath)) {
 if ([string]::IsNullOrWhiteSpace($Python)) {
   if (-not [string]::IsNullOrWhiteSpace($env:PROBEPLANNER_ALLENSDK_PYTHON)) {
     $Python = $env:PROBEPLANNER_ALLENSDK_PYTHON
-  } else {
-    $known = @(
-      "D:\anaconda\envs\probeplanner_py310\python.exe",
-      "D:\anaconda\envs\gait_pose_py310\python.exe"
-    )
-    foreach ($candidate in $known) {
-      if (Test-Path -LiteralPath $candidate) {
-        $Python = $candidate
-        break
-      }
-    }
   }
 }
 

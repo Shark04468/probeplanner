@@ -1,6 +1,6 @@
 /**
  * useBackend hook for managing Flask backend connection state.
- * Connects to optimizer_server.py at localhost:5000.
+ * Connects to the configured backend or the application's HTTP origin.
  * Optimizer execution requires an online backend; this hook only reports
  * connection state and never starts an in-browser planning fallback.
  */
@@ -41,7 +41,7 @@ function resolveToken(next = null) {
   return "";
 }
 
-function resolveBase(next = null) {
+export function resolveBase(next = null) {
   const normalize = (v) => String(v || "").trim().replace(/\/+$/, "");
   if (typeof next === "string" && normalize(next)) return normalize(next);
   if (typeof window !== "undefined") {
@@ -52,10 +52,13 @@ function resolveBase(next = null) {
     const fromEnv = normalize(process.env.REACT_APP_FLASK_BASE || "");
     if (fromEnv) return fromEnv;
   }
+  if (typeof window !== 'undefined' && /^https?:$/.test(window.location.protocol)) {
+    return normalize(window.location.origin);
+  }
   return DEFAULT_BASE;
 }
 
-function buildBaseCandidates(base) {
+export function buildBaseCandidates(base) {
   const primary = resolveBase(base);
   const out = [];
   const push = (v) => {
@@ -72,6 +75,11 @@ function buildBaseCandidates(base) {
     } else if (u.hostname === "127.0.0.1") {
       u.hostname = "localhost";
       push(u.toString());
+    }
+    if (typeof window !== 'undefined' && primary === window.location.origin
+        && ['localhost', '127.0.0.1'].includes(u.hostname)) {
+      push(DEFAULT_BASE);
+      push('http://127.0.0.1:5000');
     }
   } catch {
     // Ignore malformed custom URL; primary candidate is still used.
@@ -118,13 +126,13 @@ function extractAtlasError(data) {
 }
 
 function buildStatusPath(atlasMode, regionScope = "all", includeRegions = true) {
-  const mode = encodeURIComponent(resolveAtlasMode(atlasMode));
-  const scope = encodeURIComponent(String(regionScope || "all").trim() || "all");
-  const include = includeRegions ? "1" : "0";
-  return `/api/status?atlasMode=${mode}&regionScope=${scope}&includeRegions=${include}`;
+  const query = new URLSearchParams({ regionScope: String(regionScope || 'all').trim() || 'all',
+    includeRegions: includeRegions ? '1' : '0' });
+  if (atlasMode != null) query.set('atlasMode', resolveAtlasMode(atlasMode));
+  return `/api/status?${query}`;
 }
 
-function normalizeRegionRecord(item) {
+export function normalizeRegionRecord(item) {
   if (!item || typeof item !== "object") return null;
   const key = String(item.key || item.acronym || "").trim();
   if (!key) return null;
@@ -162,6 +170,8 @@ function normalizeRegionRecord(item) {
     groupName,
     groupNameCn,
     plannerReady: Boolean(item.plannerReady),
+    presentInVolume: typeof item.presentInVolume === 'boolean' ? item.presentInVolume : undefined,
+    structureIdPath: Array.isArray(item.structureIdPath) ? item.structureIdPath.map(Number) : [],
   };
 }
 
@@ -338,6 +348,7 @@ export function useBackend() {
   const pollFailureCountRef = useRef(0);
   const detailRefreshSeqRef = useRef(0);
   const autoConnectStartedRef = useRef(false);
+  const connectionSeqRef = useRef(0);
 
   // Keep module-level ref in sync so flaskFetch (called from useOptimizer) also uses the right URL
   const baseRef = useRef(resolveBase());
@@ -373,25 +384,31 @@ export function useBackend() {
     setStatus("online");
     setAtlasInfo(basePayload);
     setError(null);
-    Promise.all([
-      enrichStatusPayload(basePayload, candidateBase, activeMode),
-      fetchRegionCatalog(candidateBase).catch(() => null),
-    ]).then(([enriched, regions]) => {
-      if (detailRefreshSeqRef.current !== refreshSeq) return;
-      if (resolveBase(baseRef.current) !== resolveBase(candidateBase)) return;
-      const resolved = { ...(enriched || basePayload) };
+    const isCurrent = () => detailRefreshSeqRef.current === refreshSeq
+      && resolveBase(baseRef.current) === resolveBase(candidateBase);
+    // Region selection must not wait for optional, potentially slow MRI summaries.
+    fetchRegionCatalog(candidateBase).then(regions => {
+      if (!isCurrent()) return;
       if (regions && Object.keys(regions).length > 0) {
-        resolved.regions = regions;
-        resolved.regionCount = Object.keys(regions).length;
-        resolved.availableRegionCount = Object.keys(regions).length;
+        setAtlasInfo(previous => ({ ...previous, regions,
+          regionCount: Object.keys(regions).length, availableRegionCount: Object.keys(regions).length }));
       }
-      setAtlasInfo(resolved);
+    }).catch(() => {});
+    enrichStatusPayload(basePayload, candidateBase, activeMode).then(enriched => {
+      if (!isCurrent()) return;
+      setAtlasInfo(previous => ({ ...enriched, ...(previous?.regions ? {
+        regions: previous.regions, regionCount: previous.regionCount,
+        availableRegionCount: previous.availableRegionCount,
+      } : {}) }));
     }).catch(() => {
       // Optional MRI enrichment should not turn a healthy backend offline.
     });
   }, []);
 
   const connect = useCallback(async (urlOrConfig) => {
+    const connectionSeq = ++connectionSeqRef.current;
+    const isCurrentConnection = () => connectionSeq === connectionSeqRef.current;
+    detailRefreshSeqRef.current += 1;
     const url = typeof urlOrConfig === "string" ? urlOrConfig : urlOrConfig?.url;
     const token = typeof urlOrConfig === "string" ? null : urlOrConfig?.token;
     const mode = typeof urlOrConfig === "string" ? null : urlOrConfig?.atlasMode;
@@ -399,8 +416,7 @@ export function useBackend() {
     const candidateBases = buildBaseCandidates(requestedBase);
     updateBase(requestedBase);
     if (token != null) updateToken(token);
-    if (mode != null) updateAtlasMode(mode);
-    const activeMode = resolveAtlasMode(mode ?? atlasModeRef.current);
+    let activeMode = resolveAtlasMode(mode ?? atlasModeRef.current);
     setStatus("connecting");
     setError(null);
     clearInterval(pollRef.current);
@@ -409,19 +425,34 @@ export function useBackend() {
       for (const candidateBase of candidateBases) {
         updateBase(candidateBase);
         try {
-          try {
-            await flaskFetch("/api/atlas/mode", "POST", { mode: activeMode }, candidateBase, {
-              timeoutMs: 12000,
-            });
-          } catch {
-            // older backend or temporary loader-busy path; status polling below is authoritative.
-          }
-          const data = await flaskFetch(
-            buildStatusPath(activeMode, "planner", false),
+          let data = await flaskFetch(
+            buildStatusPath(null, "planner", false),
             "GET",
             null,
             candidateBase
           );
+          if (!isCurrentConnection()) return;
+          activeMode = resolveAtlasMode(data.activeAtlasMode || atlasModeRef.current);
+          updateAtlasMode(activeMode);
+          // Discover first; only an explicit user request can switch server data.
+          if (mode != null && resolveAtlasMode(mode) !== activeMode) {
+            try {
+              await flaskFetch('/api/atlas/mode', 'POST', { mode: resolveAtlasMode(mode) }, candidateBase,
+                { timeoutMs: 12000 });
+            } catch (modeError) {
+              if (!isCurrentConnection()) return;
+              if (data.atlasLoaded) publishOnlineStatus(data, candidateBase, activeMode);
+              else { setStatus('offline'); setAtlasInfo(data); }
+              setError(modeError.message);
+              return;
+            }
+            if (!isCurrentConnection()) return;
+            activeMode = resolveAtlasMode(mode);
+            data = await flaskFetch(buildStatusPath(activeMode, 'planner', false), 'GET', null, candidateBase);
+            if (!isCurrentConnection()) return;
+            activeMode = resolveAtlasMode(data.activeAtlasMode || activeMode);
+            updateAtlasMode(activeMode);
+          }
           pollFailureCountRef.current = 0;
           const atlasErr = extractAtlasError(data);
           if (data.atlasLoaded) {
@@ -429,7 +460,9 @@ export function useBackend() {
             clearInterval(pollRef.current);
             return;
           }
-          setAtlasInfo(await enrichStatusPayload(data, candidateBase, activeMode));
+          const loadingInfo = await enrichStatusPayload(data, candidateBase, activeMode);
+          if (!isCurrentConnection()) return;
+          setAtlasInfo(loadingInfo);
           if (atlasErr) {
             setStatus("offline");
             setError(atlasErr);
@@ -448,9 +481,11 @@ export function useBackend() {
                 null,
                 candidateBase
               );
+              if (!isCurrentConnection()) return;
               pollFailureCountRef.current = 0;
               const atlasErr2 = extractAtlasError(d2);
               const d2Resolved = await enrichStatusPayload(d2, candidateBase, activeMode);
+              if (!isCurrentConnection()) return;
               setAtlasInfo(d2Resolved);
               if (d2.atlasLoaded) {
                 clearInterval(pollRef.current);
@@ -464,6 +499,7 @@ export function useBackend() {
                 return;
               }
             } catch {
+              if (!isCurrentConnection()) return;
               pollFailureCountRef.current += 1;
               if (pollFailureCountRef.current < 4) {
                 // Transient poll hiccup: keep current state to avoid false offline flashes.
@@ -476,6 +512,7 @@ export function useBackend() {
           }, 4000);
           return;
         } catch (err) {
+          if (!isCurrentConnection()) return;
           lastError = err;
         }
       }
@@ -488,6 +525,7 @@ export function useBackend() {
   }, [publishOnlineStatus]);
 
   const disconnect = useCallback(() => {
+    connectionSeqRef.current += 1;
     detailRefreshSeqRef.current += 1;
     clearInterval(pollRef.current);
     setStatus("idle");
@@ -505,7 +543,6 @@ export function useBackend() {
     connect({
       url: baseRef.current,
       token: tokenRef.current || undefined,
-      atlasMode: atlasModeRef.current,
     });
   }, [connect]);
 

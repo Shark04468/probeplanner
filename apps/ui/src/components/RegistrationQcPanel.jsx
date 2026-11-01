@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { t } from '../constants/i18n';
+import { measurementView, registrationGateState } from './registrationEvidence';
 
 const C = {
   bg: '#061121',
@@ -35,8 +36,9 @@ function fmtBool(value, tr) {
 
 function statusColor(value) {
   const s = String(value || '').toLowerCase();
-  if (s === 'pass' || s === 'passed' || s === 'assumed' || value === true) return C.good;
-  if (s === 'warn' || s === 'unknown' || value === null || value === undefined) return C.warn;
+  if (s === 'pass' || s === 'passed' || value === true) return C.good;
+  if (s === 'recorded') return C.sub;
+  if (s === 'assumed' || s === 'warn' || s === 'unknown' || value === null || value === undefined) return C.warn;
   return C.bad;
 }
 
@@ -219,22 +221,23 @@ export default function RegistrationQcPanel({
     }
   }, [backendOnline, cleanBase, headers, tr]);
 
-  const metrics = qc?.metrics || {};
+  const metrics = measurementView(qc);
   const transform = qc?.transform || {};
   const checks = qc?.checks || {};
   const overlay = qc?.overlay || {};
   const gate = qc?.qualityGate || {};
-  const gatePassed = gate?.passed;
+  const gateState = registrationGateState(gate);
+  const gatePassed = gateState === 'incomplete' ? null : gateState === 'passed';
   const gateLabel = gatePassed === true
     ? tr('registrationQcPassed')
     : gatePassed === false
       ? tr('registrationQcBlocked')
-      : tr('registrationQcUnknown');
+      : tr('registrationQcIncomplete');
 
   const metricRows = [
-    { label: tr('mriRegistrationDiceLabel'), value: fmt(metrics.dice, '', 3), color: metrics.dice >= 0.8 ? C.good : C.warn },
-    { label: tr('mriRegistrationHd95Label'), value: fmt(metrics.hd95Mm, ' mm', 3), color: metrics.hd95Mm <= 0.45 ? C.good : C.warn },
-    { label: tr('registrationQcTreMean'), value: fmt(metrics.treMeanMm, ' mm', 3), color: metrics.treMeanMm <= 0.3 ? C.good : C.warn },
+    { label: tr('mriRegistrationDiceLabel'), value: fmt(metrics.dice, '', 3), color: metrics.dice !== null && metrics.dice >= 0.8 ? C.good : C.warn },
+    { label: tr('mriRegistrationHd95Label'), value: fmt(metrics.hd95Mm, ' mm', 3), color: metrics.hd95Mm !== null && metrics.hd95Mm <= 0.45 ? C.good : C.warn },
+    { label: tr('registrationQcTreMean'), value: fmt(metrics.treMeanMm, ' mm', 3), color: metrics.treMeanMm !== null && metrics.treMeanMm <= 0.3 ? C.good : C.warn },
     { label: tr('registrationQcTreMedian'), value: fmt(metrics.treMedianMm, ' mm', 3) },
     { label: tr('registrationQcTreMax'), value: fmt(metrics.treMaxMm, ' mm', 3) },
     { label: tr('mriRegistrationTreCiLabel'), value: Array.isArray(metrics.treCi95Mm) ? `${fmt(metrics.treCi95Mm[0], ' mm')} - ${fmt(metrics.treCi95Mm[1], ' mm')}` : '-' },
@@ -243,7 +246,7 @@ export default function RegistrationQcPanel({
     { label: tr('registrationQcJacobianStd'), value: fmt(metrics.jacobianStd, '', 3), color: metrics.jacobianStd === 0 ? C.warn : C.text },
     { label: tr('registrationQcJacobianMin'), value: fmt(metrics.jacobianMin, '', 3) },
     { label: tr('registrationQcJacobianMax'), value: fmt(metrics.jacobianMax, '', 3) },
-    { label: tr('registrationQcJacobianAnomaly'), value: fmt(metrics.jacobianAnomalyRatio, '', 4), color: metrics.jacobianAnomalyRatio <= 0.03 ? C.good : C.bad },
+    { label: tr('registrationQcJacobianAnomaly'), value: fmt(metrics.jacobianAnomalyRatio, '', 4), color: metrics.jacobianAnomalyRatio === null ? C.warn : metrics.jacobianAnomalyRatio <= 0.03 ? C.good : C.bad },
   ];
 
   const overlayLabel = {
@@ -335,9 +338,11 @@ export default function RegistrationQcPanel({
               ].map(([key, label]) => {
                 const row = checks[key] || {};
                 const color = statusColor(row.status);
-                const labelKey = row.status === 'assumed'
+                const labelKey = row.status === 'recorded'
+                  ? 'registrationQcRecorded'
+                  : row.status === 'assumed'
                   ? 'registrationQcAssumed'
-                  : row.status === 'unknown'
+                  : row.status === 'unknown' || row.passed == null
                     ? 'registrationQcUnknown'
                     : row.passed
                       ? 'registrationQcPassed'
@@ -396,7 +401,7 @@ export default function RegistrationQcPanel({
             <Row label={tr('mriManifestPathLabel')} value={qc.manifestPath || '-'} mono />
             <Row label={tr('mriStatsPathLabel')} value={qc.statsPath || '-'} mono />
             <Row label={tr('mriRegistrationSummaryPathLabel')} value={qc.registrationSummaryPath || '-'} mono />
-            <Row label={tr('mriPathConsistencyLabel')} value={qc.pathConsistency?.passed === false ? tr('mriPathMismatchLabel') : tr('allValid')} color={qc.pathConsistency?.passed === false ? C.bad : C.good} />
+            <Row label={tr('mriPathConsistencyLabel')} value={qc.pathConsistency?.passed === true ? tr('allValid') : qc.pathConsistency?.passed === false ? tr('mriPathMismatchLabel') : tr('registrationQcUnknown')} color={qc.pathConsistency?.passed === true ? C.good : C.warn} />
           </Card>
         </>
       )}

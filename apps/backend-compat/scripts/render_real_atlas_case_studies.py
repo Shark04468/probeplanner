@@ -179,7 +179,7 @@ def region_center_vox(server: Any, key: str) -> np.ndarray | None:
     center_um = centroids.get(int(sid)) if isinstance(centroids, dict) else None
     if center_um is None:
         center_um = [
-            float(server.BREGMA_UM[0]) + float(reg.get("ap", 0.0)) * 1000.0,
+            float(server.BREGMA_UM[0]) - float(reg.get("ap", 0.0)) * 1000.0,
             float(server.BREGMA_UM[1]) + float(reg.get("dv", 0.0)) * 1000.0,
             float(server.BREGMA_UM[2]) + float(reg.get("ml", 0.0)) * 1000.0,
         ]

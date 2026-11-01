@@ -1,6 +1,6 @@
 {
   "name": "probeplanner-native-upgrade",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": false,
   "license": "MIT",
   "repository": {
@@ -14,9 +14,10 @@
     "ui:build": "npm --prefix apps/ui run build",
     "ui:test": "npm --prefix apps/ui run test:frontend",
     "ui:e2e": "npm --prefix apps/ui run test:e2e",
-    "backend:start": "powershell -NoProfile -ExecutionPolicy Bypass -File apps/backend-compat/scripts/start_backend_compat.ps1",
+    "backend:start": "python apps/backend-compat/scripts/start_paper_backend.py",
+    "paper:start": "python apps/backend-compat/scripts/start_paper_backend.py",
     "backend:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File apps/backend-compat/scripts/smoke_backend_compat.ps1",
-    "backend:test": "powershell -NoProfile -ExecutionPolicy Bypass -File apps/backend-compat/scripts/test_backend_compat.ps1",
+    "backend:test": "python -m pytest apps/backend-compat/tests -q",
     "mri:qc": "python apps/backend-compat/scripts/check_mri_registration_qc.py",
     "sdf:boundary": "python apps/backend-compat/scripts/check_sdf_boundary_layers.py",
     "dev:stack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start_dev_stack.ps1",

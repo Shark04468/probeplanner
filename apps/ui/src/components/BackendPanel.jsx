@@ -1,6 +1,7 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { THEME } from '../constants/theme';
 import { t } from '../constants/i18n';
+import { measurementView, registrationGateState } from './registrationEvidence';
 
 const STATUS_META = {
   idle: { color: '#94a3b8', dot: 'o', labelKey: 'backendIdle' },
@@ -198,12 +199,12 @@ function getMriRegistrationSummary(cap) {
   }
   const summary = row.summary && typeof row.summary === 'object' ? row.summary : {};
   const registration = summary.registration && typeof summary.registration === 'object' ? summary.registration : {};
-  const metrics = row.metrics && typeof row.metrics === 'object' ? row.metrics : {};
+  const metrics = measurementView(row);
   return {
     configured: Boolean(row.configured),
     path: row.path || null,
     metrics,
-    metricCi95: row.metricCi95 && typeof row.metricCi95 === 'object' ? row.metricCi95 : {},
+    metricCi95: metrics.treMm !== null ? row.measurementCi95 || {} : {},
     treAxisMm: row.treAxisMm && typeof row.treAxisMm === 'object' ? row.treAxisMm : {},
     transform: row.transform && typeof row.transform === 'object' ? row.transform : {},
     jacobianSummary: row.jacobianSummary && typeof row.jacobianSummary === 'object' ? row.jacobianSummary : {},
@@ -510,17 +511,17 @@ function AdvancedSettings({ capabilities, tr }) {
   const qualityThresholds = reconstructionQuality?.thresholds && typeof reconstructionQuality.thresholds === 'object'
     ? reconstructionQuality.thresholds
     : {};
-  const qualityPassed = reconstructionQuality?.passed;
-  const qualityLight = qualityPassed === false
+  const qualityState = registrationGateState(reconstructionQuality);
+  const qualityLight = qualityState === 'failed'
     ? tr('qualityBlocked')
-    : qualityPassed === true
+    : qualityState === 'passed'
       ? tr('qualityPassed')
-      : tr('qualityPending');
+      : tr('registrationQcIncomplete');
   const hasRegMetrics = Boolean(
-    Number.isFinite(Number(mriReg?.metrics?.dice)) ||
-    Number.isFinite(Number(mriReg?.metrics?.hd95Mm)) ||
-    Number.isFinite(Number(mriReg?.metrics?.treMm)) ||
-    Number.isFinite(Number(mriReg?.metrics?.jacobianAnomalyRatio))
+    Number.isFinite(mriReg?.metrics?.dice) ||
+    Number.isFinite(mriReg?.metrics?.hd95Mm) ||
+    Number.isFinite(mriReg?.metrics?.treMm) ||
+    Number.isFinite(mriReg?.metrics?.jacobianAnomalyRatio)
   );
   const riskSourceTag = String(capabilities?.riskModel?.sourceTag || '-');
   const qiuVisible =
@@ -628,19 +629,19 @@ function AdvancedSettings({ capabilities, tr }) {
           <AdvRow label={tr('mriRegistrationDeformableMetricLabel')} value={mriReg.deformableMetric == null ? '-' : Number(mriReg.deformableMetric).toFixed(6)} />
           <AdvRow
             label={tr('mriRegistrationDiceLabel')}
-            value={Number.isFinite(Number(mriReg?.metrics?.dice)) ? Number(mriReg.metrics.dice).toFixed(6) : '-'}
+            value={Number.isFinite(mriReg?.metrics?.dice) ? mriReg.metrics.dice.toFixed(6) : '-'}
           />
           <AdvRow
             label={tr('mriRegistrationHd95Label')}
-            value={Number.isFinite(Number(mriReg?.metrics?.hd95Mm)) ? `${Number(mriReg.metrics.hd95Mm).toFixed(6)} mm` : '-'}
+            value={Number.isFinite(mriReg?.metrics?.hd95Mm) ? `${mriReg.metrics.hd95Mm.toFixed(6)} mm` : '-'}
           />
           <AdvRow
             label={tr('mriRegistrationTreLabel')}
-            value={Number.isFinite(Number(mriReg?.metrics?.treMm)) ? `${Number(mriReg.metrics.treMm).toFixed(6)} mm` : '-'}
+            value={Number.isFinite(mriReg?.metrics?.treMm) ? `${mriReg.metrics.treMm.toFixed(6)} mm` : '-'}
           />
           <AdvRow
             label={tr('mriRegistrationJacobianLabel')}
-            value={Number.isFinite(Number(mriReg?.metrics?.jacobianAnomalyRatio)) ? Number(mriReg.metrics.jacobianAnomalyRatio).toFixed(6) : '-'}
+            value={Number.isFinite(mriReg?.metrics?.jacobianAnomalyRatio) ? mriReg.metrics.jacobianAnomalyRatio.toFixed(6) : '-'}
           />
           <AdvRow
             label={tr('mriJacobianStdLabel')}

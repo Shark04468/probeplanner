@@ -23,6 +23,7 @@ export default function ProbeSpecPanel({ probePreset, setProbePreset, probeParam
   const currentPreset = PROBE_PRESETS[probePreset];
   const channelsPerShank = currentPreset?.channelsPerShank ?? 384;
   const shanks = probeParams.shanks ?? currentPreset?.shanks ?? 1;
+  const shankPitchUm = probeParams.shankPitchUm ?? currentPreset?.shankPitchUm;
   const totalChannels = channelsPerShank * shanks;
   const channelLabel = shanks > 1 ? `${channelsPerShank} x ${shanks} = ${totalChannels}` : `${totalChannels}`;
 
@@ -112,7 +113,8 @@ export default function ProbeSpecPanel({ probePreset, setProbePreset, probeParam
       )}
 
       {[
-        [tr('shanksLabel'), `${probeParams.shanks} x 250um`],
+        [tr('shanksLabel'), `${shanks}`],
+        [tr('shankPitchLabel'), Number.isFinite(shankPitchUm) ? `${shankPitchUm} um` : tr('unavailableLabel')],
         [tr('depth'), `${(probeParams.depthUm / 1000).toFixed(0)} mm`],
         [tr('channelCount'), channelLabel],
         [tr('minEntryLabel'), `${probeParams.entrySpacingUm} um`],

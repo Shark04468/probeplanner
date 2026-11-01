@@ -77,24 +77,22 @@
     var buildUrl = "Build";
     var canvas = document.getElementById('unity-canvas');
     var pointerDown = null;
+    var graphicsContextFailed = false;
     var unityQuery = new URLSearchParams(window.location.search || '');
     var requestedDpr = Number(unityQuery.get('dpr') || 1);
     var maxDevicePixelRatio = Number.isFinite(requestedDpr) ? Math.max(0.75, Math.min(requestedDpr, 1.25)) : 1;
     var unityDevicePixelRatio = Math.max(1, Math.min(window.devicePixelRatio || 1, maxDevicePixelRatio));
     var bridgeCapabilities = {
       protocolVersion: 2,
-      unityBuildVersion: "webgl-remove-sphere-20260426",
+      unityBuildVersion: "paper-viewer-revision-20261101",
       maxPayloadBytes: 196608,
       supportsSlice: true,
-      supportsLighting: false,
+      supportsLighting: true,
       supportsBulkState: true,
       supportsBinaryBuffer: false,
       supportsFetchPayload: false,
       largePayloadTransport: "inline-json",
-      unsupportedMethods: [
-        "SetEnvironmentLighting",
-        "SetMriAppearance"
-      ],
+      unsupportedMethods: [],
       supportedMethods: [
         "GetCapabilities",
         "Heartbeat",
@@ -123,6 +121,8 @@
         "SetView",
         "SetCameraPreset",
         "SetInteractionQuality",
+        "SetEnvironmentLighting",
+        "SetMriAppearance",
         "SetRegionHighlight",
         "FocusRegion",
         "RequestScreenshot",
@@ -155,28 +155,16 @@
       emitToParent('capabilities', JSON.stringify(payload));
     }
 
-    function isBenignUnityRuntimeNoise(value) {
-      var text = String(value || '');
-      return (
-        /RuntimeError:\s*table index is out of bounds/i.test(text) &&
-        /(focusEventHandlerFunc|jsEventHandler|wasm-function)/i.test(text)
-      ) || (
-        /SendMessage failed for SetSlice/i.test(text) &&
-        /Maximum call stack size exceeded/i.test(text)
-      );
-    }
-
-    function isBenignUnityBridgeFailure(method, value) {
-      var name = String(method || '');
-      var text = String(value || '');
-      return (
-        name === 'SetSlice' &&
-        /Maximum call stack size exceeded/i.test(text)
-      ) || (
-        name === 'SetEnvironmentLighting' &&
-        /table index is out of bounds/i.test(text)
-      );
-    }
+    canvas.addEventListener('webglcontextlost', function(e) {
+      e.preventDefault();
+      graphicsContextFailed = true;
+      pointerDown = null;
+      emitToParent('graphicsContextLost', 'Unity');
+    });
+    canvas.addEventListener('webglcontextrestored', function() {
+      // A restored buffer does not certify that the Unity scene was rebuilt.
+      emitToParent('graphicsContextRestored', 'reload_required');
+    });
 
     function formatErrorEvent(e) {
       var detail = String(e && (e.message || e.error || e.reason) || 'window error');
@@ -186,41 +174,27 @@
 
     window.addEventListener('error', function (e) {
       var text = formatErrorEvent(e);
-      if (isBenignUnityRuntimeNoise(text)) {
-        if (e && e.preventDefault) e.preventDefault();
-        console.warn('[BrainPlanner] Suppressed Unity focus-event runtime noise:', text);
-        return;
-      }
       emitToParent('error', text);
     });
     window.addEventListener('unhandledrejection', function (e) {
       var reason = e && e.reason;
       var text = String((reason && (reason.message || reason)) || 'unhandled rejection');
       if (reason && reason.stack && text.indexOf(reason.stack) === -1) text += '\n' + reason.stack;
-      if (isBenignUnityRuntimeNoise(text)) {
-        if (e && e.preventDefault) e.preventDefault();
-        console.warn('[BrainPlanner] Suppressed Unity rejection noise:', text);
-        return;
-      }
       emitToParent('error', text);
     });
     (function () {
       window.alert = function (msg) {
         var text = String(msg || 'alert');
-        if (isBenignUnityRuntimeNoise(text)) {
-          console.warn('[BrainPlanner] Suppressed Unity runtime alert:', text);
-          return;
-        }
-        console.error('[BrainPlanner] Unity alert suppressed:', text);
+        console.error('[BrainPlanner] Unity alert:', text);
         emitToParent('error', text);
       };
     })();
 
-    var loaderUrl = buildUrl + "/WebGL-Build-RemoveSphere.loader.js";
+    var loaderUrl = buildUrl + "/WebGL-Build.loader.js";
     var config = {
-      dataUrl: buildUrl + "/WebGL-Build-RemoveSphere.data.unityweb",
-      frameworkUrl: buildUrl + "/WebGL-Build-RemoveSphere.framework.js.unityweb",
-      codeUrl: buildUrl + "/WebGL-Build-RemoveSphere.wasm.unityweb",
+      dataUrl: buildUrl + "/WebGL-Build.data.unityweb",
+      frameworkUrl: buildUrl + "/WebGL-Build.framework.js.unityweb",
+      codeUrl: buildUrl + "/WebGL-Build.wasm.unityweb",
       streamingAssetsUrl: "StreamingAssets",
       companyName: "BCILab",
       productName: "BrainPlanner",
@@ -237,10 +211,6 @@
       },
       errorHandler: function(msg) {
         var text = String(msg || 'Unity runtime error');
-        if (isBenignUnityRuntimeNoise(text)) {
-          console.warn('[BrainPlanner] Suppressed Unity runtime noise:', text);
-          return true;
-        }
         console.error('[Unity]', text);
         emitToParent('error', text);
         return true;
@@ -269,6 +239,7 @@
         }
       ).then(function(unityInstance) {
         window.unityInstance = unityInstance;
+        if (graphicsContextFailed) return;
 
         var overlay = document.getElementById('loading-overlay');
         overlay.classList.add('hidden');
@@ -304,8 +275,10 @@
     }
 
     window.addEventListener('message', function(e) {
+      if (e.source !== window.parent || e.origin !== window.location.origin) return;
       if (!e.data || e.data.target !== 'BrainPlannerUnity') return;
       if (!window.unityInstance) return;
+      if (graphicsContextFailed) return;
 
       var cmd = e.data;
       var method = cmd && cmd.method ? String(cmd.method) : '';
@@ -339,27 +312,16 @@
       // Alias for compatibility with older bridge methods.
       var dispatchMethod = method === 'SetView' ? 'SetCameraView' : method;
       try {
-        window.unityInstance.SendMessage('BrainController', dispatchMethod, param);
-        if (method === 'SetStateSnapshot') {
-          emitToParent('snapshotApplied', JSON.stringify({ stateVersion: stateVersion }));
-        }
-        emitStateAck(method, stateVersion, {
-          dispatchedAs: dispatchMethod !== method ? dispatchMethod : undefined,
+        window.unityInstance.SendMessage('BrainController', 'DispatchCommand', JSON.stringify({
+          method: dispatchMethod,
+          param: param,
+          stateVersion: stateVersion,
           sentAt: cmd.sentAt || 0,
           payloadBytes: Number(cmd.payloadBytes || 0),
           largePayload: Boolean(cmd.largePayload)
-        });
+        }));
       } catch (err) {
         var errorText = String((err && err.message) || err || 'unknown');
-        if (isBenignUnityBridgeFailure(method, errorText)) {
-          console.warn('[BrainPlanner] Suppressed optional Unity bridge failure for ' + method + ':', errorText);
-          emitStateAck(method, stateVersion, {
-            suppressed: true,
-            sentAt: cmd.sentAt || 0,
-            payloadBytes: Number(cmd.payloadBytes || 0)
-          });
-          return;
-        }
         emitToParent('error', 'SendMessage failed for ' + method + ': ' + errorText);
       }
     });
@@ -372,6 +334,7 @@
     }
 
     canvas.addEventListener('pointerdown', function (e) {
+      if (graphicsContextFailed) return;
       pointerDown = {
         x: e.clientX,
         y: e.clientY,
@@ -380,6 +343,7 @@
     });
 
     canvas.addEventListener('pointerup', function (e) {
+      if (graphicsContextFailed) return;
       if (!window.unityInstance) return;
       if (!pointerDown) return;
 
@@ -398,7 +362,9 @@
         height: rect.height
       };
       try {
-        window.unityInstance.SendMessage('BrainController', 'OnCanvasPointer', JSON.stringify(payload));
+        window.unityInstance.SendMessage('BrainController', 'DispatchCommand', JSON.stringify({
+          method: 'OnCanvasPointer', param: JSON.stringify(payload)
+        }));
       } catch (err) {
         emitToParent('error', 'SendMessage failed for OnCanvasPointer: ' + String((err && err.message) || err || 'unknown'));
       }

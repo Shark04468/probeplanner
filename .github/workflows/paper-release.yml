@@ -4,12 +4,25 @@ on:
   push:
     tags:
       - "v*-paper"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Verify the staged v0.3.0 draft; this job does not publish it"
+        required: true
+        type: choice
+        options:
+          - v0.3.0-paper
+      source_commit:
+        description: "Full candidate commit SHA; must match the dispatched workflow ref"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
   verify-and-release:
+    if: github.event_name == 'push' && (github.ref_name == 'v0.2.0-paper' || github.ref_name == 'v0.2.1-paper')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,3 +75,110 @@ jobs:
             --title "ProbePlanner $GITHUB_REF_NAME" \
             --notes-file "docs/release/$GITHUB_REF_NAME.md" \
             --verify-tag
+
+  download-v030-draft:
+    if: github.event_name == 'workflow_dispatch' && inputs.release_tag == 'v0.3.0-paper'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      # GitHub hides draft releases from tokens without push-level access.
+      # This job never checks out or executes candidate source.
+      contents: write
+    env:
+      STAGED_TAG: v0.3.0-paper
+      CANDIDATE_COMMIT: ${{ inputs.source_commit }}
+    steps:
+      - name: Verify exact candidate and unpublished draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CANDIDATE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$CANDIDATE_COMMIT" == "$GITHUB_SHA" ]]
+          mkdir assets
+          gh release view "$STAGED_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,isDraft,targetCommitish,assets > assets/DRAFT.json
+          jq -e --arg sha "$CANDIDATE_COMMIT" '.isDraft == true and .tagName == "v0.3.0-paper" and .targetCommitish == $sha' assets/DRAFT.json
+          gh release download "$STAGED_TAG" --repo "$GITHUB_REPOSITORY" --dir assets --pattern 'ProbePlanner-v0.3.0-paper-profile-*.zip' --pattern DATA_BUNDLE_MANIFEST.json --pattern PUBLIC_VALIDATION_EVIDENCE.zip --pattern PUBLIC_EVIDENCE_MANIFEST.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v030-staged-assets
+          path: assets
+          compression-level: 0
+          retention-days: 3
+          if-no-files-found: error
+
+  verify-v030-draft:
+    needs: download-v030-draft
+    if: github.event_name == 'workflow_dispatch' && inputs.release_tag == 'v0.3.0-paper'
+    runs-on: windows-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    env:
+      STAGED_TAG: v0.3.0-paper
+      CANDIDATE_COMMIT: ${{ inputs.source_commit }}
+      GATE_ROOT: ${{ runner.temp }}/probeplanner-release-checks
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify the checked-out candidate commit
+        shell: pwsh
+        run: |
+          if ($env:CANDIDATE_COMMIT -notmatch '^[0-9a-f]{40}$') { throw 'Invalid candidate SHA' }
+          if ((git rev-parse HEAD) -ne $env:CANDIDATE_COMMIT) { throw 'Candidate commit mismatch' }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10.20"
+          cache: pip
+          cache-dependency-path: apps/backend-compat/requirements-surface-build.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.14.0"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/ui/package-lock.json
+      - name: Install pinned environments
+        shell: pwsh
+        run: |
+          python -m pip install -r apps/backend-compat/requirements-surface-build.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm --prefix apps/ui ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/download-artifact@v4
+        with:
+          name: v030-staged-assets
+          path: ${{ env.GATE_ROOT }}/assets
+      - name: Verify and extract bound data assets
+        shell: pwsh
+        run: |
+          python -c "import sys; from pathlib import Path; sys.path.insert(0,'scripts/release'); from public_profile_bundle import extract_verified; from verify_source_v030 import sha; from verify_current_evidence import require, strict_json; root=Path(sys.argv[1]); p=root/'assets/DATA_BUNDLE_MANIFEST.json'; require(sha(p)=='f3ab8b854a6f665ad484ea7ae95c41d6212fafb92099044949ec84cec171ad9a','Data bundle identity mismatch'); extract_verified(root/'assets',root/'profile',strict_json(p.read_bytes()))" $env:GATE_ROOT
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Regenerate three fixed portability cases
+        shell: pwsh
+        run: |
+          python scripts/release/replay_public_campaign.py --evidence-dir "$env:GATE_ROOT/assets" --profile "$env:GATE_ROOT/profile" --output "$env:GATE_ROOT/replay" --case retrospective/search_unilateral_ca1 --case confirmation/independent_request_01 --case confirmation/reused_negative_control
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run all version-matched local release gates
+        shell: pwsh
+        run: |
+          python scripts/release/run_release_checks_v030.py --evidence-dir "$env:GATE_ROOT/assets" --profile "$env:GATE_ROOT/profile" --replay-dir "$env:GATE_ROOT/replay" --surface-python (Get-Command python).Source --output "$env:GATE_ROOT/checks" --require-clean
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Preserve verification reports, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v030-release-verification
+          path: |
+            ${{ env.GATE_ROOT }}/checks
+            ${{ env.GATE_ROOT }}/replay/SUMMARY.json
+            ${{ env.GATE_ROOT }}/replay/RUN_CONTRACT.json
+          if-no-files-found: warn
+      # A passing draft check is not public HTTPS delivery or a Zenodo DOI.
+      # Publication remains an explicit step after the complete release audit.

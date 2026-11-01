@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use ProbePlanner, please cite the archived software release and the associated manuscript."
+message: "Cite the fixed v0.3.0-paper source and its corresponding release record. The verified Version DOI is supplied with the final release citation; do not reuse a previous version's DOI."
 title: "ProbePlanner: an auditable software workflow for MRI-CCF probe trajectory planning in mouse electrophysiology"
 type: software
 authors:
@@ -7,11 +7,9 @@ authors:
     given-names: Yijun
     affiliation: "University of Shanghai for Science and Technology"
 repository-code: "https://github.com/Shark04468/probeplanner"
-url: "https://github.com/Shark04468/probeplanner"
+url: "https://github.com/Shark04468/probeplanner/releases/tag/v0.3.0-paper"
 license: MIT
-version: "0.2.1-paper"
-date-released: "2026-08-17"
-doi: "10.5281/zenodo.21307546"
+version: "0.3.0-paper"
 keywords:
   - mouse brain atlas
   - Allen CCF

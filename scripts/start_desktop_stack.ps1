@@ -8,6 +8,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
+$LegacyBackendLauncher = Join-Path $Root "apps/backend-compat/scripts/start_backend_compat.ps1"
+if (-not (Test-Path -LiteralPath $LegacyBackendLauncher -PathType Leaf)) {
+    throw "Legacy desktop stack is unavailable: backend launcher is absent. No processes were stopped or started. Use npm run paper:start -- --profile <prepared-profile> --run-dir <new-run> --static-dir apps/ui/build. See docs/PAPER_RUNTIME_AND_MRI_EVIDENCE.md; do not restore or whitelist a security-blocked file."
+}
 
 if ([string]::IsNullOrWhiteSpace($ArtifactRoot)) {
     throw "PROBEPLANNER_ARTIFACT_ROOT is required for the desktop stack."

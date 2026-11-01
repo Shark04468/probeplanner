@@ -25,25 +25,56 @@ const LIMITS = {
   depth: [0.1, 20],
 };
 
+const PINPOINT_COORDINATES = 'pinpoint_ap_posterior_positive_mm';
+const INTERNAL_COORDINATES = 'probeplanner_ap_anterior_positive_mm';
+
+function recordedHardware(probe) {
+  const result = {};
+  const fields = {
+    shankCount: ['shankCount', 'shanks', 'nShanks'],
+    shankPitchUm: ['shankPitchUm', 'shankSpacingUm'],
+    radiusUm: ['radiusUm', 'probeRadiusUm'],
+    shankWidthUm: ['shankWidthUm'],
+    shankThicknessUm: ['shankThicknessUm'],
+  };
+  for (const [key, aliases] of Object.entries(fields)) {
+    const values = aliases.filter(alias => probe[alias] != null).map(alias => {
+      const raw = probe[alias];
+      if (typeof raw === 'boolean' || String(raw).trim() === '') throw new Error(`Invalid ${key}`);
+      return Number(raw);
+    });
+    if (!values.length) continue;
+    const value = values[0];
+    if (!Number.isFinite(value) || value < 0 || values.some(v => v !== value)
+      || (key === 'shankCount' && (!Number.isInteger(value) || value < 1 || value > 64))) {
+      throw new Error(`Invalid or inconsistent ${key}`);
+    }
+    result[key] = value;
+  }
+  return result;
+}
+
 function assertInRange(label, value, [min, max]) {
   if (!Number.isFinite(value) || value < min || value > max) {
     throw new Error(`${label} out of range [${min}, ${max}]`);
   }
 }
 
-function normalizeProbe(p, i) {
-  const ap = Number(p.ap ?? p.ap_mm ?? 0);
+function normalizeProbe(p, i, posteriorPositive = false) {
+  const ap = (posteriorPositive ? -1 : 1) * Number(p.ap ?? p.ap_mm ?? 0);
   const ml = Number(p.ml ?? p.ml_mm ?? 0);
   const dv = Number(p.dv ?? p.entryDvCorr_mm ?? 0);
   const phi = Number(p.phi ?? p.phi_deg ?? 0);
   const theta = Number(p.theta ?? p.theta_deg ?? 0);
   const depth = Number(p.depth ?? (p.depthUm != null ? p.depthUm / 1000 : 4));
+  const spin = Number(p.spin ?? p.spin_deg ?? 0);
 
   assertInRange('ap', ap, LIMITS.ap);
   assertInRange('ml', ml, LIMITS.ml);
   assertInRange('dv', dv, LIMITS.dv);
   assertInRange('theta', theta, LIMITS.theta);
   assertInRange('depth', depth, LIMITS.depth);
+  if (!Number.isFinite(phi) || !Number.isFinite(spin)) throw new Error('Non-finite probe angle');
 
   return {
     ap_mm: ap,
@@ -51,28 +82,32 @@ function normalizeProbe(p, i) {
     entryDvCorr_mm: dv,
     phi_deg: ((phi % 360) + 360) % 360,
     theta_deg: theta,
-    spin_deg: Number(p.spin ?? p.spin_deg ?? 0),
+    spin_deg: spin,
     depthUm: depth * 1000,
+    probeType: p.probeType ?? p.type ?? null,
+    ...recordedHardware(p),
     coveredRegions: p.coveredRegions || [],
     _id: p.id || p._id || `Probe${i}`,
   };
 }
 
-export function exportPinpointJSON(probes, probePreset = 'NP2.0-4sh') {
+export function exportPinpointJSON(probes, probePreset = null) {
   const data = {
     version: '1.0',
     generator: 'probe-planner',
+    _coordinateSystem: PINPOINT_COORDINATES,
     timestamp: new Date().toISOString(),
     probes: probes.map((p, i) => ({
       id: `Probe${i}`,
-      ap: +p.ap_mm.toFixed(3),
-      ml: +p.ml_mm.toFixed(3),
-      dv: +p.entryDvCorr_mm.toFixed(3),
-      phi: +p.phi_deg.toFixed(2),
-      theta: +p.theta_deg.toFixed(2),
-      spin: +((p.spin_deg ?? 0)).toFixed(2),
-      depth: +(p.depthUm / 1000).toFixed(3),
-      type: probePreset,
+      ap: -(p.ap_mm_corrected ?? p.ap_mm),
+      ml: p.ml_mm_corrected ?? p.ml_mm,
+      dv: p.entryDvCorr_mm_corrected ?? p.entryDvCorr_mm,
+      phi: p.phi_deg,
+      theta: p.theta_deg,
+      spin: p.spin_deg ?? 0,
+      depth: (p.depthUm_corrected ?? p.depthUm) / 1000,
+      type: p.probeType || probePreset,
+      ...recordedHardware(p),
       coveredRegions: p.coveredRegions || [],
     })),
   };
@@ -81,19 +116,23 @@ export function exportPinpointJSON(probes, probePreset = 'NP2.0-4sh') {
 
 export function exportPinpointTXT(probes) {
   const lines = [
+    `# coordinate_system: ${PINPOINT_COORDINATES}`,
     '# id  ap(mm)  ml(mm)  dv(mm)  phi(deg)  theta(deg)  spin(deg)  depth(mm)',
   ];
   for (let i = 0; i < probes.length; i += 1) {
     const p = probes[i];
+    // Comment metadata keeps the legacy eight-column geometry readable.
+    lines.push(`# probe_metadata: ${JSON.stringify({ id: `Probe${i}`, probeType: p.probeType ?? null,
+      ...recordedHardware(p), coveredRegions: p.coveredRegions || [] })}`);
     lines.push([
       `Probe${i}`,
-      p.ap_mm.toFixed(3),
-      p.ml_mm.toFixed(3),
-      p.entryDvCorr_mm.toFixed(3),
-      p.phi_deg.toFixed(2),
-      p.theta_deg.toFixed(2),
-      ((p.spin_deg ?? 0)).toFixed(2),
-      (p.depthUm / 1000).toFixed(3),
+      -(p.ap_mm_corrected ?? p.ap_mm),
+      p.ml_mm_corrected ?? p.ml_mm,
+      p.entryDvCorr_mm_corrected ?? p.entryDvCorr_mm,
+      p.phi_deg,
+      p.theta_deg,
+      p.spin_deg ?? 0,
+      (p.depthUm_corrected ?? p.depthUm) / 1000,
     ].join('\t'));
   }
   return lines.join('\n');
@@ -108,42 +147,76 @@ export function parsePinpoint(text) {
     if (!Array.isArray(obj.probes)) {
       throw new Error('Missing probes[] in JSON');
     }
-    return obj.probes.map((p, i) => normalizeProbe(p, i));
+    const convention = obj._coordinateSystem || obj.coordinateSystem;
+    let posteriorPositive;
+    if (convention === PINPOINT_COORDINATES) posteriorPositive = true;
+    else if (convention === INTERNAL_COORDINATES) posteriorPositive = false;
+    else if (convention) throw new Error('Unsupported coordinate system');
+    else if (obj._software === 'ProbeplannerGUI / optimizer_server') posteriorPositive = true;
+    else if (obj.generator === 'probe-planner' || obj.probes.every(p => p.ap_mm != null)) posteriorPositive = false;
+    else throw new Error('Missing coordinate system: AP sign cannot be inferred');
+    return obj.probes.map((p, i) => normalizeProbe(p, i, posteriorPositive));
   }
 
+  const marker = trimmed.match(/^# coordinate_system:\s*(\S+)\s*$/m)?.[1];
+  if (marker && marker !== PINPOINT_COORDINATES && marker !== INTERNAL_COORDINATES) {
+    throw new Error('Unsupported coordinate system');
+  }
+
+  const metadata = new Map();
+  for (const line of trimmed.split('\n')) {
+    const match = line.trim().match(/^# probe_metadata:\s*(.+)$/);
+    if (!match) continue;
+    const entry = JSON.parse(match[1]);
+    if (!entry || typeof entry.id !== 'string' || metadata.has(entry.id)) throw new Error('Invalid or duplicate probe metadata');
+    metadata.set(entry.id, entry);
+  }
   const rows = trimmed
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l && !l.startsWith('#'));
 
-  return rows.map((row, i) => {
+  const seen = new Set();
+  const parsed = rows.map((row, i) => {
     const cols = row.split(/\s+/);
     if (cols.length < 8) {
       throw new Error(`Line ${i + 1} has insufficient columns`);
     }
+    if (seen.has(cols[0])) throw new Error('Duplicate probe id');
+    seen.add(cols[0]);
     return normalizeProbe(
       {
+        ...metadata.get(cols[0]),
         id: cols[0],
-        ap: parseFloat(cols[1]),
-        ml: parseFloat(cols[2]),
-        dv: parseFloat(cols[3]),
-        phi: parseFloat(cols[4]),
-        theta: parseFloat(cols[5]),
-        spin: parseFloat(cols[6]),
-        depth: parseFloat(cols[7]),
+        ap: Number(cols[1]),
+        ml: Number(cols[2]),
+        dv: Number(cols[3]),
+        phi: Number(cols[4]),
+        theta: Number(cols[5]),
+        spin: Number(cols[6]),
+        depth: Number(cols[7]),
       },
-      i
+      i,
+      marker === PINPOINT_COORDINATES
     );
   });
+  if ([...metadata.keys()].some(id => !seen.has(id))) throw new Error('Metadata has no matching probe');
+  return parsed;
 }
 
-function toBackendTrajectory(p) {
+export function toBackendTrajectory(p) {
   return {
-    ap_mm: p.ap ?? p.ap_mm ?? 0,
-    ml_mm: p.ml ?? p.ml_mm ?? 0,
-    entryDvCorr_mm: p.dvEntry ?? p.entryDvCorr_mm ?? 0,
+    ap_mm: p.ap_mm ?? p.ap ?? 0,
+    ml_mm: p.ml_mm ?? p.ml ?? 0,
+    entryDvCorr_mm: p.entryDvCorr_mm ?? p.dvEntry ?? 0,
+    ...Object.fromEntries(['ap_mm_corrected', 'ml_mm_corrected', 'entryDvCorr_mm_corrected', 'depthUm_corrected']
+      .filter(key => p[key] != null).map(key => [key, p[key]])),
     phi_deg: p.azimuth ?? p.phi_deg ?? 0,
     theta_deg: p.theta_deg ?? (p.elevation != null ? 90 - p.elevation : 0),
+    spin_deg: p.spin_deg ?? p.spin ?? 0,
+    probeType: p.probeType ?? p.type ?? null,
+    ...recordedHardware(p),
+    skullTiltDeg: p.skullTiltDeg ?? 0,
     depthUm: p.depthUm ?? ((p.depth ?? 4) * 1000),
     coveredRegions: p.regionsHit ?? p.coveredRegions ?? [],
   };
@@ -179,28 +252,16 @@ export default function PinpointIO({
       const resp = await flaskFetch('/api/export_pinpoint', 'POST', {
         trajectories,
         probeType: probePreset,
-        correctionFactors: correction || {},
-        correctionUncertainty: correctionUncertainty || null,
+        correctionFactors: results?.correctionFactors || correction || {},
+        correctionUncertainty: results?.correctionUncertainty || correctionUncertainty || null,
+        planRequestId: results?.requestId || null,
+        planResponseHash: results?.responseHash || null,
       });
       if (!resp.ok) {
         throw new Error(resp.error || 'export failed');
       }
 
-      const backendProbes = (resp.pinpointData?.probes || []).map((p) =>
-        normalizeProbe(
-          {
-            ap: -p.ap,
-            ml: p.ml,
-            dv: p.dv,
-            phi: p.phi,
-            theta: p.theta,
-            depth: p.depth,
-            spin: p.spin,
-            coveredRegions: p.coveredRegions,
-          },
-          0
-        )
-      );
+      const backendProbes = parsePinpoint(JSON.stringify(resp.pinpointData));
 
       const content = format === 'json'
         ? JSON.stringify(resp.pinpointData, null, 2)

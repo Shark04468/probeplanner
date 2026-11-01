@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Audit registration perturbation sensitivity for ProbePlanner.
 
-The experiment re-runs the planner after applying small affine perturbations to
-the MRI-to-CCF query space.  For a physical planner point x, atlas and risk
-queries are evaluated at T^-1(x), which simulates an anatomical volume/risk
-layer shifted by the perturbed registration transform.  Candidate generation
-and greedy selection are still taken from the backend planner.
+The experiment re-runs the planner under synthetic affine query perturbations.
+For a physical planner point x, atlas and risk queries are evaluated at T^-1(x).
+Target centroids and PCA directions follow the forward perturbation. This is
+software sensitivity analysis, not a validated MRI registration or anatomical
+accuracy measurement. Risk distances remain values of the source-grid SDF;
+non-unit scaling does not recompute physical distances to warped surfaces.
 """
 
 from __future__ import annotations
@@ -385,15 +386,15 @@ class BackendPerturbationContext:
     def __init__(self, server: Any, affine: AffinePerturbation):
         self.server = server
         self.affine = affine
-        self.original_sample = None
-        self.original_cached = None
+        self.original_path = None
+        self.original_axis = None
         self.original_regions = None
         self.original_centroids = None
 
     def __enter__(self):
         s = self.server
-        self.original_sample = s.sample_trajectory_voxels
-        self.original_cached = s.sample_trajectory_voxels_cached
+        self.original_path = s._sample_trajectory_path_indices
+        self.original_axis = s.compute_structure_principal_axis
         self.original_regions = deepcopy(s.PLANNER_REGIONS)
         self.original_centroids = deepcopy(s.REGION_CENTROIDS_UM)
 
@@ -411,7 +412,7 @@ class BackendPerturbationContext:
                 reg["ml"] = round(float(moved[2]), 3)
             s._rebuild_region_centroids()
 
-            def sample_trajectory_voxels_perturbed(
+            def sample_trajectory_path_perturbed(
                 ap_mm,
                 ml_mm,
                 theta_deg,
@@ -419,94 +420,59 @@ class BackendPerturbationContext:
                 depth_um,
                 skull_tilt_deg=0.0,
                 step_um=25.0,
+                entry_dv_corr_mm=None,
             ):
-                tilt_rad = float(skull_tilt_deg) * math.pi / 180.0
-                dv_corr_um = -float(ap_mm) * math.tan(tilt_rad) * 1000.0
-                theta_rad = float(theta_deg) * math.pi / 180.0
-                phi_rad = float(phi_deg) * math.pi / 180.0
-                direction = np.asarray(
-                    [
-                        math.sin(theta_rad) * math.cos(phi_rad),
-                        math.cos(theta_rad),
-                        math.sin(theta_rad) * math.sin(phi_rad),
-                    ],
-                    dtype=np.float64,
+                _, depths = self.original_path(
+                    ap_mm, ml_mm, theta_deg, phi_deg, depth_um,
+                    skull_tilt_deg=skull_tilt_deg, step_um=step_um,
+                    entry_dv_corr_mm=entry_dv_corr_mm,
                 )
-                entry_ccf_um = np.asarray(
-                    [
-                        s.BREGMA_UM[0] - float(ap_mm) * 1000.0,
-                        s.BREGMA_UM[1] + dv_corr_um,
-                        s.BREGMA_UM[2] + float(ml_mm) * 1000.0,
-                    ],
-                    dtype=np.float64,
+                entry, _, direction, _ = s.make_trajectory_xyz(
+                    ap_mm, ml_mm, theta_deg, phi_deg, depth_um, skull_tilt_deg,
+                    entry_dv_corr_mm=entry_dv_corr_mm,
                 )
-                max_depth = (s.ATLAS_SHAPE[1] * s.VOXEL_SIZE_UM) - s.BREGMA_UM[1] - 50.0
-                effective_depth = min(float(depth_um), float(max_depth))
-                n_steps = int(effective_depth / float(step_um)) + 1
-                voxels = []
-                seen = set()
-                for i_step in range(n_steps):
-                    ccf_um = entry_ccf_um + direction * (float(i_step) * float(step_um))
-                    planner_mm = np.asarray(
-                        [
-                            s.BREGMA_UM[0] / 1000.0 - ccf_um[0] / 1000.0,
-                            ccf_um[1] / 1000.0 - s.BREGMA_UM[1] / 1000.0,
-                            ccf_um[2] / 1000.0 - s.BREGMA_UM[2] / 1000.0,
-                        ],
-                        dtype=np.float64,
-                    )
-                    source_mm = self.affine.inverse(planner_mm)
-                    source_ccf_um = np.asarray(
-                        [
-                            s.BREGMA_UM[0] - source_mm[0] * 1000.0,
-                            s.BREGMA_UM[1] + source_mm[1] * 1000.0,
-                            s.BREGMA_UM[2] + source_mm[2] * 1000.0,
-                        ],
-                        dtype=np.float64,
-                    )
-                    vi = int(round(float(source_ccf_um[0]) / float(s.VOXEL_SIZE_UM)))
-                    vj = int(round(float(source_ccf_um[1]) / float(s.VOXEL_SIZE_UM)))
-                    vk = int(round(float(source_ccf_um[2]) / float(s.VOXEL_SIZE_UM)))
-                    if not s.voxel_in_bounds(vi, vj, vk):
-                        continue
-                    key = (vi, vj, vk)
-                    if key in seen:
-                        continue
-                    seen.add(key)
-                    voxels.append(key)
-                return voxels
+                points = np.asarray(entry) + np.asarray(depths)[:, None] * np.asarray(direction)
+                flip = np.array([-1.0, 1.0, 1.0])
+                planner_mm = (points - s.BREGMA_UM) * flip / 1000.0
+                source_mm = self.affine.pivot_mm + (
+                    (planner_mm - self.affine.translation_mm - self.affine.pivot_mm)
+                    / self.affine.scale
+                ) @ self.affine.rotation
+                source_ccf_um = s.BREGMA_UM + source_mm * flip * 1000.0
+                indices = np.rint(source_ccf_um / s.VOXEL_SIZE_UM).astype(np.int64)
+                return [tuple(int(v) for v in row) for row in indices], depths
 
-            def sample_trajectory_voxels_cached_perturbed(
-                ap_mm,
-                ml_mm,
-                theta_deg,
-                phi_deg,
-                depth_um,
-                skull_tilt_deg=0.0,
-                step_um=25.0,
-            ):
-                return sample_trajectory_voxels_perturbed(
-                    ap_mm,
-                    ml_mm,
-                    theta_deg,
-                    phi_deg,
-                    depth_um,
-                    skull_tilt_deg=skull_tilt_deg,
-                    step_um=step_um,
-                )
+            def principal_axis_perturbed(structure_id):
+                axis = self.original_axis(structure_id)
+                if axis is None:
+                    return None
+                axis = deepcopy(axis)
+                axis['centroid_bregma'] = self.affine.forward(np.asarray(axis['centroid_bregma'])).tolist()
+                flip = np.array([-1.0, 1.0, 1.0])
+                direction = flip * (self.affine.rotation @ (flip * np.asarray(axis['principal_axis'])))
+                direction /= np.linalg.norm(direction)
+                if direction[1] < 0:
+                    direction = -direction
+                axis['principal_axis'] = direction.tolist()
+                axis['theta_deg'] = float(np.degrees(np.arccos(np.clip(direction[1], -1., 1.))))
+                axis['phi_deg'] = float(np.degrees(np.arctan2(direction[2], direction[0])) % 360.)
+                # The original DV extent is not the rotated bounding-box extent.
+                axis['source_dv_span_um'] = axis.pop('dv_span_um')
+                return axis
 
-            s.sample_trajectory_voxels = sample_trajectory_voxels_perturbed
-            s.sample_trajectory_voxels_cached = sample_trajectory_voxels_cached_perturbed
+            # Both public samplers delegate here; preserve their cache/dedup contracts.
+            s._sample_trajectory_path_indices = sample_trajectory_path_perturbed
+            s.compute_structure_principal_axis = principal_axis_perturbed
 
         clear_backend_caches(s)
         return self
 
     def __exit__(self, exc_type, exc, tb):
         s = self.server
-        if self.original_sample is not None:
-            s.sample_trajectory_voxels = self.original_sample
-        if self.original_cached is not None:
-            s.sample_trajectory_voxels_cached = self.original_cached
+        if self.original_path is not None:
+            s._sample_trajectory_path_indices = self.original_path
+        if self.original_axis is not None:
+            s.compute_structure_principal_axis = self.original_axis
         if self.original_regions is not None:
             s.PLANNER_REGIONS = self.original_regions
         if self.original_centroids is not None:
@@ -921,12 +887,13 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         )
 
     lines = [
-        "# Registration Perturbation Sensitivity - 2026-07-09",
+        "# Synthetic Affine Query Sensitivity",
         "",
-        "ProbePlanner was re-run after small affine perturbations were applied to the MRI-to-CCF registration query space. "
-        "For each perturbation, target/risk lookups used the inverse perturbed transform and the backend candidate generator plus greedy set-cover solver selected probes from scratch.",
+        "ProbePlanner was re-run under synthetic affine query perturbations. "
+        "Target/risk lookups use inverse-transformed continuous trajectory samples, while target centroids and PCA directions follow the forward perturbation. "
+        "The current backend planning pipeline selects probes from scratch.",
         "",
-        "## Registration baseline",
+        "## Supplied registration metadata (not revalidated here)",
         "",
         f"- Registration artifact: `{registration.get('artifactRoot')}`",
         f"- Dice: {fmt_value(metrics.get('dice'))}",
@@ -953,9 +920,12 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         "",
         "## Interpretation",
         "",
-        "The perturbation audit shows stable target coverage under the tested registration errors: no perturbation failed planning, changed the covered target set, or introduced a newly uncovered target. "
-        "However, several small perturbations switched the selected trajectory to a different feasible solution, producing entry/tip coordinate jumps even when probe count and target coverage stayed unchanged. "
-        "This should be reported as output-solution sensitivity rather than target-coverage instability; a future production planner can reduce this by adding an explicit trajectory-continuity or baseline-proximity tie-breaker.",
+        f"Failures: {summary['planningFailureCount']}; coverage-changed cases: {summary['coverageChangedCaseCount']}; "
+        f"cases with newly uncovered targets: {summary['newUncoveredCaseCount']}.",
+        "These results measure software sensitivity, not anatomical registration accuracy. "
+        "Entry/tip displacement measures selected-solution changes and is not landmark TRE. "
+        "Risk margins query the source-grid SDF; scaling does not recompute physical distances to warped surfaces. "
+        "No subject-specific implantation or surgical-safety accuracy is established.",
         "",
         "## Perturbation-type summary",
         "",
@@ -973,8 +943,8 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         "- `entry displacement` and `tip displacement`: nearest-neighbor Euclidean displacement of selected entry/tip coordinates relative to the baseline selected probes.",
         "- `coverage changed`: whether the set of covered target acronyms changed relative to baseline.",
         "- `new uncovered targets`: targets uncovered after perturbation that were not uncovered at baseline.",
-        "- `risk margin change`: change in the worst class-specific risk margin, computed as distance-to-risk-layer minus class threshold; negative values mean the perturbed plan moved closer to a risk layer.",
-        "- `planning failure rate`: fraction of perturbation cases that returned an error or zero selected probes.",
+        "- `risk margin change`: change in the minimum source-grid class-specific SDF value minus its threshold; negative values indicate a smaller queried margin, not validated native-space clearance.",
+        "- `planning failure rate`: fraction of perturbation cases with a non-ok status (including uncovered targets) or zero selected probes.",
         "",
     ]
     path.write_text("\n".join(lines), encoding="utf-8")
@@ -1104,7 +1074,9 @@ def main(argv: list[str] | None = None) -> int:
         "perturbationModel": {
             "coordinateBasis": "planner stereotaxic [AP,DV,ML] mm",
             "pivotMm": [round(float(v), 6) for v in pivot_mm.tolist()],
-            "samplingRule": "atlas/risk lookup point = inverse(perturbed MRI-to-CCF affine) applied to each planner trajectory sample",
+            "samplingRule": "atlas/risk lookup point = inverse(synthetic planner-frame affine) applied before voxel rounding to each continuous trajectory sample",
+            "claimBoundary": "Software query sensitivity only; not anatomical registration accuracy, landmark TRE or surgical safety.",
+            "riskDistanceBasis": "Source-grid SDF values; not recomputed physical distances to scaled surfaces.",
             "translationMm": ["+/-0.1", "+/-0.2", "+/-0.3"],
             "rotationDeg": ["+/-1", "+/-2", "+/-3"],
             "scalingPct": ["+/-1", "+/-2"],

@@ -23,3 +23,8 @@ apps/backend-compat/scripts/build_strict_final_benchmark.py -text
 apps/backend-compat/scripts/diagnose_target_candidate_feasibility.py -text
 apps/backend-compat/tests/test_validation_scripts.py -text
 scripts/release/build_supplementary_data.py -text
+
+# v0.3.0 compares all source files with the evaluated byte inventory, including
+# Windows-authored CRLF files. Disable automatic checkout/clean conversions.
+# Keep this last so platform-specific Git settings cannot change those bytes.
+* -text

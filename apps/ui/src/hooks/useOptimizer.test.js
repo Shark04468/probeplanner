@@ -22,6 +22,21 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+test('useOptimizer exposes resolved inspection coordinates without replacing raw request controls', async () => {
+  flaskFetch.mockResolvedValue({ ok: true, selected: [{ ap_mm: 1, ml_mm: 2, entryDvCorr_mm: 3,
+    ap_mm_corrected: -2, ml_mm_corrected: -1, entryDvCorr_mm_corrected: .4,
+    depthUm: 1000, depthUm_corrected: 1500, coveredRegions: ['VISp'] }], uncovered: [], safetyIssues: [] });
+  const { result } = renderHook(() => useOptimizer());
+  await act(async () => {
+    result.current.run({ selectedRegions: new Set(['VISp']), params: { algorithm: 'greedy', maxAngle: 15 },
+      probeParams: { depthUm: 1000, entrySpacingUm: 3500 }, probePreset: 'NP2.0-1sh',
+      constraintModes: CONSTRAINTS, backendStatus: 'online', correction: null, correctionUncertainty: null });
+  });
+  await waitFor(() => expect(result.current.results).not.toBeNull());
+  expect(result.current.results.probes[0]).toMatchObject({ ap: -2, ml: -1, dvEntry: .4,
+    ap_mm: 1, ml_mm: 2, entryDvCorr_mm: 3, depthUm: 1000, depthUm_corrected: 1500 });
+});
+
 test('useOptimizer preserves request/response hashes in reproducibility report', async () => {
   const requestHash = 'a'.repeat(64);
   const responseHash = 'b'.repeat(64);
@@ -47,6 +62,7 @@ test('useOptimizer preserves request/response hashes in reproducibility report',
     atlasHash: 'atlas-hash-test',
     requestHash,
     responseHash,
+    runtimeIdentity: { optimizerSha256: 'f'.repeat(64) },
     deterministicResponseHash,
     targetingMode: 'single_hemisphere',
     clinicalContract: { species: 'mouse', intendedUse: 'automatic_decision' },
@@ -72,6 +88,8 @@ test('useOptimizer preserves request/response hashes in reproducibility report',
   await waitFor(() => expect(result.current.results).not.toBeNull());
   expect(result.current.results.requestHash).toBe(requestHash);
   expect(result.current.results.responseHash).toBe(responseHash);
+  expect(result.current.results.runtimeIdentity.optimizerSha256).toBe('f'.repeat(64));
+  expect(flaskFetch.mock.calls.find(call => call[0] === '/api/optimize')[2].probeParams.probeType).toBe('NP2.0-4sh');
   expect(result.current.results.deterministicResponseHash).toBe(deterministicResponseHash);
   expect(result.current.results.reproducibility.requestHash).toBe(requestHash);
   expect(result.current.results.reproducibility.responseHash).toBe(responseHash);

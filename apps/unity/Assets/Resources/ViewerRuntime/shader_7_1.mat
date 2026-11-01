@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:yousandi.cn,2023:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: shader_7_1
+  m_Shader: {fileID: 4800000, guid: 786c0fbdf9e391548b00fa1805a48524, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _EMISSION
+  - _SURFACE_TYPE_TRANSPARENT
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: 3000
+  stringTagMap:
+    RenderType: Transparent
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _ContactOverride: 0
+    - _HemisphereFilter: 0
+    - _SliceAxis: 1
+    - _SliceCenter: 0
+    - _SliceEnabled: 0
+    - _SliceThickness: 0.25
+    - _SliceUseSlab: 0
+    - _SliceY: 0
+    m_Colors:
+    - _ContactHemispheres: {r: 0, g: 0, b: 0, a: 0}
+    - _IdColor: {r: 0, g: 0, b: 0, a: 1}
+  m_BuildTextureStacks: []

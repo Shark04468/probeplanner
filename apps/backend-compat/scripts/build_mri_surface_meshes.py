@@ -32,7 +32,7 @@ DEFAULT_PROFILE_DIR = mri_path("planner_artifacts/ambmc_true_outer_full")
 DEFAULT_ATLAS_SHAPE = (528, 320, 456)
 LAYER_DEFS = {
     "brain_surface": {
-        "displayName": "MRI brain surface",
+        "displayName": "Atlas brain surface",
         "source": "annotation",
         "description": "Brain parenchyma surface extracted from annotation > 0.",
     },
@@ -186,6 +186,11 @@ def update_artifact_manifest(profile_dir: Path, surface_manifest: Path, atlas_sh
 
 
 def build(args: argparse.Namespace) -> dict:
+    lod_method = getattr(args, 'lod_method', 'preserve_topology')
+    if lod_method not in ('preserve_topology', 'legacy_steps'):
+        raise ValueError(f'Unsupported LOD method: {lod_method}')
+    if lod_method == 'preserve_topology':
+        from surface_mesh_lod import as_polydata, mesh_topology, simplify_surface
     profile_dir = Path(args.profile_dir).resolve()
     manifest = load_manifest(profile_dir)
     paths = {
@@ -196,6 +201,8 @@ def build(args: argparse.Namespace) -> dict:
     output_dir = Path(args.output_dir).resolve() if args.output_dir else (profile_dir / "mri_surfaces")
     layers = [x.strip() for x in args.layers.split(",") if x.strip()]
     lod_steps = parse_lod_steps(args.lod_steps)
+    if lod_method == 'preserve_topology' and lod_steps[0] != 1:
+        raise ValueError('Topology-preserving LODs must start with full resolution (1)')
     voxel_size_um = float(args.voxel_size_um)
     atlas_shape = tuple(manifest.get("atlasShape") or DEFAULT_ATLAS_SHAPE)
 
@@ -206,6 +213,7 @@ def build(args: argparse.Namespace) -> dict:
         "voxelSizeUm": voxel_size_um,
         "atlasShape": list(atlas_shape),
         "coordinateOrder": "AP_um,DV_um,ML_um",
+        "lodMethod": lod_method,
         "layers": {},
     }
 
@@ -218,17 +226,31 @@ def build(args: argparse.Namespace) -> dict:
             raise ValueError(f"{layer} mask shape {mask.shape} != atlas shape {atlas_shape}")
         layer_info = {
             **LAYER_DEFS[layer],
+            "sourceSha256": sha256_file(paths[LAYER_DEFS[layer]['source']]),
             "voxelCount": int(mask.sum()),
             "lods": {},
         }
+        if lod_method == 'preserve_topology':
+            full = extract_surface(mask, step_size=1)
+            reference = as_polydata(*full)
+            reference_topology = mesh_topology(reference)
         for lod_idx, step in enumerate(lod_steps):
             out_path = output_dir / f"{layer}.lod{lod_idx}.obj"
             print(f"[surface] {layer} lod{lod_idx} step={step} -> {out_path}")
-            verts, faces, normals = extract_surface(mask, step_size=step)
+            if lod_method == 'legacy_steps':
+                verts, faces, normals = extract_surface(mask, step_size=step)
+                fidelity = {'method': 'marching_cubes_legacy_steps', 'stepSize': int(step)}
+            elif lod_idx == 0:
+                verts, faces, normals = full
+                fidelity = {'method': 'marching_cubes_full_resolution', 'stepSize': 1,
+                            'topology': reference_topology}
+            else:
+                verts, faces, normals, fidelity = simplify_surface(reference, step, reference_topology)
+                fidelity['absoluteErrorControlUm'] = fidelity['absoluteErrorControlVoxels'] * voxel_size_um
             write_obj(out_path, verts, faces, normals, voxel_size_um=voxel_size_um)
             layer_info["lods"][str(lod_idx)] = {
                 "path": manifest_path_text(out_path, profile_dir),
-                "stepSize": int(step),
+                **fidelity,
                 "vertexCount": int(len(verts)),
                 "faceCount": int(len(faces)),
                 "sizeBytes": int(out_path.stat().st_size),
@@ -260,7 +282,9 @@ def main() -> None:
     parser.add_argument("--output-dir", default="")
     parser.add_argument("--voxel-size-um", type=float, default=25.0)
     parser.add_argument("--layers", default="brain_surface,outer_tissue,skull")
-    parser.add_argument("--lod-steps", default="1,2,4", help="Marching-cubes step sizes for lod0,lod1,lod2")
+    parser.add_argument("--lod-steps", default="1,2,4", help="Density factors, or voxel steps only with --lod-method legacy_steps")
+    parser.add_argument("--lod-method", choices=['preserve_topology', 'legacy_steps'], default='preserve_topology',
+                        help="Simplify a full-resolution surface, or explicitly reproduce old coarse-grid extraction")
     parser.add_argument("--update-artifact-manifest", action="store_true")
     args = parser.parse_args()
     build(args)

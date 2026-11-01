@@ -247,9 +247,9 @@ export function useOptimizer() {
         return {
           ...t,
           probeIdx: i,
-        ap: t.ap_mm,
-        ml: t.ml_mm,
-        dvEntry: t.entryDvCorr_mm ?? 0,
+        ap: t.ap_mm_corrected ?? t.ap_mm,
+        ml: t.ml_mm_corrected ?? t.ml_mm,
+        dvEntry: t.entryDvCorr_mm_corrected ?? t.entryDvCorr_mm ?? 0,
         azimuth: t.phi_deg ?? 0,
         elevation: 90 - (t.theta_deg ?? 0),
         regionsHit: t.coveredRegions ?? [],
@@ -345,6 +345,7 @@ export function useOptimizer() {
         correctionUncertainty: raw.correctionUncertainty ?? null,
         requestId: raw.requestId ?? null,
         engineVersion: raw.engineVersion ?? null,
+        runtimeIdentity: raw.runtimeIdentity ?? null,
         rankingMode: raw.rankingMode ?? null,
         robustOptimization: raw.robustOptimization ?? null,
         paretoEnabled: raw.paretoEnabled ?? null,
@@ -530,7 +531,7 @@ export function useOptimizer() {
 
       const startMs = Date.now();
       const presetConfig = PROBE_PRESETS[probePreset] || PROBE_PRESETS["NP2.0-4sh"];
-      const fullProbeParams = { ...presetConfig, ...probeParams };
+      const fullProbeParams = { ...presetConfig, ...probeParams, probeType: probePreset || probeParams?.probeType || 'custom' };
       const optimizeTimeoutMs = resolveOptimizeTimeoutMs(params);
       const fallbackBudgetMs = Math.max(30000, Math.floor(optimizeTimeoutMs * 0.85));
       let keepPollingAfterTimeout = false;
@@ -734,6 +735,7 @@ export function useOptimizer() {
             correctionUncertainty: data.correctionUncertainty ?? null,
             requestId: data.requestId ?? null,
             engineVersion: data.engineVersion ?? null,
+            runtimeIdentity: data.runtimeIdentity ?? null,
             rankingMode: data.rankingMode ?? null,
             robustOptimization: data.robustOptimization ?? null,
             paretoEnabled: data.paretoEnabled ?? null,

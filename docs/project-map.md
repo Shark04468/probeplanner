@@ -6,10 +6,9 @@ apps/ui
 
 apps/backend-compat
   Flask API compatibility layer copied from the original app.
-  Default launcher path enables the engine service and forwards /api/optimize
-  to planner-engine.
-  The old Python optimizer is retained only behind -LegacyPythonBackend for
-  historical comparison and unsupported MISOCP/CVX runs.
+  The paper:start / backend:start npm commands explicitly initialize the
+  paper Python optimizer from a hash-bound prepared profile.
+  Native-engine comparisons are a separate algorithm/runtime, not a fallback.
 
 planner-engine
   Rust native core and local HTTP task service.
@@ -26,24 +25,30 @@ apps/perf-gate
   Fixed replay benchmark and 3D FPS/load gate.
 ```
 
-Primary local native flow:
+Supported paper flow in this unreleased revision (activate the locked Python
+environment and install the UI npm lock first):
 
 ```powershell
-npm run ui:install
-npm run dev:stack -- -ArtifactRoot $env:PROBEPLANNER_ARTIFACT_ROOT
-npm run perf:baseline -- --backend-url http://127.0.0.1:5000 --frontend-url http://127.0.0.1:3000 --runs 3 --out reports\baseline --write-baseline
+npm --prefix apps/ui ci
+npm run ui:build
+npm run backend:test
+npm run paper:start -- --profile "<prepared-profile>" --run-dir "<new-run-directory>" --static-dir apps/ui/build --port 5039
 ```
 
-Explicit engine-service flow after Windows C++ Build Tools and Windows SDK are installed:
+The UI and API share `http://127.0.0.1:5039`. Runtime identity is exposed at
+`/api/paper/runtime`. Full initialization and scientific scope are defined in
+[the paper runtime contract](PAPER_RUNTIME_AND_MRI_EVIDENCE.md).
+
+Independent native tooling still requires Windows C++ Build Tools and the Windows
+SDK on Windows; it is not the current paper Python runtime:
 
 ```powershell
 npm run rust:check
 npm run engine:start -- -ArtifactRoot $env:PROBEPLANNER_ARTIFACT_ROOT
-npm run backend:start -- --UseEngineService
 ```
 
-Legacy Python comparison flow:
-
-```powershell
-npm run dev:stack -- -ArtifactRoot $env:PROBEPLANNER_ARTIFACT_ROOT -LegacyPythonBackend
-```
+The legacy combined `dev:stack` and `desktop:stack` routes require a launcher
+deleted by security software. They fail before any process-stop/start operation
+while it is absent. Old PowerShell flags are not accepted by `paper:start`; do not
+restore or whitelist the blocked file to run a comparison. Use a separately bound,
+explicit comparison contract rather than assuming Python/native equivalence.

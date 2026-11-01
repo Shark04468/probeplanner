@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../constants/i18n';
+import { formatProbeModels } from './probeModelLabels';
 import {
   CLINICAL_CLASS_LABEL_KEY,
   CLINICAL_CLASS_ORDER,
@@ -8,8 +9,13 @@ import {
   classifyRegionDisplay,
 } from '../constants/atlasDisplayPolicy';
 import { BREGMA_UM, PROBE_PRESETS } from '../constants/anatomy';
-import MriSurfaceOverlay from './MriSurfaceOverlay';
+import { regionToWorld, probePointAtDepth, normalizeProbeSegment, axisCoordValue, resolvedSliceCoordinate } from './brain3d/ccfCoordinates';
 import unityBridge from './brain3d/unityBridge';
+import { surfaceLabelKey } from './brain3d/surfaceProvenance';
+import { meshStreamStatus } from './brain3d/meshStreamStatus';
+import { contactRegionHemispheres, sampledContactHemispheres } from './brain3d/contactHemispheres';
+import { regionMeasurements, selectContextKeys } from './brain3d/contextRegions';
+import './Brain3DView.css';
 
 const {
   BRIDGE_METRIC_ABSOLUTE_KEYS,
@@ -25,7 +31,7 @@ const {
   summarizeUnityCapabilities,
 } = unityBridge;
 
-const UNITY_SOURCE = process.env.REACT_APP_UNITY_URL || '/unity/index.html?v=20260513-interactivefix';
+const UNITY_SOURCE = process.env.REACT_APP_UNITY_URL || '/unity/index.html?v=paper-viewer-revision-20261101';
 const ENABLE_MESH_HEALTHCHECK =
   String(process.env.REACT_APP_MESH_HEALTHCHECK || '')
     .trim()
@@ -63,15 +69,12 @@ const CAMERA_LIMITS = {
   maxPhi: Math.PI - 0.05,
 };
 const CAMERA_PIVOT = { x: 0, y: -2.8, z: -0.8 };
+// Stable optional inputs keep contact-profile effects from retriggering on their own updates.
+const EMPTY_LIST = Object.freeze([]);
+const EMPTY_REGIONS = Object.freeze({});
+const DEFAULT_PROBE_SPEC = Object.freeze({ depth: 4 });
 // Keep projection parameters aligned with Unity CameraController defaults.
 const UNITY_FOV_DEG = 38;
-
-const PROBE_COLORS = {
-  'NP2.0-4sh': '#00d4ff',
-  'NP2.0-1sh': '#34d399',
-  'NP1.0': '#a78bfa',
-  custom: '#facc15',
-};
 
 const SLICE_AXES = ['y', 'z', 'x']; // y: horizontal, z: coronal, x: sagittal
 const SLICE_AXIS_LABEL_KEY = {
@@ -91,7 +94,6 @@ const DEFAULT_SLICE_PRESETS = [
 const SLICE_THICKNESS_PRESETS_UM = [100, 200, 300, 500];
 const CLINICAL_FOCUS_CATEGORY_LIMIT = 10;
 const CLINICAL_FOCUS_GROUP_LIMIT = 10;
-const CLINICAL_FOCUS_KEY_LIMIT = 128;
 const CLINICAL_FOCUS_MAX_VISIBLE = 72;
 const UNITY_CONTACT_REGION_LIMIT = 160;
 const UNITY_CONTACT_REGION_KEY_MAX = 64;
@@ -189,13 +191,14 @@ function normalizeMriAppearanceLayers(raw) {
   };
 }
 
-function buildMriAppearancePayload(enabled, layers, activeAtlasMode, isMriHybridMode) {
+export function buildMriAppearancePayload(enabled, layers, activeAtlasMode, isMriHybridMode) {
   const cleanLayers = normalizeMriAppearanceLayers(layers);
   const active = Boolean(enabled && isMriHybridMode);
   const overlayActive = Boolean(active && cleanLayers.overlay);
   return {
     enabled: active,
     useMriAppearance: active,
+    surfaceRenderer: 'unity',
     atlasMode: isMriHybridMode ? 'mri_ccf_hybrid' : String(activeAtlasMode || 'allen_sdk'),
     showOuterBoundary: Boolean(active && cleanLayers.outerBoundary),
     showSkull: Boolean(active && cleanLayers.skull),
@@ -418,7 +421,7 @@ function deriveNativeEndpointGeometry(probe) {
   };
 }
 
-function toUnityProbe(probe, probePreset, probeSpec) {
+export function toUnityProbe(probe, probePreset, probeSpec) {
   const endpointGeometry = deriveNativeEndpointGeometry(probe);
   const thetaDeg = endpointGeometry?.theta_deg ??
     probe.theta_deg ??
@@ -450,6 +453,7 @@ function toUnityProbe(probe, probePreset, probeSpec) {
     ml_mm: endpointGeometry?.ml_mm ?? probe.ml ?? probe.ml_mm ?? 0,
     theta_deg: thetaDeg,
     phi_deg: endpointGeometry?.phi_deg ?? probe.phi_deg ?? probe.azimuth ?? 0,
+    spin_deg: probe.spin_deg ?? probe.spin ?? 0,
     depthUm,
     entryDvCorr_mm: endpointGeometry?.entryDvCorr_mm ?? probe.entryDvCorr_mm ?? probe.dvEntry ?? 0,
     nativeEndpointGeometry: Boolean(endpointGeometry),
@@ -503,6 +507,7 @@ function validateProbes(probes) {
       Number.isFinite(p.ml_mm) &&
       Number.isFinite(p.theta_deg) &&
       Number.isFinite(p.phi_deg) &&
+      Number.isFinite(p.spin_deg) &&
       Number.isFinite(p.depthUm) &&
       Number.isFinite(p.entryDvCorr_mm);
     if (!finite) {
@@ -658,27 +663,28 @@ function vecNormalize(v) {
   return { x: v.x / len, y: v.y / len, z: v.z / len };
 }
 
-function getCameraBasis(camera) {
+export function getCameraBasis(camera) {
+  const pivot = camera.pivot || CAMERA_PIVOT;
   const sinPhi = Math.sin(camera.phi);
   const pos = {
-    x: CAMERA_PIVOT.x + camera.distance * sinPhi * Math.cos(camera.theta),
-    y: CAMERA_PIVOT.y + camera.distance * Math.cos(camera.phi),
-    z: CAMERA_PIVOT.z + camera.distance * sinPhi * Math.sin(camera.theta),
+    x: pivot.x + camera.distance * sinPhi * Math.cos(camera.theta),
+    y: pivot.y + camera.distance * Math.cos(camera.phi),
+    z: pivot.z + camera.distance * sinPhi * Math.sin(camera.theta),
   };
 
-  const forward = vecNormalize(vecSub(CAMERA_PIVOT, pos));
+  const forward = vecNormalize(vecSub(pivot, pos));
   let worldUp = { x: 0, y: 1, z: 0 };
-  let right = vecCross(forward, worldUp);
+  let right = vecCross(worldUp, forward);
   if (vecLength(right) < 1e-5) {
     worldUp = { x: 0, y: 0, z: 1 };
-    right = vecCross(forward, worldUp);
+    right = vecCross(worldUp, forward);
   }
   right = vecNormalize(right);
-  const up = vecNormalize(vecCross(right, forward));
-  return { pos, forward, right, up };
+  const up = vecNormalize(vecCross(forward, right));
+  return { pos, forward, right, up, fov: camera.fov || UNITY_FOV_DEG };
 }
 
-function projectPoint(world, basis, width, height, fovDeg = UNITY_FOV_DEG) {
+export function projectPoint(world, basis, width, height, fovDeg = basis.fov || UNITY_FOV_DEG) {
   if (width <= 0 || height <= 0) return null;
   const rel = vecSub(world, basis.pos);
   const xCam = vecDot(rel, basis.right);
@@ -695,15 +701,6 @@ function projectPoint(world, basis, width, height, fovDeg = UNITY_FOV_DEG) {
   return { x, y, depth: zCam };
 }
 
-function regionToWorld(reg, hemisphere, invertLr = false) {
-  const mlAbs = Math.abs(reg.ml ?? 0);
-  const mlSign = hemisphere === 'right' ? 1 : -1;
-  const ml = mlAbs * (invertLr ? -mlSign : mlSign);
-  // Allen mesh vertices are loaded with z = -(AP - bregma) / 1000 in Unity.
-  // So AP must be negated for overlay projection to align with rendered meshes.
-  return { x: ml, y: -(reg.dv ?? 0), z: -(reg.ap ?? 0) };
-}
-
 function getAnchorRadius(depth) {
   return clamp(320 / (depth + 6), 12, 28);
 }
@@ -712,11 +709,6 @@ function axisCoordKey(axis) {
   if (axis === 'x') return 'ml';
   if (axis === 'z') return 'ap';
   return 'dv';
-}
-
-function axisCoordValue(axis, worldCoord) {
-  if (axis === 'x') return worldCoord;
-  return -worldCoord;
 }
 
 function formatMm(value) {
@@ -733,38 +725,6 @@ function axisValueOfPoint(point, axis) {
   return point.y;
 }
 
-function probePointAtDepth(probe, depthUm, invertLr = false) {
-  if (!probe || !Number.isFinite(depthUm)) return null;
-  const thetaDeg = Number(probe.theta_deg);
-  const phiDeg = Number(probe.phi_deg);
-  if (!Number.isFinite(thetaDeg) || !Number.isFinite(phiDeg)) return null;
-
-  const thetaRad = (thetaDeg * Math.PI) / 180;
-  const phiRad = (phiDeg * Math.PI) / 180;
-  const dirAp = Math.sin(thetaRad) * Math.cos(phiRad);
-  const dirDv = Math.cos(thetaRad);
-  const dirMl = Math.sin(thetaRad) * Math.sin(phiRad);
-
-  let entryX = Number(probe.ml_mm ?? 0);
-  const entryY = -Number(probe.entryDvCorr_mm ?? 0);
-  const entryZ = -Number(probe.ap_mm ?? 0);
-  let dirX = dirMl;
-  const dirY = -dirDv;
-  const dirZ = -dirAp;
-
-  if (invertLr) {
-    entryX *= -1;
-    dirX *= -1;
-  }
-
-  const scale = Number(depthUm) / 1000;
-  return {
-    x: entryX + dirX * scale,
-    y: entryY + dirY * scale,
-    z: entryZ + dirZ * scale,
-  };
-}
-
 function isPointVisibleInSlice(point, axis, coord, mode, thicknessMm) {
   const value = axisValueOfPoint(point, axis);
   if (mode === 'slab') {
@@ -772,30 +732,6 @@ function isPointVisibleInSlice(point, axis, coord, mode, thicknessMm) {
     return Math.abs(value - coord) <= half;
   }
   return value <= coord;
-}
-
-function normalizeProbeSegment(probe) {
-  const thetaDeg = Number(probe?.theta_deg ?? 0);
-  const phiDeg = Number(probe?.phi_deg ?? 0);
-  const depthMm = Number(probe?.depthUm ?? 0) / 1000;
-  const entry = {
-    x: Number(probe?.ml_mm ?? 0),
-    y: -Number(probe?.entryDvCorr_mm ?? 0),
-    z: -Number(probe?.ap_mm ?? 0),
-  };
-  const theta = (thetaDeg * Math.PI) / 180;
-  const phi = (phiDeg * Math.PI) / 180;
-  const dir = {
-    x: Math.sin(theta) * Math.sin(phi),
-    y: -Math.cos(theta),
-    z: -Math.sin(theta) * Math.cos(phi),
-  };
-  const tip = {
-    x: entry.x + dir.x * depthMm,
-    y: entry.y + dir.y * depthMm,
-    z: entry.z + dir.z * depthMm,
-  };
-  return { entry, tip };
 }
 
 function probeIntersectsSlice(probe, axis, coord, mode, thicknessMm) {
@@ -960,12 +896,12 @@ function useDragOffset(initial = { x: 0, y: 0 }) {
 }
 
 export default function Brain3DView({
-  probes = [],
-  selectedRegions = [],
+  probes = EMPTY_LIST,
+  selectedRegions = EMPTY_LIST,
   probePreset = 'NP2.0-4sh',
-  probeSpec = { depth: 4 },
+  probeSpec = DEFAULT_PROBE_SPEC,
   highlightIdx = null,
-  brainRegions = {},
+  brainRegions = EMPTY_REGIONS,
   focusedRegion = null,
   sideCoverage = null,
   onToggleRegion = null,
@@ -1035,6 +971,8 @@ export default function Brain3DView({
   const [bridgeSyncState, setBridgeSyncState] = useState('ok');
   const [unityBridgeInfo, setUnityBridgeInfo] = useState(() => summarizeUnityCapabilities(unityCapabilitiesRef.current));
   const [snapshotSeq, setSnapshotSeq] = useState(0);
+  const [viewerGeneration, setViewerGeneration] = useState(0);
+  const rendererFaultRef = useRef('');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [missingBuild, setMissingBuild] = useState(false);
   const [runtimeError, setRuntimeError] = useState('');
@@ -1042,8 +980,15 @@ export default function Brain3DView({
   const [fillNotice, setFillNotice] = useState('');
   const [opacitySlider, setOpacitySlider] = useState(38);
   const [outlineProgress, setOutlineProgress] = useState({ loaded: 0, total: 0 });
+  const [fillStates, setFillStates] = useState({});
+  const [surfaceStates, setSurfaceStates] = useState({});
+  const [sectionState, setSectionState] = useState({});
   const [catalogSource, setCatalogSource] = useState('unknown');
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  const [compactSliceOpen, setCompactSliceOpen] = useState(false);
+  const [compactDisplayOpen, setCompactDisplayOpen] = useState(false);
+  const [desktopSliceOpen, setDesktopSliceOpen] = useState(true);
+  const [desktopDisplayOpen, setDesktopDisplayOpen] = useState(true);
   const [selectedOnly, setSelectedOnly] = useState(false);
   const [clinicalFocus, setClinicalFocus] = useState(true);
   const [hemisphereFilter, setHemisphereFilter] = useState('all');
@@ -1119,6 +1064,8 @@ export default function Brain3DView({
     ),
     [activeAtlasMode, isMriHybridMode, mriAppearanceEnabled, mriAppearanceLayers],
   );
+  const atlasEnvelopeSuppressed = Boolean(mriAppearancePayload.showBrainSurface);
+  const atlasEnvelopeVisible = Boolean(showShell && !atlasEnvelopeSuppressed);
   const mriLayerExplain = useMemo(() => {
     if (!isMriHybridMode) return null;
     const row = mriLayerStatus && typeof mriLayerStatus === 'object' ? mriLayerStatus : {};
@@ -1182,6 +1129,13 @@ export default function Brain3DView({
     view: 'iso',
   });
   const tr = useCallback((key) => t(key, lang), [lang]);
+  const handleRendererFault = useCallback((renderer) => {
+    rendererFaultRef.current = renderer;
+    setRuntimeError(`${tr('brain3dGraphicsUnavailable')} (${renderer})`);
+    setBridgeReady(false);
+    setInstanceReady(false);
+    setBridgeSyncState('stale');
+  }, [tr]);
   const catalogDisplay = useMemo(() => {
     const isCn = String(lang || '').toLowerCase().startsWith('zh') || String(lang || '').toLowerCase() === 'cn';
     const mapCn = {
@@ -1220,7 +1174,7 @@ export default function Brain3DView({
       const mlAbs = Math.abs(reg.ml);
       const xVals = [-mlAbs, mlAbs];
       const yVal = -reg.dv;
-      const zVal = -reg.ap;
+      const zVal = reg.ap;
       xVals.forEach((v) => {
         seed.x.min = Math.min(seed.x.min, v);
         seed.x.max = Math.max(seed.x.max, v);
@@ -1239,9 +1193,14 @@ export default function Brain3DView({
     };
   }, [brainRegions]);
   const activeSliceRange = sliceRanges[sliceAxis] || sliceRanges.y;
-  const activeSliceCoord =
+  const requestedSliceCoord =
     activeSliceRange.min + clamp(coronalSlice, 0, 1) * (activeSliceRange.max - activeSliceRange.min);
   const sliceEnabled = coronalSlice < 0.9995;
+  const sectionRequestKey = JSON.stringify([sliceAxis, Number(coronalSlice.toFixed(4)), sliceMode,
+    Number(sliceThicknessMm.toFixed(3)), Boolean(sliceSnapEnabled), Number(sliceSnapThresholdMm.toFixed(3)),
+    mriAppearanceEnabled, mriAppearancePayload.overlayMode, hemisphereFilter, invertLr]);
+  const activeSliceCoord = resolvedSliceCoordinate(requestedSliceCoord, sectionState, sectionRequestKey,
+    mriAppearanceEnabled && sliceEnabled);
   const sliceAxisCoord = axisCoordValue(sliceAxis, activeSliceCoord);
   const sliceAxisCoordKey = axisCoordKey(sliceAxis);
 
@@ -1280,15 +1239,12 @@ export default function Brain3DView({
         groupKey: meta.groupKey || meta.group || '',
         groupName: meta.groupName || meta.group || '',
       });
-      const volumeScore = Number(meta.volumeMm3 ?? meta.voxelCount ?? 0);
       map.set(key, {
+        ...regionMeasurements(meta),
         category: normalizedCategory,
         group: normalizedGroup,
         clinicalClass,
         layer,
-        volumeScore: Number.isFinite(volumeScore) ? volumeScore : 0,
-        voxelCount: Number(meta.voxelCount ?? 0) || 0,
-        nSubregions: Number(meta.nSubregions ?? 0) || 0,
         aggregateParent: false,
       });
     });
@@ -1334,6 +1290,7 @@ export default function Brain3DView({
     regionDisplayMetaByKey.forEach((meta, key) => {
       if (!layerVisibility?.[meta.layer]) return;
       if (classVisibility?.[meta.clinicalClass] === false) return;
+      if (meta.presentInVolume === false && !selectedRegionSet.has(key)) return;
       if (meta.aggregateParent && !selectedRegionSet.has(key)) return;
       rows.push({ key, volumeScore: meta.volumeScore });
     });
@@ -1394,7 +1351,6 @@ export default function Brain3DView({
       ...(recentPick?.key ? [recentPick.key] : []),
       ...sideCoverageKeys,
       ...contactKeys,
-      ...RISK_CONTEXT_KEYS,
     ];
     const tryPush = (value) => {
       if (!value || seen.has(value)) return false;
@@ -1410,72 +1366,18 @@ export default function Brain3DView({
       }
     });
 
-    const defaultContext = [...DEFAULT_CONTEXT_KEYS, ...RISK_CONTEXT_KEYS];
-    if (!hasInteractiveFocus) {
-      defaultContext.forEach((regionKey) => {
-        const variants = keyVariantsForLookup(regionKey);
-        for (let i = 0; i < variants.length; i += 1) {
-          if (tryPush(variants[i])) break;
-        }
-      });
-    }
-
+    const explicitKeys = [...ordered];
     const softContextLimit = hasInteractiveFocus ? CLINICAL_FOCUS_MAX_VISIBLE : 32;
-    const pushFromVisibleByGroup = (groups) => {
-      if (!Array.isArray(groups) || groups.length <= 0) return;
-      for (let i = 0; i < visibleKeysByPolicy.length; i += 1) {
-        if (ordered.length >= softContextLimit) break;
-        const key = visibleKeysByPolicy[i];
-        if (seen.has(key)) continue;
+    const defaultContext = hasInteractiveFocus ? RISK_CONTEXT_KEYS : [...DEFAULT_CONTEXT_KEYS, ...RISK_CONTEXT_KEYS];
+    return selectContextKeys(regionDisplayMetaByKey, explicitKeys, [
+      ...defaultContext.flatMap(keyVariantsForLookup),
+      ...visibleKeysByPolicy.filter(key => {
         const meta = regionDisplayMetaByKey.get(key);
-        if (!meta) continue;
-        if (meta.aggregateParent) continue;
-        if (!groups.includes(meta.group)) continue;
-        seen.add(key);
-        ordered.push(key);
-      }
-    };
-
-    if (hasInteractiveFocus) {
-      pushFromVisibleByGroup(activeSystemGroups);
-      for (let i = 0; i < visibleKeysByPolicy.length; i += 1) {
-        if (ordered.length >= softContextLimit) break;
-        const key = visibleKeysByPolicy[i];
-        if (seen.has(key)) continue;
-        const meta = regionDisplayMetaByKey.get(key);
-        if (!meta || meta.aggregateParent) continue;
-        if (meta.layer === 'L3' || meta.layer === 'L4') continue;
-        if (meta.clinicalClass === 'pathway' || meta.clinicalClass === 'nerve_fissure') continue;
-        const inActiveGroup = activeSystemGroups.includes(meta.group);
-        const inRiskContext = RISK_CONTEXT_KEYS.includes(key);
-        if (!inActiveGroup && !inRiskContext) continue;
-        seen.add(key);
-        ordered.push(key);
-      }
-    } else {
-      for (let i = 0; i < visibleKeysByPolicy.length; i += 1) {
-        if (ordered.length >= softContextLimit) break;
-        const key = visibleKeysByPolicy[i];
-        if (seen.has(key)) continue;
-        const meta = regionDisplayMetaByKey.get(key);
-        if (!meta) continue;
-        if (meta.aggregateParent) continue;
-        if (meta.layer === 'L3' || meta.layer === 'L4') continue;
-        if (meta.clinicalClass === 'pathway' || meta.clinicalClass === 'nerve_fissure') continue;
-        seen.add(key);
-        ordered.push(key);
-      }
-    }
-
-    if (ordered.length <= 0) {
-      ['VISp', 'CA1', 'DG', 'VPM', 'MOp', 'CP', 'ACA', 'MRN'].forEach((key) => {
-        if (!seen.has(key)) {
-          seen.add(key);
-          ordered.push(key);
-        }
-      });
-    }
-    return ordered.slice(0, CLINICAL_FOCUS_KEY_LIMIT);
+        return meta && meta.layer !== 'L3' && meta.layer !== 'L4'
+          && meta.clinicalClass !== 'pathway' && meta.clinicalClass !== 'nerve_fissure'
+          && (!hasInteractiveFocus || activeSystemGroups.includes(meta.group));
+      }),
+    ], softContextLimit);
   }, [activeSystemGroups, contactProfileData, focusedRegion, hasInteractiveFocus, recentPick?.key, regionDisplayMetaByKey, selectedRegions, sideCoverage, visibleKeysByPolicy]);
   const selectedFocusCategories = useMemo(() => {
     if (!hasInteractiveFocus) return [];
@@ -1502,7 +1404,7 @@ export default function Brain3DView({
     return ordered.slice(0, CLINICAL_FOCUS_GROUP_LIMIT);
   }, [hasInteractiveFocus, regionGroupByKey, selectedFocusKeys]);
   const visiblePolicyCount = visibleKeysByPolicy.length;
-  const focusAutoLimited = visiblePolicyCount > CLINICAL_FOCUS_MAX_VISIBLE;
+  const focusAutoLimited = clinicalFocus && visiblePolicyCount > CLINICAL_FOCUS_MAX_VISIBLE;
   const toggleLayerVisibility = useCallback((layerKey) => {
     setLayerVisibility((prev) => ({ ...prev, [layerKey]: !prev?.[layerKey] }));
   }, []);
@@ -1650,12 +1552,12 @@ export default function Brain3DView({
       };
     }
 
-    // MRI hybrid visual profile: make the mode change obvious and clinically readable.
+    // The profile already provides a brain surface; do not add a second envelope.
     setSelectedOnly(false);
     setClinicalFocus(true);
     setLayerVisibility({ L1: true, L2: true, L3: false, L4: false });
     setClassVisibility({ ...TARGET_TEMPLATE_CLASS_VISIBILITY });
-    setShowShell(true);
+    setShowShell(false);
     setShowAxes(false);
     setShowProbeGuides(true);
     setShowUncertainty(false);
@@ -1704,12 +1606,6 @@ export default function Brain3DView({
       // ignore storage access issues
     }
   }, [clinicalFocus]);
-  useEffect(() => {
-    const selectedCount = Array.isArray(selectedRegions) ? selectedRegions.length : 0;
-    if (!clinicalFocus && selectedCount <= 0 && visiblePolicyCount > CLINICAL_FOCUS_MAX_VISIBLE) {
-      setClinicalFocus(true);
-    }
-  }, [clinicalFocus, selectedRegions, visiblePolicyCount]);
   useEffect(() => {
     try {
       window.localStorage?.setItem(
@@ -1942,14 +1838,16 @@ export default function Brain3DView({
   const totalProbeCount = probePayloadAugmented.length;
   const contactRequestProbes = useMemo(
     () =>
-      probePayloadAugmented.map((probe) => ({
+      // Derived contact results must not feed back into the request that produced them.
+      probePayloadRaw.map((probe) => ({
         ...probe,
         radiusUm: Number.isFinite(Number(probe.radiusUm))
           ? Number(probe.radiusUm)
           : Number(probeSpec?.radiusUm ?? 35),
       })),
-    [probePayloadAugmented, probeSpec],
+    [probePayloadRaw, probeSpec],
   );
+  const contactRequestJson = JSON.stringify(contactRequestProbes);
   const contactRegionSet = useMemo(() => {
     const src = Array.isArray(contactProfileData?.contactRegionSet)
       ? contactProfileData.contactRegionSet
@@ -1984,7 +1882,7 @@ export default function Brain3DView({
       const ap = Number(reg.ap);
       const dv = Number(reg.dv);
       const mlAbs = Math.abs(Number(reg.ml));
-      if (Number.isFinite(ap)) buckets.z.push({ key, coord: -ap });
+      if (Number.isFinite(ap)) buckets.z.push({ key, coord: ap });
       if (Number.isFinite(dv)) buckets.y.push({ key, coord: -dv });
       if (Number.isFinite(mlAbs)) {
         buckets.x.push({ key, coord: mlAbs });
@@ -2028,6 +1926,7 @@ export default function Brain3DView({
           region: String(interval?.region || acronym),
           name: String(interval?.name || acronym),
           hemisphere: String(interval?.hemisphere || '').toLowerCase(),
+          hemispheres: sampledContactHemispheres(interval),
           dStartUm,
           dEndUm,
           lengthUm,
@@ -2082,6 +1981,7 @@ export default function Brain3DView({
       'probeId',
       'region',
       'hemisphere',
+      'hemispheres',
       'dStartUm',
       'dEndUm',
       'lengthUm',
@@ -2112,10 +2012,11 @@ export default function Brain3DView({
       style: contactDisplayStyle,
       minLengthUm: Number(contactMinLengthUm),
       regions: unityContactRegionSet,
+      regionHemispheres: contactRegionHemispheres(contactIntervals, unityContactRegionSet),
       totalRegionCount: contactRegionSet.length,
       truncated: unityContactRegionSet.length < contactRegionSet.length,
     }),
-    [contactDisplayMode, contactDisplayStyle, contactMinLengthUm, contactRegionSet.length, unityContactRegionSet],
+    [contactDisplayMode, contactDisplayStyle, contactMinLengthUm, contactRegionSet.length, unityContactRegionSet, contactIntervals],
   );
   const contactOverlayJson = useMemo(
     () => JSON.stringify(contactOverlayPayload),
@@ -2607,6 +2508,7 @@ export default function Brain3DView({
   ]);
 
   useEffect(() => {
+    const requestProbes = JSON.parse(contactRequestJson);
     if (!cleanBackendBase || backendStatus !== 'online') {
       setContactProfileLoading(false);
       setContactProfileError('');
@@ -2621,7 +2523,7 @@ export default function Brain3DView({
       return undefined;
     }
 
-    if (!Array.isArray(contactRequestProbes) || contactRequestProbes.length <= 0) {
+    if (requestProbes.length <= 0) {
       setContactProfileLoading(false);
       setContactProfileError('');
       setContactProfileData({
@@ -2650,7 +2552,7 @@ export default function Brain3DView({
           method: 'POST',
           headers,
           body: JSON.stringify({
-            probes: contactRequestProbes,
+            probes: requestProbes,
             stepUm: 25,
             minContactLengthUm: Number(contactMinLengthUm) || 0,
             contactMode: 'cylinder',
@@ -2703,7 +2605,7 @@ export default function Brain3DView({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [authToken, backendStatus, cleanBackendBase, contactMinLengthUm, contactRequestProbes, tr]);
+  }, [authToken, backendStatus, cleanBackendBase, contactMinLengthUm, contactRequestJson, tr]);
 
   const handleContactIntervalClick = useCallback((row, options = {}) => {
     if (!row || !Number.isFinite(row.probeIndex)) return;
@@ -2897,6 +2799,7 @@ export default function Brain3DView({
       opacity: Number(mapOpacity(opacitySlider).toFixed(3)),
       coronalSlice: Number(coronalSlice.toFixed(4)),
       slice: {
+        requestKey: sectionRequestKey,
         axis: sliceAxis,
         mode: sliceMode,
         thicknessMm: Number(sliceThicknessMm.toFixed(3)),
@@ -2906,7 +2809,7 @@ export default function Brain3DView({
       },
       selectedOnly: Boolean(selectedOnly),
       hemisphereFilter: unityHemisphere,
-      shellVisible: Boolean(showShell),
+      shellVisible: atlasEnvelopeVisible,
       axesVisible: Boolean(showAxes),
       probeGuideVisible: Boolean(showProbeGuides),
       uncertaintyVisible: Boolean(showUncertainty),
@@ -2946,6 +2849,7 @@ export default function Brain3DView({
       sendToUnityReliable(
         'SetSlice',
         JSON.stringify({
+          requestKey: sectionRequestKey,
           axis: sliceAxis,
           enabled: sliceEnabled,
           normalized: Number(coronalSlice.toFixed(4)),
@@ -2958,7 +2862,7 @@ export default function Brain3DView({
     );
     cleanups.push(sendToUnityReliable('SetSelectedOnly', selectedOnly ? 'true' : 'false'));
     cleanups.push(sendToUnityReliable('SetHemisphereFilter', unityHemisphere));
-    cleanups.push(sendToUnityReliable('SetShellVisible', showShell ? 'true' : 'false'));
+    cleanups.push(sendToUnityReliable('SetShellVisible', atlasEnvelopeVisible ? 'true' : 'false'));
     cleanups.push(sendToUnityReliable('SetAxesVisible', showAxes ? 'true' : 'false'));
     cleanups.push(sendToUnityReliable('SetProbeGuideVisible', showProbeGuides ? 'true' : 'false'));
     cleanups.push(sendToUnityReliable('SetProbeUncertaintyVisible', showUncertainty ? 'true' : 'false'));
@@ -3050,7 +2954,7 @@ export default function Brain3DView({
     sendToUnityReliable,
     showAxes,
     showProbeGuides,
-    showShell,
+    atlasEnvelopeVisible,
     showUncertainty,
     postFxPreset,
     antiAliasingMode,
@@ -3061,6 +2965,7 @@ export default function Brain3DView({
     oitWeight,
     useWeightedOit,
     unitySupportsBulkState,
+    sectionRequestKey,
   ]);
 
   useEffect(() => {
@@ -3121,6 +3026,12 @@ export default function Brain3DView({
       if (!event.data || event.data.source !== 'BrainPlannerUnity') return;
 
       const { event: name, data } = event.data;
+      if (name === 'graphicsContextLost') {
+        handleRendererFault('Unity');
+        return;
+      }
+      // Only an explicit reload may clear a graphics fault, not late ready/ack messages.
+      if (rendererFaultRef.current) return;
       if (name === 'capabilities' || name === 'bridgeCapabilities') {
         const parsed = parseJSONSafely(data, {});
         const normalized = normalizeUnityCapabilities(parsed);
@@ -3196,6 +3107,8 @@ export default function Brain3DView({
         setOutlineProgress({
           loaded: parsed?.loaded ?? 0,
           total: parsed?.total ?? 0,
+          failed: parsed?.failed ?? 0,
+          excluded: parsed?.excluded ?? 0,
         });
         return;
       }
@@ -3271,7 +3184,7 @@ export default function Brain3DView({
           ap: Number.isFinite(Number(coordsObj?.ap))
             ? Number(coordsObj.ap)
             : Number.isFinite(Number(world?.z))
-              ? -Number(world.z)
+              ? Number(world.z)
               : null,
           dv: Number.isFinite(Number(coordsObj?.dv))
             ? Number(coordsObj.dv)
@@ -3341,14 +3254,15 @@ export default function Brain3DView({
           theta: normalizedTheta,
           phi: normalizedPhi,
           distance: normalizedDistance,
+          pivot: parsed.pivot && ['x', 'y', 'z'].every(axis => Number.isFinite(parsed.pivot[axis]))
+            ? parsed.pivot : CAMERA_PIVOT,
+          fov: Number.isFinite(parsed.fov) && parsed.fov > 0 && parsed.fov < 180 ? parsed.fov : UNITY_FOV_DEG,
           view: inferViewFromPose(normalizedTheta, normalizedPhi, normalizedDistance),
         });
         return;
       }
       if (name === 'error') {
         const msg = String(data || 'Unity runtime error');
-        if (/SetEnvironmentLighting/i.test(msg)) return;
-        if (/SetSlice/i.test(msg) && /Maximum call stack size exceeded/i.test(msg)) return;
         if (/SetContactProfile/i.test(msg)) {
           setContactProfileError(tr('brain3dContactError'));
           return;
@@ -3362,10 +3276,29 @@ export default function Brain3DView({
         setMissingBuild(false);
         return;
       }
+      if (name === 'surfaceState') {
+        const state = parseJSONSafely(data, {});
+        if (['brain_surface', 'outer_tissue', 'skull', 'atlas_envelope'].includes(state?.key)) {
+          setSurfaceStates(previous => ({ ...previous, [state.key]: state }));
+        }
+        return;
+      }
+      if (name === 'sectionState') {
+        const state = parseJSONSafely(data, {});
+        if (state?.key === 'mri_section') setSectionState(state);
+        return;
+      }
+      if (name === 'fillLoaded' || name === 'fillFailed') {
+        const parsed = parseJSONSafely(data, {});
+        const key = getRegionKeyFromPayload(parsed) || String(parsed?.key || '').trim();
+        if (key) setFillStates(previous => ({ ...previous, [key]: name === 'fillLoaded' ? 'loaded' : 'failed' }));
+        return;
+      }
       if (name === 'fillSuppressed') {
         const parsed = parseJSONSafely(data, {});
         const key = getRegionKeyFromPayload(parsed) || String(parsed?.key || '').trim();
         const reason = String(parsed?.reason || '').trim();
+        if (key) setFillStates(previous => ({ ...previous, [key]: 'suppressed' }));
         const reasonLabelMap = {
           aggregate_parent: tr('brain3dFillSuppressedReasonParent'),
           aggregate_subregions: tr('brain3dFillSuppressedReasonSubregions'),
@@ -3393,7 +3326,7 @@ export default function Brain3DView({
       instanceReadyAtRef.current = 0;
       bridgeFallbackPromotedRef.current = false;
     };
-  }, [bridgeReady, instanceReady, invertLr, onRegionPicked, onToggleRegion, pumpScreenshotExportQueue, requestFullSnapshot, sendToUnityReliable, tr, updateBridgeMetrics]);
+  }, [bridgeReady, instanceReady, invertLr, onRegionPicked, onToggleRegion, pumpScreenshotExportQueue, requestFullSnapshot, sendToUnityReliable, tr, updateBridgeMetrics, handleRendererFault]);
 
   useEffect(() => () => {
     if (screenshotExportPumpTimerRef.current) {
@@ -3443,7 +3376,7 @@ export default function Brain3DView({
       meshStallWatchRef.current = { loaded: -1, total: -1, at: Date.now() };
       return undefined;
     }
-    const loaded = Number(outlineProgress.loaded || 0);
+    const loaded = Number(outlineProgress.loaded || 0) + Number(outlineProgress.failed || 0);
     const total = Number(outlineProgress.total || 0);
     const prev = meshStallWatchRef.current;
     const changed = loaded !== prev.loaded || total !== prev.total;
@@ -3461,7 +3394,7 @@ export default function Brain3DView({
       meshStallWatchRef.current = { ...watch, at: now };
     }, 4000);
     return () => window.clearInterval(timer);
-  }, [bridgeReady, outlineProgress.loaded, outlineProgress.total, requestFullSnapshot]);
+  }, [bridgeReady, outlineProgress.loaded, outlineProgress.failed, outlineProgress.total, requestFullSnapshot]);
 
   useEffect(() => {
     if (!bridgeReady) return undefined;
@@ -3561,6 +3494,7 @@ export default function Brain3DView({
     return sendToUnityReliable(
       'SetSlice',
       JSON.stringify({
+        requestKey: sectionRequestKey,
         axis: sliceAxis,
         enabled: sliceEnabled,
         normalized: Number(coronalSlice.toFixed(4)),
@@ -3580,6 +3514,7 @@ export default function Brain3DView({
     sliceSnapEnabled,
     sliceSnapThresholdMm,
     sliceThicknessMm,
+    sectionRequestKey,
   ]);
 
   useEffect(() => {
@@ -3650,8 +3585,8 @@ export default function Brain3DView({
 
   useEffect(() => {
     if (!bridgeReady) return undefined;
-    return sendToUnityReliable('SetShellVisible', showShell ? 'true' : 'false');
-  }, [bridgeReady, showShell, sendToUnityReliable]);
+    return sendToUnityReliable('SetShellVisible', atlasEnvelopeVisible ? 'true' : 'false');
+  }, [bridgeReady, atlasEnvelopeVisible, sendToUnityReliable]);
 
   useEffect(() => {
     if (!bridgeReady) return undefined;
@@ -3704,37 +3639,8 @@ export default function Brain3DView({
 
   useEffect(() => {
     if (!bridgeReady) return undefined;
-    if (sliceDragActive) {
-      const cleanups = [
-        sendToUnityReliable('SetInteractionQuality', 'low'),
-        sendToUnityReliable('SetPostFxEnabled', 'false'),
-        sendToUnityReliable(
-          'SetWeightedOit',
-          JSON.stringify({ enabled: false, weightScale: Number(oitWeight) }),
-        ),
-        sendToUnityReliable('SetAntiAliasingMode', 'none'),
-      ];
-      return () => cleanups.forEach((cleanup) => cleanup && cleanup());
-    }
-    const cleanups = [
-      sendToUnityReliable('SetInteractionQuality', 'high'),
-      sendToUnityReliable('SetPostFxEnabled', postFxEnabled ? 'true' : 'false'),
-      sendToUnityReliable(
-        'SetWeightedOit',
-        JSON.stringify({ enabled: Boolean(useWeightedOit), weightScale: Number(oitWeight) }),
-      ),
-      sendToUnityReliable('SetAntiAliasingMode', antiAliasingMode),
-    ];
-    return () => cleanups.forEach((cleanup) => cleanup && cleanup());
-  }, [
-    antiAliasingMode,
-    bridgeReady,
-    oitWeight,
-    postFxEnabled,
-    sendToUnityReliable,
-    sliceDragActive,
-    useWeightedOit,
-  ]);
+    return sendToUnityReliable('SetInteractionQuality', sliceDragActive ? 'low' : 'high');
+  }, [bridgeReady, sendToUnityReliable, sliceDragActive]);
 
   useEffect(() => {
     if (!bridgeReady) return undefined;
@@ -3788,7 +3694,17 @@ export default function Brain3DView({
 
   const outlinesInteractiveReady =
     interactiveOutlineTarget > 0 && (outlineProgress.loaded || 0) >= interactiveOutlineTarget;
-  const allOutlinesLoaded = outlineProgress.total > 0 && outlineProgress.loaded >= outlineProgress.total;
+  const requiredSurfaces = [
+    atlasEnvelopeVisible && 'atlas_envelope',
+    mriAppearancePayload.showBrainSurface && 'brain_surface',
+    mriAppearancePayload.showOuterBoundary && 'outer_tissue',
+    mriAppearancePayload.showSkull && 'skull',
+  ].filter(Boolean);
+  const meshStatus = meshStreamStatus(outlineProgress, selectedRegions, fillStates, requiredSurfaces, surfaceStates,
+    mriAppearanceEnabled && sliceEnabled, sectionState, sectionRequestKey);
+  const allOutlinesLoaded = meshStatus.ready;
+  const meshIncomplete = meshStatus.finished && ((outlineProgress.failed || 0) > 0 ||
+    meshStatus.failedTargets.length > 0 || meshStatus.failedSurfaces.length > 0 || meshStatus.failedSections.length > 0);
   const slicePercent = Math.round(clamp(coronalSlice, 0, 1) * 100);
   const sliceThumbTop = `${(1 - clamp(coronalSlice, 0, 1)) * 100}%`;
   const catalogReady = bridgeReady && catalogSource !== 'unknown';
@@ -4008,7 +3924,7 @@ export default function Brain3DView({
       setClinicalFocus(true);
       setLayerVisibility({ L1: true, L2: true, L3: false, L4: false });
       setClassVisibility(targetClasses);
-      setShowShell(true);
+      setShowShell(false);
       setShowAxes(false);
       setShowProbeGuides(true);
       setShowUncertainty(false);
@@ -4070,20 +3986,20 @@ export default function Brain3DView({
   }, []);
 
   const handleBlankAction = useCallback((action) => {
-    if (action === 'reload_unity') {
-      const iframe = iframeRef.current;
-      try {
-        if (iframe?.contentWindow?.location) {
-          iframe.contentWindow.location.reload();
-          return;
-        }
-      } catch {
-        // no-op
-      }
-      setSnapshotSeq((v) => v + 1);
+    if (action === 'reload_unity' || action === 'retry_mesh') {
+      // A state snapshot cannot clear Unity's failed-request cache.
+      rendererFaultRef.current = '';
+      setRuntimeError('');
+      setInstanceReady(false);
+      setBridgeReady(false);
+      setOutlineProgress({ loaded: 0, total: 0 });
+      setFillStates({});
+      setSurfaceStates({});
+      setSectionState({});
+      setViewerGeneration((v) => v + 1);
       return;
     }
-    if (action === 'resync' || action === 'retry_mesh') {
+    if (action === 'resync') {
       requestFullSnapshot('manual_resync', { withCamera: true });
       return;
     }
@@ -4104,7 +4020,6 @@ export default function Brain3DView({
 
   const bannerCount = (runtimeError ? 1 : 0) + (contractError ? 1 : 0) + (fillNotice ? 1 : 0);
   const topOffset = bannerCount * 26;
-  const probeColor = PROBE_COLORS[probePreset] || '#00d4ff';
   const blankState = useMemo(() => {
     if (runtimeError || contractError) {
       return {
@@ -4112,7 +4027,7 @@ export default function Brain3DView({
         progress: 0,
         title: tr('brain3dEmptyError'),
         detail: runtimeError || contractError,
-        actions: ['reload_unity', 'resync'],
+        actions: rendererFaultRef.current ? ['reload_unity'] : ['reload_unity', 'resync'],
       };
     }
     if (backendStatus !== 'online') {
@@ -4142,6 +4057,13 @@ export default function Brain3DView({
         actions: ['resync'],
       };
     }
+    if (meshIncomplete) {
+      return {
+        key: 'partial_mesh', progress: 99, title: tr('brain3dMeshIncomplete'),
+        detail: `${outlineProgress.loaded}/${outlineProgress.total}; ${tr('brain3dMeshFailed')}: ${outlineProgress.failed || 0}; ${tr('brain3dMeshTargetsPending')}: ${[...meshStatus.failedTargets, ...meshStatus.pendingTargets, ...meshStatus.failedSurfaces, ...meshStatus.pendingSurfaces, ...meshStatus.failedSections, ...meshStatus.pendingSections].join(', ') || '0'}`,
+        actions: ['retry_mesh'],
+      };
+    }
     if (!allOutlinesLoaded && !outlinesInteractiveReady) {
       const stageDetail = streamStage.detail || streamStage.stage;
       return {
@@ -4159,7 +4081,7 @@ export default function Brain3DView({
       return {
         key: 'streaming_mesh',
         progress: Math.max(85, Math.min(99, streamStage.progress > 0 ? streamStage.progress : percent)),
-        title: tr('brain3dReady'),
+        title: tr('brain3dLoading'),
         detail: stageDetail
           ? `${tr('brain3dLoading')} ${outlineProgress.loaded}/${outlineProgress.total} · ${stageDetail}`
           : `${tr('brain3dLoading')} ${outlineProgress.loaded}/${outlineProgress.total}`,
@@ -4175,11 +4097,19 @@ export default function Brain3DView({
     };
   }, [
     allOutlinesLoaded,
+    meshIncomplete,
+    fillStates,
+    surfaceStates,
+    sectionState,
+    sectionRequestKey,
+    mriAppearancePayload,
+    selectedRegionsSignature,
     backendStatus,
     bridgeReady,
     contractError,
     instanceReady,
     outlineProgress.loaded,
+    outlineProgress.failed,
     outlineProgress.total,
     outlinesInteractiveReady,
     percent,
@@ -4238,7 +4168,7 @@ export default function Brain3DView({
     const normalized = axis === sliceAxis
       ? clamp(coronalSlice, 0, 1)
       : clamp(Number(sliceAxisValues?.[axis] ?? 1), 0, 1);
-    const worldCoord = range.min + normalized * (range.max - range.min);
+    const worldCoord = axis === sliceAxis ? activeSliceCoord : range.min + normalized * (range.max - range.min);
     const coordKey = axisCoordKey(axis);
     const displayCoord = axisCoordValue(axis, worldCoord);
     return {
@@ -4252,18 +4182,19 @@ export default function Brain3DView({
   });
   const slabUm = Math.max(1, Math.round(sliceThicknessMm * 1000));
   const blankStateTall = blankState.key !== 'ready' && blankState.key !== 'streaming_mesh';
-  const slicePanelTop = topOffset + (blankStateTall ? 430 : 112);
-  const mriSurfaceSlice = useMemo(() => ({
-    axis: sliceAxis,
-    enabled: sliceEnabled,
-    coord: activeSliceCoord,
-    mode: sliceMode,
-    thicknessMm: sliceThicknessMm,
-  }), [activeSliceCoord, sliceAxis, sliceEnabled, sliceMode, sliceThicknessMm]);
+  const compactControls = viewportSize.width > 0 && (viewportSize.width < 900 || viewportSize.height < 760);
+  const slicePanelTop = topOffset + (compactControls ? 142 : blankStateTall ? 430 : 112);
+  const sliceSliderLabel = `${sliceAxisLabel} ${tr('brain3dSlicePosition')}`;
 
   return (
     <div
       ref={viewportRef}
+      className="brain3d-view"
+      data-testid="brain3d-viewport"
+      data-compact={compactControls}
+      data-surface-renderer="unity"
+      data-surface-states={JSON.stringify(surfaceStates)}
+      data-section-state={JSON.stringify(sectionState)}
       style={{
         width: '100%',
         height: '100%',
@@ -4275,6 +4206,7 @@ export default function Brain3DView({
       }}
     >
       <iframe
+        key={`unity-${viewerGeneration}`}
         ref={iframeRef}
         src={unitySource}
         title="Brain Planner Unity"
@@ -4308,11 +4240,14 @@ export default function Brain3DView({
           };
           setInstanceReady(false);
           setBridgeReady(false);
-          setBridgeSyncState('ok');
-          setRuntimeError('');
+          setBridgeSyncState(rendererFaultRef.current ? 'stale' : 'ok');
+          setRuntimeError((previous) => rendererFaultRef.current ? previous : '');
           setContractError('');
           setMissingBuild(false);
           setOutlineProgress({ loaded: 0, total: 0 });
+          setFillStates({});
+          setSurfaceStates({});
+          setSectionState({});
           setStreamStage({ stage: '', progress: 0, detail: '', loaded: 0, total: 0 });
           setCatalogSource('unknown');
           instanceReadyAtRef.current = 0;
@@ -4325,17 +4260,6 @@ export default function Brain3DView({
           }
         }}
         style={{ flex: 1, border: 'none', background: '#000' }}
-      />
-
-      <MriSurfaceOverlay
-        active={mriAppearanceEnabled}
-        layers={mriAppearanceLayers}
-        backendBaseUrl={cleanBackendBase}
-        authToken={authToken}
-        cameraState={cameraState}
-        viewportSize={viewportSize}
-        interactive={sliceDragActive}
-        slice={mriSurfaceSlice}
       />
 
       <OrientationGizmo
@@ -4359,11 +4283,12 @@ export default function Brain3DView({
       />
 
       <div
+        className="brain3d-slice-ruler"
         style={{
           position: 'absolute',
           left: 10,
           top: slicePanelTop,
-          bottom: 88,
+          bottom: compactControls ? 100 : 164,
           width: 46,
           zIndex: 8,
           display: 'flex',
@@ -4385,7 +4310,7 @@ export default function Brain3DView({
             userSelect: 'none',
           }}
         >
-          {tr('brain3dSliceTitle')}
+          {sliceSliderLabel}
         </div>
         <div
           style={{
@@ -4401,17 +4326,18 @@ export default function Brain3DView({
           ref={sliceTrackRef}
           onPointerDown={onCoronalSlicePointerDown}
           role="slider"
-          aria-label={tr('brain3dSliceTitle')}
+          aria-label={sliceSliderLabel}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={slicePercent}
-          title={`${tr('brain3dSliceTitle')} ${slicePercent}%`}
+          title={`${sliceSliderLabel} ${slicePercent}%`}
           style={{
             pointerEvents: bridgeReady ? 'auto' : 'none',
             position: 'relative',
             width: 16,
-            height: 'min(52vh, 360px)',
-            minHeight: 180,
+            height: compactControls ? 'min(36vh, 260px)' : 'min(52vh, 360px)',
+            minHeight: compactControls ? 80 : 180,
+            flexShrink: 1,
             borderRadius: 999,
             border: '1px solid #1f5b7e',
             background: 'linear-gradient(180deg, #ff4d5a 0%, #f59e0b 35%, #1dd3ff 70%, #2a59ff 100%)',
@@ -4501,7 +4427,14 @@ export default function Brain3DView({
         </div>
       </div>
 
-      <div
+      <details
+        className="brain3d-slice-controls"
+        data-testid="brain3d-slice-controls"
+        open={compactControls ? compactSliceOpen : desktopSliceOpen}
+        onToggle={(event) => {
+          if (compactControls) setCompactSliceOpen(event.currentTarget.open);
+          else setDesktopSliceOpen(event.currentTarget.open);
+        }}
         style={{
           position: 'absolute',
           left: 62,
@@ -4514,16 +4447,20 @@ export default function Brain3DView({
           color: '#bce8ff',
           zIndex: 8,
           padding: '8px 9px',
-          display: 'grid',
-          gap: 7,
+          maxHeight: compactControls ? 'min(44%, 360px)' : 'calc(100% - 280px)',
+          overflowY: 'auto',
+          boxSizing: 'border-box',
         }}
       >
+        <summary>{tr('brain3dSliceControls')}</summary>
+        <div className="brain3d-slice-controls-body">
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 10, color: '#76c9e8' }}>{tr('brain3dSliceAxis')}:</span>
           {SLICE_AXES.map((axis) => (
             <button
               key={axis}
               onClick={() => handleSelectSliceAxis(axis)}
+              data-testid={`brain3d-slice-axis-${axis}`}
               style={smallToggle(sliceAxis === axis)}
             >
               {tr(SLICE_AXIS_LABEL_KEY[axis])}
@@ -4972,6 +4909,7 @@ export default function Brain3DView({
           </div>
         </div>
       </div>
+      </details>
 
       {selectedAnchors.map((anchor) => (
         <div
@@ -5253,7 +5191,7 @@ export default function Brain3DView({
         style={{
           position: 'absolute',
           right: 10,
-          bottom: 56,
+          bottom: compactControls ? (compactDisplayOpen ? 'calc(32% + 8px)' : 44) : (desktopDisplayOpen ? 164 : 44),
           zIndex: 9,
           width: 34,
           height: 34,
@@ -5270,11 +5208,22 @@ export default function Brain3DView({
         <FullscreenIcon active={isFullscreen} />
       </button>
 
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, #000000dd 55%)', padding: '10px 14px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', zIndex: 7 }}>
+      <details
+        className="brain3d-display-controls"
+        data-testid="brain3d-display-controls"
+        open={compactControls ? compactDisplayOpen : desktopDisplayOpen}
+        onToggle={(event) => {
+          if (compactControls) setCompactDisplayOpen(event.currentTarget.open);
+          else setDesktopDisplayOpen(event.currentTarget.open);
+        }}
+      >
+        <summary>{tr('brain3dDisplayControls')}</summary>
+      <div className="brain3d-display-controls-body">
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <span style={{ fontSize: 10, color: '#5a9ab8' }}>{tr('brain3dOpacity')}</span>
           <input
             type="range"
+            aria-label={tr('brain3dOpacity')}
             min={0}
             max={100}
             value={opacitySlider}
@@ -5298,6 +5247,7 @@ export default function Brain3DView({
           onClick={() => setClinicalFocus((v) => !v)}
           style={toggleStyle(clinicalFocus)}
           data-testid="brain3d-clinical-focus"
+          aria-pressed={clinicalFocus}
           title={tr('brain3dClinicalFocusHint')}
         >
           {tr('brain3dClinicalFocus')}
@@ -5349,6 +5299,7 @@ export default function Brain3DView({
               {tr('brain3dMriLayers')}
             </span>
             {MRI_APPEARANCE_LAYER_ITEMS.map(([layerKey, labelKey, testId]) => {
+              const provenanceLabelKey = surfaceLabelKey(layerKey, labelKey, mriSurfaceMeshes);
               const surfaceUnavailable = Boolean(
                 MRI_SURFACE_LAYER_BY_UI_KEY[layerKey] && !mriSurfaceLayerReady?.[layerKey],
               );
@@ -5364,7 +5315,9 @@ export default function Brain3DView({
                 ? tr('brain3dMriSurfaceUnavailable')
                 : ccfLabelsBlocked
                   ? tr('brain3dMriCcfLabelsNeedOverlay')
-                  : tr('brain3dMriLayersHint');
+                  : ['outerBoundary', 'skull'].includes(layerKey)
+                    ? tr('brain3dUnverifiedMaskHint')
+                    : tr('brain3dMriLayersHint');
               return (
                 <button
                   key={layerKey}
@@ -5380,7 +5333,7 @@ export default function Brain3DView({
                   title={title}
                 >
                   <span style={mriToggleIndicatorStyle(active, disabled)} />
-                  <span>{tr(labelKey)}</span>
+                  <span>{tr(provenanceLabelKey)}</span>
                 </button>
               );
             })}
@@ -5479,7 +5432,10 @@ export default function Brain3DView({
         </div>
 
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <button onClick={() => setShowShell((v) => !v)} style={toggleStyle(showShell)} data-testid="brain3d-shell">{tr('brain3dShell')}</button>
+          <button onClick={() => setShowShell((v) => !v)} style={toggleStyle(atlasEnvelopeVisible)}
+            disabled={atlasEnvelopeSuppressed} aria-pressed={atlasEnvelopeVisible}
+            title={tr(atlasEnvelopeSuppressed ? 'brain3dEnvelopeProvided' : 'brain3dShell')}
+            data-testid="brain3d-shell">{tr('brain3dShell')}</button>
           <button onClick={() => setShowAxes((v) => !v)} style={toggleStyle(showAxes)} data-testid="brain3d-axes">{tr('brain3dAxes')}</button>
           <button onClick={() => setShowProbeGuides((v) => !v)} style={toggleStyle(showProbeGuides)} data-testid="brain3d-probe-guide">{tr('brain3dProbeGuide')}</button>
           <button onClick={() => setShowUncertainty((v) => !v)} style={toggleStyle(showUncertainty)} data-testid="brain3d-uncertainty">{tr('brain3dUncertainty')}</button>
@@ -5519,17 +5475,25 @@ export default function Brain3DView({
           </div>
         </div>
 
-        <span style={{ fontSize: 10, fontFamily: 'monospace', color: allOutlinesLoaded ? '#34d399' : '#a78bfa' }}>
-          {bridgeReady
-            ? allOutlinesLoaded
+        <span data-testid="brain3d-runtime-status" data-state={blankState.key}
+          style={{ fontSize: 10, fontFamily: 'monospace', color: runtimeError || contractError ? '#fca5a5' : allOutlinesLoaded ? '#34d399' : '#a78bfa' }}>
+          {runtimeError || contractError ? tr('brain3dEmptyError') : bridgeReady
+            ? meshIncomplete
+              ? `${tr('brain3dMeshIncomplete')} ${outlineProgress.loaded}/${outlineProgress.total}`
+              : allOutlinesLoaded
               ? `${tr('brain3dReady')} ${outlineProgress.loaded}/${outlineProgress.total}`
               : outlinesInteractiveReady
-                ? `${tr('brain3dReady')}* ${outlineProgress.loaded}/${outlineProgress.total}`
+                ? `${tr('brain3dLoading')} ${outlineProgress.loaded}/${outlineProgress.total}`
                 : `${tr('brain3dLoading')} ${outlineProgress.loaded}/${outlineProgress.total}`
             : instanceReady
               ? tr('brain3dBridgeInit')
               : tr('brain3dUnityLoading')}
         </span>
+        {bridgeReady && (outlineProgress.excluded > 0 || outlineProgress.failed > 0) && (
+          <span style={{ fontSize: 10, color: '#94a3b8' }}>
+            {tr('brain3dMeshExcluded')}: {outlineProgress.excluded || 0}; {tr('brain3dMeshFailed')}: {outlineProgress.failed || 0}
+          </span>
+        )}
         {bridgeReady && !allOutlinesLoaded && (streamStage.detail || streamStage.stage) && (
           <span
             style={{
@@ -5681,13 +5645,16 @@ export default function Brain3DView({
           {cameraLocked ? `L ${tr('brain3dViewLocked')}` : `U ${tr('brain3dViewUnlocked')}`}
         </span>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'flex-end' }}>
           <LegendDot color="#00d4ff" label={`${tr('brain3dSelected')} ${selectedRegions.length}`} />
           <LegendDot color="#ffd700" label={tr('brain3dBregma')} />
           <LegendDot color="#ff8800" label={tr('brain3dLambda')} />
-          {probes.length > 0 && <LegendDot color={probeColor} label={`${probePreset} x${probes.length}`} />}
+          {probes.length > 0 && <span data-testid="brain3d-probe-models" style={{ fontSize: 10, color: '#94a3b8', overflowWrap: 'anywhere' }}>
+            {formatProbeModels(probes, tr('unspecifiedProbeModelLabel'))}
+          </span>}
         </div>
       </div>
+      </details>
     </div>
   );
 }

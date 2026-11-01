@@ -1,0 +1,66 @@
+.brain3d-view details > summary {
+  color: #bce8ff;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: 0;
+}
+
+.brain3d-slice-controls-body {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.brain3d-display-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 7;
+  max-height: 156px;
+  overflow-y: auto;
+  background: #030c15f2;
+  border-top: 1px solid #17425f;
+}
+
+.brain3d-display-controls-body {
+  padding: 10px 14px 12px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brain3d-display-controls-body > * {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.brain3d-display-controls-body > div {
+  flex-wrap: wrap;
+}
+
+.brain3d-view[data-compact="true"] .brain3d-display-controls {
+  max-height: 32%;
+  z-index: 10;
+}
+
+.brain3d-display-controls > summary {
+  padding: 7px 12px;
+  position: sticky;
+  top: 0;
+  background: #061725;
+  z-index: 1;
+}
+
+.brain3d-slice-controls[open] > summary {
+  margin-bottom: 8px;
+}
+
+.brain3d-view[data-compact="true"] .brain3d-slice-controls-body,
+.brain3d-view[data-compact="true"] .brain3d-display-controls-body {
+  overflow-wrap: anywhere;
+}

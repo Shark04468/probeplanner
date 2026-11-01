@@ -69,6 +69,8 @@ from backend.api import (
 from backend.candidate import summarize_candidate_pool
 from backend.token_cover import bounded_token_cover
 from backend.planning_policy import run_density_policy
+from backend.registration_evidence import assess_registration_metrics
+from backend.atlas_sections import AtlasSectionSource, SectionError, AXES as SECTION_AXES
 from backend.contract import validate_optimize_schema, sanitize_risk_thresholds
 from backend.risk_model import (
     classify_risk_source,
@@ -129,7 +131,8 @@ def _resolve_cors_origins():
 
 
 app = Flask(__name__, static_folder=None)
-CORS(app, resources={r"/api/*": {"origins": _resolve_cors_origins()}})
+CORS(app, resources={r"/api/*": {"origins": _resolve_cors_origins()}},
+     expose_headers=["X-Lod", "X-Lod-Requested", "X-Lod-Fallback", "X-Cache-Source", "X-Structure-Id"])
 
 #        Atlas constants                                                                                                                         
 VOXEL_SIZE_UM = 25
@@ -568,6 +571,7 @@ def _load_mri_manifest_contract(manifest_path):
         }
 
     errors = []
+    verified_hashes = {}
     if data.get("valid") is False:
         errors.append("manifest_valid_false")
     for key, entry in artifacts.items():
@@ -585,6 +589,8 @@ def _load_mri_manifest_contract(manifest_path):
         actual = str(_file_sha256(path_text) or "").strip().lower()
         if actual != expected:
             errors.append(f"artifact_hash_mismatch:{key}")
+        else:
+            verified_hashes[str(key)] = actual
 
     return {
         "manifestPath": resolved_manifest,
@@ -593,6 +599,7 @@ def _load_mri_manifest_contract(manifest_path):
         "manifestProfileId": str(data.get("profileId") or "").strip() or None,
         "manifestHash": _file_sha256(resolved_manifest),
         "artifacts": resolved_artifacts,
+        "verifiedArtifactHashes": verified_hashes if not errors else {},
         "atlasShape": data.get("atlasShape"),
         "errors": errors,
     }
@@ -977,6 +984,7 @@ def _mri_payload():
         "manifestPath": manifest.get("manifestPath"),
         "manifestHash": manifest.get("manifestHash", ""),
         "manifestValid": bool(manifest.get("manifestValid")),
+        "verifiedArtifactHashes": deepcopy(manifest.get("verifiedArtifactHashes") or {}),
         "manifestSchemaVersion": manifest.get("manifestSchemaVersion"),
         "profileId": manifest.get("manifestProfileId") or dataset_profile,
         "activeProfilePath": _resolve_existing_path(active_profile_path),
@@ -2434,37 +2442,37 @@ def _clinical_contract_snapshot():
 
 #        Brain regions                                                                                                                             
 PLANNER_REGIONS = {
-    "VISp":  {"id": 385,  "ap":  2.10, "dv": 2.30, "ml": -0.90, "category": "visual"},
-    "VISl":  {"id": 394,  "ap":  2.30, "dv": 2.50, "ml": -1.60, "category": "visual"},
-    "VISpm": {"id": 533,  "ap":  2.80, "dv": 2.00, "ml": -0.40, "category": "visual"},
-    "VISal": {"id": 402,  "ap":  1.50, "dv": 2.10, "ml": -1.60, "category": "visual"},
-    "VISrl": {"id": 417,  "ap":  1.90, "dv": 2.20, "ml": -1.10, "category": "visual"},
-    "LGd":   {"id": 170,  "ap":  1.80, "dv": 4.00, "ml": -1.60, "category": "visual"},
-    "SCsg":  {"id": 834,  "ap":  3.30, "dv": 4.00, "ml": -0.40, "category": "midbrain"},
-    "SCm":   {"id": 294,  "ap":  3.50, "dv": 4.50, "ml": -0.40, "category": "midbrain"},
-    "MRN":   {"id": 128,  "ap":  3.40, "dv": 4.80, "ml": -0.40, "category": "midbrain"},
-    "SNr":   {"id": 1036, "ap":  3.20, "dv": 4.80, "ml": -1.60, "category": "midbrain"},
-    "CA1":   {"id": 382,  "ap":  1.80, "dv": 3.80, "ml": -1.20, "category": "hippocampus"},
-    "CA3":   {"id": 463,  "ap":  1.60, "dv": 3.60, "ml": -1.40, "category": "hippocampus"},
-    "DG":    {"id": 726,  "ap":  2.00, "dv": 4.20, "ml": -1.10, "category": "hippocampus"},
-    "ENTl":  {"id": 28,   "ap":  3.50, "dv": 4.50, "ml": -2.00, "category": "hippocampus"},
-    "RSP":   {"id": 254,  "ap":  2.50, "dv": 2.60, "ml": -0.50, "category": "hippocampus"},
-    "LP":    {"id": 218,  "ap":  1.50, "dv": 3.80, "ml": -1.30, "category": "thalamus"},
-    "VPM":   {"id": 733,  "ap":  0.80, "dv": 4.20, "ml": -1.50, "category": "thalamus"},
-    "VPL":   {"id": 718,  "ap":  0.90, "dv": 4.00, "ml": -1.90, "category": "thalamus"},
-    "MD":    {"id": 362,  "ap":  0.20, "dv": 3.70, "ml": -0.40, "category": "thalamus"},
-    "PO":    {"id": 1020, "ap":  1.80, "dv": 3.90, "ml": -1.40, "category": "thalamus"},
-    "MOp":   {"id": 985,  "ap": -0.50, "dv": 1.70, "ml": -1.20, "category": "frontal"},
-    "MOs":   {"id": 993,  "ap": -0.70, "dv": 1.50, "ml": -1.10, "category": "frontal"},
-    "SSp":   {"id": 322,  "ap":  0.20, "dv": 2.00, "ml": -1.50, "category": "frontal"},
-    "PFC":   {"id": 184,  "ap": -1.70, "dv": 2.00, "ml": -0.40, "category": "frontal"},
-    "ACA":   {"id": 31,   "ap": -1.50, "dv": 1.60, "ml": -0.20, "category": "frontal"},
-    "PL":    {"id": 667,  "ap": -1.20, "dv": 2.40, "ml": -0.40, "category": "frontal"},
-    "ILA":   {"id": 44,   "ap": -1.80, "dv": 2.70, "ml": -0.40, "category": "frontal"},
-    "CP":    {"id": 672,  "ap": -0.30, "dv": 3.20, "ml": -1.80, "category": "basal_ganglia"},
-    "ACB":   {"id": 56,   "ap": -0.90, "dv": 3.60, "ml": -0.60, "category": "basal_ganglia"},
-    "GPe":   {"id": 1022, "ap":  0.20, "dv": 4.00, "ml": -1.60, "category": "basal_ganglia"},
-    "GPi":   {"id": 1031, "ap":  0.50, "dv": 4.20, "ml": -1.80, "category": "basal_ganglia"},
+    "VISp":  {"id": 385,  "ap": -2.10, "dv": 2.30, "ml": -0.90, "category": "visual"},
+    "VISl":  {"id": 394,  "ap": -2.30, "dv": 2.50, "ml": -1.60, "category": "visual"},
+    "VISpm": {"id": 533,  "ap": -2.80, "dv": 2.00, "ml": -0.40, "category": "visual"},
+    "VISal": {"id": 402,  "ap": -1.50, "dv": 2.10, "ml": -1.60, "category": "visual"},
+    "VISrl": {"id": 417,  "ap": -1.90, "dv": 2.20, "ml": -1.10, "category": "visual"},
+    "LGd":   {"id": 170,  "ap": -1.80, "dv": 4.00, "ml": -1.60, "category": "visual"},
+    "SCsg":  {"id": 834,  "ap": -3.30, "dv": 4.00, "ml": -0.40, "category": "midbrain"},
+    "SCm":   {"id": 294,  "ap": -3.50, "dv": 4.50, "ml": -0.40, "category": "midbrain"},
+    "MRN":   {"id": 128,  "ap": -3.40, "dv": 4.80, "ml": -0.40, "category": "midbrain"},
+    "SNr":   {"id": 1036, "ap": -3.20, "dv": 4.80, "ml": -1.60, "category": "midbrain"},
+    "CA1":   {"id": 382,  "ap": -1.80, "dv": 3.80, "ml": -1.20, "category": "hippocampus"},
+    "CA3":   {"id": 463,  "ap": -1.60, "dv": 3.60, "ml": -1.40, "category": "hippocampus"},
+    "DG":    {"id": 726,  "ap": -2.00, "dv": 4.20, "ml": -1.10, "category": "hippocampus"},
+    "ENTl":  {"id": 28,   "ap": -3.50, "dv": 4.50, "ml": -2.00, "category": "hippocampus"},
+    "RSP":   {"id": 254,  "ap": -2.50, "dv": 2.60, "ml": -0.50, "category": "hippocampus"},
+    "LP":    {"id": 218,  "ap": -1.50, "dv": 3.80, "ml": -1.30, "category": "thalamus"},
+    "VPM":   {"id": 733,  "ap": -0.80, "dv": 4.20, "ml": -1.50, "category": "thalamus"},
+    "VPL":   {"id": 718,  "ap": -0.90, "dv": 4.00, "ml": -1.90, "category": "thalamus"},
+    "MD":    {"id": 362,  "ap": -0.20, "dv": 3.70, "ml": -0.40, "category": "thalamus"},
+    "PO":    {"id": 1020, "ap": -1.80, "dv": 3.90, "ml": -1.40, "category": "thalamus"},
+    "MOp":   {"id": 985,  "ap":  0.50, "dv": 1.70, "ml": -1.20, "category": "frontal"},
+    "MOs":   {"id": 993,  "ap":  0.70, "dv": 1.50, "ml": -1.10, "category": "frontal"},
+    "SSp":   {"id": 322,  "ap": -0.20, "dv": 2.00, "ml": -1.50, "category": "frontal"},
+    "PFC":   {"id": 184,  "ap":  1.70, "dv": 2.00, "ml": -0.40, "category": "frontal"},
+    "ACA":   {"id": 31,   "ap":  1.50, "dv": 1.60, "ml": -0.20, "category": "frontal"},
+    "PL":    {"id": 667,  "ap":  1.20, "dv": 2.40, "ml": -0.40, "category": "frontal"},
+    "ILA":   {"id": 44,   "ap":  1.80, "dv": 2.70, "ml": -0.40, "category": "frontal"},
+    "CP":    {"id": 672,  "ap":  0.30, "dv": 3.20, "ml": -1.80, "category": "basal_ganglia"},
+    "ACB":   {"id": 56,   "ap":  0.90, "dv": 3.60, "ml": -0.60, "category": "basal_ganglia"},
+    "GPe":   {"id": 1022, "ap": -0.20, "dv": 4.00, "ml": -1.60, "category": "basal_ganglia"},
+    "GPi":   {"id": 1031, "ap": -0.50, "dv": 4.20, "ml": -1.80, "category": "basal_ganglia"},
 }
 BASE_PLANNER_REGIONS = deepcopy(PLANNER_REGIONS)
 
@@ -2489,7 +2497,7 @@ AUTO_PRELOAD_REGION_KEYS = [
 
 REGION_CENTROIDS_UM = {
     reg["id"]: (
-        BREGMA_UM[0] + reg["ap"] * 1000,
+        BREGMA_UM[0] - reg["ap"] * 1000,
         BREGMA_UM[1] + reg["dv"] * 1000,
         BREGMA_UM[2] + reg["ml"] * 1000,
     )
@@ -2502,7 +2510,7 @@ def _rebuild_region_centroids():
     global REGION_CENTROIDS_UM
     REGION_CENTROIDS_UM = {
         reg["id"]: (
-            BREGMA_UM[0] + reg["ap"] * 1000,
+            BREGMA_UM[0] - reg["ap"] * 1000,
             BREGMA_UM[1] + reg["dv"] * 1000,
             BREGMA_UM[2] + reg["ml"] * 1000,
         )
@@ -3059,7 +3067,7 @@ def _register_region_from_atlas_key(key):
             "n_subregions": len(desc),
         }
         REGION_CENTROIDS_UM[sid] = (
-            BREGMA_UM[0] + reg["ap"] * 1000,
+            BREGMA_UM[0] - reg["ap"] * 1000,
             BREGMA_UM[1] + reg["dv"] * 1000,
             BREGMA_UM[2] + reg["ml"] * 1000,
         )
@@ -3380,6 +3388,7 @@ def _build_region_catalog(scope="all"):
         info = structure_snapshot.get(sid, {}) if sid is not None else {}
         out[key] = {
             "structureId": sid,
+            "structureIdPath": _parse_structure_id_path(rec if isinstance(rec, dict) else id_record_snapshot.get(sid, {})),
             "acronym": str(
                 (info.get("acronym") if isinstance(info, dict) else None)
                 or (rec.get("acronym") if isinstance(rec, dict) else key)
@@ -4745,6 +4754,7 @@ def _compute_probe_risk_diagnostics(
     phi = float(probe.get("phi_deg", 0.0))
     depth_um = float(probe.get("depthUm_corrected", probe.get("depthUm", 10000.0)))
     skull_tilt = float(probe.get("skullTiltDeg", 0.0))
+    entry_dv = _probe_entry_dv_mm(probe)
     probe_radius_um = float(
         probe.get(
             "radiusUm",
@@ -4760,7 +4770,7 @@ def _compute_probe_risk_diagnostics(
         default_mm=float(threshold_mm if threshold_mm is not None else MIN_RISK_DISTANCE_MM_DEFAULT),
     )
     cache_key = (
-        _trajectory_cache_key(ap, ml, theta, phi, depth_um, skull_tilt, step_um),
+        _trajectory_cache_key(ap, ml, theta, phi, depth_um, skull_tilt, step_um, entry_dv),
         round(float(probe_radius_um), 5),
         swept_ring_samples,
         round(float(cvar_alpha), 6),
@@ -4770,7 +4780,8 @@ def _compute_probe_risk_diagnostics(
     if isinstance(cached_diag, dict):
         return deepcopy(cached_diag)
 
-    voxels = sample_trajectory_voxels_cached(ap, ml, theta, phi, depth_um, skull_tilt, step_um=step_um)
+    voxels = sample_trajectory_voxels_cached(ap, ml, theta, phi, depth_um, skull_tilt,
+                                           step_um=step_um, entry_dv_corr_mm=entry_dv)
     diag = _risk_distance_diagnostics_from_voxels(
         voxels,
         step_um=step_um,
@@ -6208,7 +6219,7 @@ def _update_reconstruction_quality_state(
         "residualMm": _metric_from_stats(stats, "residualMm", "residual"),
         "jacobianStd": _metric_from_stats(stats, "jacobianStd", "jacStd"),
     }
-    anatomical_tre_available = bool(
+    legacy_tre_enabled = bool(
         stats.get("anatomicalTreAvailable", registration_summary.get("anatomicalTreAvailable", True))
     )
 
@@ -6269,7 +6280,7 @@ def _update_reconstruction_quality_state(
         metrics["hd95Mm"] = _metric_from_stats(registration_summary, "hd95Mm", "hd95")
         if metrics["hd95Mm"] is not None:
             metric_evidence["hd95Mm"] = "registration_summary"
-    if metrics["treMm"] is None and anatomical_tre_available:
+    if metrics["treMm"] is None and legacy_tre_enabled:
         metrics["treMm"] = _metric_from_stats(registration_summary, "treMm", "tre")
         if metrics["treMm"] is not None:
             metric_evidence["treMm"] = "registration_summary"
@@ -6291,7 +6302,7 @@ def _update_reconstruction_quality_state(
             center_offset_norm_mm = float(np.linalg.norm(np.asarray(center_offset[:3], dtype=np.float64)))
         except Exception:
             center_offset_norm_mm = None
-    if metrics["treMm"] is None and center_offset_norm_mm is not None and anatomical_tre_available:
+    if metrics["treMm"] is None and center_offset_norm_mm is not None and legacy_tre_enabled:
         metrics["treMm"] = center_offset_norm_mm
         metric_evidence["treMm"] = "registration_center_offset_proxy"
 
@@ -6398,6 +6409,9 @@ def _update_reconstruction_quality_state(
         source = "registration_summary"
     else:
         source = "derived"
+    evidence_assessment = assess_registration_metrics(
+        metrics, metric_evidence, {key: stats for key in metrics}, jacobian=jacobian_summary,
+    )
     reconstruction_quality_state = {
         "gateEnabled": bool(QUALITY_GATE_ENABLED),
         "metrics": metrics,
@@ -6407,8 +6421,9 @@ def _update_reconstruction_quality_state(
         "jacobianSummary": jacobian_summary or {},
         "thresholds": thresholds,
         "passed": len(reasons) == 0,
-        "status": "PASS" if len(reasons) == 0 and anatomical_tre_available else "INCOMPLETE_ANATOMICAL_TRE" if len(reasons) == 0 else "FAIL",
-        "anatomicalTreAvailable": anatomical_tre_available,
+        "status": "INCOMPLETE_MEASUREMENT_EVIDENCE" if len(reasons) == 0 else "FAIL",
+        "gateScope": "legacy_technical_checks_not_anatomical_validation",
+        **evidence_assessment,
         "blockingReasons": reasons,
         "nonBlockingReasons": nonblocking_reasons,
         "proxyEvidenceOnly": bool(nonblocking_reasons) and not bool(reasons),
@@ -6460,6 +6475,8 @@ def _update_reconstruction_quality_state(
 
     dynamic_uncertainty_profile = {
         "source": str(profile_source or ("qiu2018_stats_dynamic" if stats else "default")),
+        "calibratedFromHeldOutAnatomicalErrors": False,
+        "interpretation": "heuristic_sensitivity_parameters_not_measured_surgical_uncertainty",
         "residualMm": residual,
         "jacobianStd": jac_std,
         "entrySigmaMm": entry_sigma,
@@ -6474,6 +6491,7 @@ def _quality_gate_failure_card():
     st = reconstruction_quality_state if isinstance(reconstruction_quality_state, dict) else {}
     return {
         "constraint": "reconstructionQualityGate",
+        "scope": "legacy_technical_checks_not_anatomical_validation",
         "source": st.get("source"),
         "metrics": deepcopy(st.get("metrics", {})),
         "thresholds": deepcopy(st.get("thresholds", {})),
@@ -7370,7 +7388,8 @@ def _fetch_mesh_obj_resolved(structure_id: int, lod: int = 0):
 
     with _mesh_cache_lock:
         if mem_key in _mesh_cache:
-            return _mesh_cache[mem_key], req_lod, "memory"
+            text, resolved_lod = _mesh_cache[mem_key]
+            return text, resolved_lod, "memory"
 
     # 1) disk cache for requested LOD
     req_path = _mesh_disk_path(sid, req_lod)
@@ -7378,14 +7397,14 @@ def _fetch_mesh_obj_resolved(structure_id: int, lod: int = 0):
         text = _read_mesh_disk(req_path)
         if text:
             with _mesh_cache_lock:
-                _mesh_cache[mem_key] = text
+                _mesh_cache[mem_key] = (text, req_lod)
             return text, req_lod, "disk"
 
     # 2) for LOD>0 fallback to base mesh (topology-safe fallback)
     if req_lod > 0:
         base_text, _, src = _fetch_mesh_obj_resolved(sid, lod=0)
         with _mesh_cache_lock:
-            _mesh_cache[mem_key] = base_text
+            _mesh_cache[mem_key] = (base_text, 0)
         return base_text, 0, f"{src}:fallback_base"
 
     # 3) network fetch base mesh
@@ -7400,7 +7419,7 @@ def _fetch_mesh_obj_resolved(structure_id: int, lod: int = 0):
         log.warning(f"[MeshProxy] failed to persist base mesh id={sid}: {exc}")
 
     with _mesh_cache_lock:
-        _mesh_cache[mem_key] = obj_text
+        _mesh_cache[mem_key] = (obj_text, 0)
     return obj_text, 0, "network"
 
 
@@ -7502,10 +7521,26 @@ def _build_mri_surface_mesh_status(mri_payload=None):
         layer_status[layer] = {
             "ready": has_any,
             "displayName": info.get("displayName") or layer,
+            "manifestDisplayName": info.get("displayName"),
             "source": info.get("source"),
             "voxelCount": info.get("voxelCount"),
             "lods": lod_status,
         }
+        if layer == "brain_surface":
+            source_name = str(info.get("source") or "").strip().lower()
+            if source_name in {"annotation", "ccf_annotation", "atlas_annotation", "active_annotation_volume"}:
+                provenance = "atlas_annotation"
+                display_name = "Atlas-derived brain surface"
+            elif source_name in {"mri_brain_mask", "native_mri_brain_mask"}:
+                provenance = "declared_mri_mask"
+                display_name = "MRI mask brain surface"
+            else:
+                provenance = "unverified"
+                display_name = "Brain surface (source unverified)"
+            layer_status[layer].update(
+                displayName=display_name, provenanceType=provenance,
+                independentRegistrationEvidence=False,
+            )
     status.update(
         {
             "ready": len(missing) == 0,
@@ -7759,6 +7794,7 @@ def _sample_trajectory_path_indices(
     depth_um,
     skull_tilt_deg=0.0,
     step_um=25.0,
+    entry_dv_corr_mm=None,
 ):
     """Return ordered CCF voxel indices with their physical insertion depths.
 
@@ -7769,6 +7805,8 @@ def _sample_trajectory_path_indices(
     """
     tilt_rad = float(skull_tilt_deg) * math.pi / 180.0
     dv_corr_um = -float(ap_mm) * math.tan(tilt_rad) * 1000.0
+    if entry_dv_corr_mm is not None:
+        dv_corr_um = float(entry_dv_corr_mm) * 1000.0
 
     theta_rad = float(theta_deg) * math.pi / 180.0
     phi_rad = float(phi_deg) * math.pi / 180.0
@@ -7802,7 +7840,7 @@ def _sample_trajectory_path_indices(
 
 
 def sample_trajectory_voxels(ap_mm, ml_mm, theta_deg, phi_deg, depth_um,
-                              skull_tilt_deg=0.0, step_um=25.0):
+                              skull_tilt_deg=0.0, step_um=25.0, entry_dv_corr_mm=None):
     """
     Sample voxel indices along a probe trajectory.
 
@@ -7816,6 +7854,7 @@ def sample_trajectory_voxels(ap_mm, ml_mm, theta_deg, phi_deg, depth_um,
         depth_um,
         skull_tilt_deg=skull_tilt_deg,
         step_um=step_um,
+        entry_dv_corr_mm=entry_dv_corr_mm,
     )
 
     # Preserve the public voxel-only contract for legacy coverage callers.
@@ -7833,7 +7872,8 @@ def sample_trajectory_voxels(ap_mm, ml_mm, theta_deg, phi_deg, depth_um,
     return voxels
 
 
-def _trajectory_cache_key(ap_mm, ml_mm, theta_deg, phi_deg, depth_um, skull_tilt_deg, step_um):
+def _trajectory_cache_key(ap_mm, ml_mm, theta_deg, phi_deg, depth_um, skull_tilt_deg, step_um,
+                          entry_dv_corr_mm=None):
     return (
         round(float(ap_mm), 5),
         round(float(ml_mm), 5),
@@ -7842,6 +7882,7 @@ def _trajectory_cache_key(ap_mm, ml_mm, theta_deg, phi_deg, depth_um, skull_tilt
         round(float(depth_um), 3),
         round(float(skull_tilt_deg), 4),
         round(float(step_um), 4),
+        None if entry_dv_corr_mm is None else round(float(entry_dv_corr_mm), 5),
     )
 
 
@@ -7853,8 +7894,10 @@ def sample_trajectory_voxels_cached(
     depth_um,
     skull_tilt_deg=0.0,
     step_um=25.0,
+    entry_dv_corr_mm=None,
 ):
-    key = _trajectory_cache_key(ap_mm, ml_mm, theta_deg, phi_deg, depth_um, skull_tilt_deg, step_um)
+    key = _trajectory_cache_key(ap_mm, ml_mm, theta_deg, phi_deg, depth_um, skull_tilt_deg, step_um,
+                                entry_dv_corr_mm)
     cached = _bounded_cache_get(trajectory_voxel_cache, trajectory_voxel_cache_lock, key)
     if cached is not None:
         return cached
@@ -7866,6 +7909,7 @@ def sample_trajectory_voxels_cached(
         depth_um,
         skull_tilt_deg=skull_tilt_deg,
         step_um=step_um,
+        entry_dv_corr_mm=entry_dv_corr_mm,
     )
     _bounded_cache_put(
         trajectory_voxel_cache,
@@ -8027,6 +8071,7 @@ def _candidate_brain_mask_path_summary(candidate, *, step_um=25.0):
         depth_um,
         skull_tilt_deg=skull_tilt,
         step_um=step_um,
+        entry_dv_corr_mm=_probe_entry_dv_mm(candidate),
     )
     summary = _brain_mask_path_summary_from_voxels(traj_voxels, step_um=step_um)
     if isinstance(summary, dict):
@@ -8189,6 +8234,7 @@ def _candidate_endpoint_target_summary(candidate, target_ids):
             depth_um,
             skull_tilt_deg=skull_tilt,
             step_um=25.0,
+            entry_dv_corr_mm=_probe_entry_dv_mm(candidate),
         )
         labels = []
         for idx in voxels:
@@ -8421,6 +8467,25 @@ def _probe_direction_unit(theta_deg, phi_deg):
     return vec / norm
 
 
+def _skull_entry_dv_mm(ap_mm, skull_tilt_deg):
+    """Positive-ventral entry displacement in the existing tilted skull plane."""
+    return -float(ap_mm) * math.tan(math.radians(float(skull_tilt_deg)))
+
+
+def _probe_entry_dv_mm(probe):
+    value = probe.get("entryDvCorr_mm_corrected", probe.get("entryDvCorr_mm"))
+    if value is not None:
+        return float(value)
+    return _skull_entry_dv_mm(probe.get("ap_mm_corrected", probe.get("ap_mm", 0.0)),
+                              probe.get("skullTiltDeg", 0.0))
+
+
+def _corrected_entry_dv_mm(ap_mm, skull_tilt_deg, correction_factors):
+    corr = correction_factors or DEFAULT_CORRECTION_FACTORS
+    return (_skull_entry_dv_mm(ap_mm, skull_tilt_deg) * float(corr.get("dv", 1.0))
+            + float(corr.get("dvShift", 0.0)))
+
+
 def _probe_entry_um(ap_mm, ml_mm, skull_tilt_deg=0.0, entry_dv_corr_mm=None):
     tilt_rad = float(skull_tilt_deg) * math.pi / 180.0
     dv_corr_um = -float(ap_mm) * math.tan(tilt_rad) * 1000.0
@@ -8468,6 +8533,13 @@ def _build_probe_contact_offsets_um(direction, radius_um, use_cylinder=True):
     return offsets
 
 
+def _probe_spin_deg(probe):
+    values = [_require_number(key, probe[key]) for key in ("spin_deg", "spin") if key in probe]
+    if len(values) == 2 and values[0] != values[1]:
+        raise ContractError("spin_deg and spin must agree")
+    return values[0] if values else 0.0
+
+
 def _probe_hardware_geometry(probe, *, force_centerline=False):
     """Return physical shank geometry used by contact/collision explanations."""
     raw_type = str(probe.get("probeType") or probe.get("probePreset") or "").strip()
@@ -8511,11 +8583,13 @@ def _probe_hardware_geometry(probe, *, force_centerline=False):
         "shankSpacingUm": float(spacing_um),
         "probeRadiusUm": float(radius_um),
         "shankOffsetsUm": offsets_um,
+        "spinDeg": _probe_spin_deg(probe),
     }
 
 
-def _probe_lateral_axis_um(direction):
-    """Use the ML axis projected perpendicular to the insertion direction."""
+def _probe_lateral_axis_um(direction, spin_deg=0.0):
+    """Rotate projected ML around the insertion axis in CCF AP/DV/ML coordinates."""
+    spin_deg = _require_number("spin_deg", spin_deg)
     dir_unit = np.asarray(direction, dtype=np.float64)
     n = float(np.linalg.norm(dir_unit))
     if n <= 1e-12:
@@ -8530,7 +8604,11 @@ def _probe_lateral_axis_um(direction):
     if ln <= 1e-9:
         lateral = np.array([1.0, 0.0, 0.0], dtype=np.float64)
         ln = 1.0
-    return lateral / ln
+    lateral = lateral / ln
+    if spin_deg == 0.0:
+        return lateral
+    angle = math.radians(spin_deg % 360.0)
+    return lateral * math.cos(angle) + np.cross(dir_unit, lateral) * math.sin(angle)
 
 
 def _build_probe_swept_contact_samples_um(probe, direction, radius_um, use_cylinder=True):
@@ -8543,7 +8621,7 @@ def _build_probe_swept_contact_samples_um(probe, direction, radius_um, use_cylin
         geom["shankOffsetsUm"] = [0.0]
     radius_um = float(max(0.0, radius_um if use_cylinder else 0.0))
     radial_offsets = _build_probe_contact_offsets_um(direction, radius_um, use_cylinder=use_cylinder)
-    lateral_axis = _probe_lateral_axis_um(direction)
+    lateral_axis = _probe_lateral_axis_um(direction, geom["spinDeg"])
     samples = []
     for shank_idx, offset_scalar_um in enumerate(geom.get("shankOffsetsUm") or [0.0]):
         shank_offset = lateral_axis * float(offset_scalar_um)
@@ -8642,6 +8720,8 @@ def _pick_structure_contacts_from_samples(annotation, center_um, swept_samples):
                 "regionId": int(rec["regionId"]),
                 "contactStrength": float(rec["count"]) / float(denom),
                 "hemisphere": hemisphere,
+                "hemispheres": sorted(hemi_counts),
+                "hemisphereCounts": dict(sorted(hemi_counts.items())),
                 "shankIndices": sorted(int(x) for x in rec.get("shankIndices", set())),
                 "shankOffsetsUm": sorted(float(x) for x in rec.get("shankOffsetsUm", set())),
             }
@@ -8762,6 +8842,7 @@ def _compute_probe_contact_profile(
     min_len_um = float(max(0.0, min_contact_length_um))
 
     cache_key_payload = {
+        "contactSchemaVersion": 2,
         "atlasHash": atlas_hash,
         "ap": round(ap_mm, 4),
         "ml": round(ml_mm, 4),
@@ -8777,6 +8858,7 @@ def _compute_probe_contact_profile(
         "probeType": str(probe_geom.get("probeType") or ""),
         "shankCount": int(probe_geom.get("shankCount", 1)),
         "shankSpacingUm": round(float(probe_geom.get("shankSpacingUm", 0.0)), 3),
+        "spinDeg": probe_geom["spinDeg"],
         "stepUm": round(sampling_step_um, 3),
         "minLengthUm": round(min_len_um, 3),
         "mode": "cylinder" if use_cylinder else "centerline",
@@ -8844,6 +8926,7 @@ def _compute_probe_contact_profile(
                     "depthUm": int(round(d_um)),
                     "contactStrength": float(contact.get("contactStrength", 0.0)),
                     "hemisphere": str(contact.get("hemisphere") or "midline"),
+                    "hemisphereCounts": dict(contact["hemisphereCounts"]),
                     "shankIndices": list(contact.get("shankIndices") or []),
                     "shankOffsetsUm": list(contact.get("shankOffsetsUm") or []),
                 }
@@ -8887,6 +8970,8 @@ def _compute_probe_contact_profile(
                 "dEndUm": int(current["dEndUm"]),
                 "lengthUm": int(seg_len),
                 "hemisphere": hemi_major,
+                "hemispheres": sorted(current["_sampleHemisphereCounts"]),
+                "hemisphereCounts": dict(sorted(current["_sampleHemisphereCounts"].items())),
                 "contactStrength": round(
                     float(current.get("_strengthAcc", 0.0)) / float(max(1, current.get("_samples", 1))),
                     6,
@@ -8911,6 +8996,7 @@ def _compute_probe_contact_profile(
         for sample in sorted(region_samples, key=lambda x: int(x.get("depthUm", 0))):
             depth_um_i = int(sample["depthUm"])
             hemi = str(sample.get("hemisphere") or "midline")
+            sample_hemi_counts = sample["hemisphereCounts"]
             strength = float(sample.get("contactStrength", 0.0))
             shank_indices = set(int(x) for x in sample.get("shankIndices", []) if x is not None)
             shank_offsets = set(float(x) for x in sample.get("shankOffsetsUm", []) if x is not None)
@@ -8923,6 +9009,7 @@ def _compute_probe_contact_profile(
                     "_strengthAcc": strength,
                     "_samples": 1,
                     "_hemisphereCounts": {hemi: 1},
+                    "_sampleHemisphereCounts": dict(sample_hemi_counts),
                     "_shankIndices": set(shank_indices),
                     "_shankOffsetsUm": set(shank_offsets),
                 }
@@ -8933,6 +9020,10 @@ def _compute_probe_contact_profile(
                 hemi_counts = current.get("_hemisphereCounts", {})
                 hemi_counts[hemi] = int(hemi_counts.get(hemi, 0)) + 1
                 current["_hemisphereCounts"] = hemi_counts
+                # Keep minority shank/radial contacts; the legacy label is only a majority summary.
+                sample_counts = current["_sampleHemisphereCounts"]
+                for side, count in sample_hemi_counts.items():
+                    sample_counts[side] = sample_counts.get(side, 0) + count
                 current.setdefault("_shankIndices", set()).update(shank_indices)
                 current.setdefault("_shankOffsetsUm", set()).update(shank_offsets)
         _flush_contact_interval(current)
@@ -8955,9 +9046,7 @@ def _compute_probe_contact_profile(
         agg["totalLengthUm"] += int(item.get("lengthUm", 0))
         agg["maxStrength"] = max(float(agg["maxStrength"]), float(item.get("contactStrength", 0.0)))
         agg["intervalCount"] += 1
-        hemi = str(item.get("hemisphere") or "")
-        if hemi:
-            agg["hemispheres"].add(hemi)
+        agg["hemispheres"].update(item["hemispheres"])
 
     contact_profile = []
     for key, agg in aggregate.items():
@@ -8989,6 +9078,8 @@ def _compute_probe_contact_profile(
             "probeRadiusUm": round(float(radius_um), 6),
             "physicalHullRadiusUm": round(float(hull_radius_um), 6),
             "shankOffsetsUm": [round(float(x), 6) for x in shank_offsets_um],
+            "spinDeg": probe_geom["spinDeg"],
+            "spinConvention": "ccf_ap_dv_ml_right_hand_about_centerline_projected_ml",
             "collisionModel": collision_model,
         },
     }
@@ -9049,7 +9140,7 @@ def _probe_shank_segments_um(probe):
         return [(entry, tip, _probe_radius_um(probe), 0)]
     direction = direction / dn
     geom = _probe_hardware_geometry(probe)
-    lateral = _probe_lateral_axis_um(direction)
+    lateral = _probe_lateral_axis_um(direction, geom["spinDeg"])
     radius_um = float(geom.get("probeRadiusUm", _probe_radius_um(probe)))
     segments = []
     for shank_idx, offset_scalar_um in enumerate(geom.get("shankOffsetsUm") or [0.0]):
@@ -9087,10 +9178,13 @@ def trajs_collide(a, b, min_clearance_um, min_entry_um=3500):
     return trajectory_surface_clearance_um(a, b) < min_clearance_um
 
 
-def make_trajectory_xyz(ap_mm, ml_mm, theta_deg, phi_deg, depth_um, skull_tilt_deg=0.0):
-    """Return entry_xyz and tip_xyz in CCFv3  m space."""
+def make_trajectory_xyz(ap_mm, ml_mm, theta_deg, phi_deg, depth_um, skull_tilt_deg=0.0,
+                        *, entry_dv_corr_mm=None):
+    """Return CCF micrometre geometry and positive-ventral entry DV in mm."""
     tilt_rad   = skull_tilt_deg * math.pi / 180.0
     dv_corr_um = -ap_mm * math.tan(tilt_rad) * 1000.0
+    if entry_dv_corr_mm is not None:
+        dv_corr_um = float(entry_dv_corr_mm) * 1000.0
     entry = np.array([
         BREGMA_UM[0] - ap_mm * 1000.0,
         BREGMA_UM[1] + dv_corr_um,
@@ -9104,20 +9198,24 @@ def make_trajectory_xyz(ap_mm, ml_mm, theta_deg, phi_deg, depth_um, skull_tilt_d
         math.sin(th) * math.sin(ph),
     ])
     tip = entry + direction * depth_um
-    return entry.tolist(), tip.tolist(), direction.tolist(), -dv_corr_um / 1000.0
+    return entry.tolist(), tip.tolist(), direction.tolist(), dv_corr_um / 1000.0
+
+
+def _tip_ap_dv_mm(ap_mm, entry_dv_mm, direction, depth_um):
+    """CCF X points posteriorly; reported AP points anteriorly, DV ventrally."""
+    depth_mm = float(depth_um) / 1000.0
+    return (float(ap_mm) - float(direction[0]) * depth_mm,
+            float(entry_dv_mm) + float(direction[1]) * depth_mm)
 
 
 def trajectory_tip_mm(probe):
     """Compute tip AP/DV (mm from bregma/skull frame) from a trajectory payload."""
     ap = float(probe.get("ap_mm_corrected", probe.get("ap_mm", 0)))
-    depth_mm = float(probe.get("depthUm_corrected", probe.get("depthUm", 0))) / 1000.0
-    entry_dv = float(probe.get("entryDvCorr_mm_corrected", probe.get("entryDvCorr_mm", 0)))
-    direction = probe.get("dir", [0.0, 1.0, 0.0])
-    dir_x = float(direction[0]) if len(direction) > 0 else 0.0
-    dir_y = float(direction[1]) if len(direction) > 1 else 1.0
-    tip_ap = ap + dir_x * depth_mm
-    tip_dv = entry_dv + dir_y * depth_mm
-    return tip_ap, tip_dv
+    depth_um = float(probe.get("depthUm_corrected", probe.get("depthUm", 0)))
+    direction = probe.get("dir")
+    if direction is None:
+        direction = _probe_direction_unit(probe.get("theta_deg", 0.0), probe.get("phi_deg", 0.0))
+    return _tip_ap_dv_mm(ap, _probe_entry_dv_mm(probe), direction, depth_um)
 
 
 def has_hemisphere_mismatch(probe):
@@ -9702,10 +9800,10 @@ def _build_candidate_from_geometry(
     theta = float(theta_deg)
     phi = float(phi_deg) % 360.0
 
-    entry, tip, direction, dv_corr = make_trajectory_xyz(ap_corr, ml_corr, theta, phi, dep_corr, skull_tilt)
+    entry, tip, direction, dv_corr = make_trajectory_xyz(ap_corr, ml_corr, theta, phi, dep_corr, skull_tilt,
+        entry_dv_corr_mm=_corrected_entry_dv_mm(ap_mm, skull_tilt, corr))
     if constraint_modes.get("brainBounds") == "enforce":
-        tip_ap = ap_corr + direction[0] * dep_corr / 1000.0
-        tip_dv = dv_corr + direction[1] * dep_corr / 1000.0
+        tip_ap, tip_dv = _tip_ap_dv_mm(ap_corr, dv_corr, direction, dep_corr)
         if ap_corr < ENTRY_AP_MIN_MM or ap_corr > ENTRY_AP_MAX_MM:
             return None
         if tip_ap < TIP_POST_LIMIT_MM or tip_dv > MAX_DV_MM:
@@ -9719,6 +9817,7 @@ def _build_candidate_from_geometry(
         dep_corr,
         skull_tilt_deg=skull_tilt,
         step_um=25.0,
+        entry_dv_corr_mm=dv_corr,
     )
     if not path_indices:
         return None
@@ -9791,7 +9890,8 @@ def _build_candidate_from_geometry(
         "theta_deg": round(float(theta), 4),
         "phi_deg": round(float(phi), 4),
         "skullTiltDeg": round(float(skull_tilt), 4),
-        "entryDvCorr_mm": round(float(dv_corr), 4),
+        "entryDvCorr_mm": round(_skull_entry_dv_mm(ap_mm, skull_tilt), 5),
+        "entryDvCorr_mm_corrected": round(float(dv_corr), 5),
         "entry_xyz": [round(float(x), 1) for x in entry],
         "tip_xyz": [round(float(x), 1) for x in tip],
         "dir": [round(float(x), 6) for x in direction],
@@ -10468,9 +10568,7 @@ def _compute_candidate_objectives(candidate, target_keys, params):
     if robust_enabled and robust_samples > 0:
         ap_base = float(candidate.get("ap_mm_corrected", candidate.get("ap_mm", 0.0)))
         ml_base = float(candidate.get("ml_mm_corrected", candidate.get("ml_mm", 0.0)))
-        entry_dv_base = float(
-            candidate.get("entryDvCorr_mm_corrected", candidate.get("entryDvCorr_mm", 0.0))
-        )
+        entry_dv_base = _probe_entry_dv_mm(candidate)
         phi_base = float(candidate.get("phi_deg", 0.0))
         depth_mm = float(candidate.get("depthUm_corrected", candidate.get("depthUm", 0.0))) / 1000.0
         robust_cache_key = (
@@ -10480,6 +10578,7 @@ def _compute_candidate_objectives(candidate, target_keys, params):
             round(float(sigma_angle_deg), 6),
             round(float(sigma_depth_mm), 6),
             round(float(max_angle), 6),
+            round(entry_dv_base, 6),
         )
         cached_robust = _bounded_cache_get(
             robust_perturb_cache,
@@ -10532,8 +10631,7 @@ def _compute_candidate_objectives(candidate, target_keys, params):
                 ph_r = math.radians(phi_p)
                 dir_x = math.sin(th_r) * math.cos(ph_r)
                 dir_y = math.cos(th_r)
-                tip_ap_p = ap_p + dir_x * depth_p
-                tip_dv_p = entry_dv_p + dir_y * depth_p
+                tip_ap_p, tip_dv_p = _tip_ap_dv_mm(ap_p, entry_dv_p, [dir_x, dir_y], depth_p * 1000.)
 
                 bounds_ok = (
                     ENTRY_AP_MIN_MM <= ap_p <= ENTRY_AP_MAX_MM
@@ -10804,7 +10902,8 @@ def _objective_context_signature(target_keys, params):
 
 
 def _candidate_objective_cache_key(candidate, target_keys, params):
-    return (_candidate_signature(candidate), _objective_context_signature(target_keys, params))
+    return (_candidate_signature(candidate), round(_probe_entry_dv_mm(candidate), 6),
+            _objective_context_signature(target_keys, params))
 
 
 def _score_candidates(candidates, target_keys, params, progress_cb=None, cancel_cb=None):
@@ -11557,7 +11656,7 @@ def diversity_reduce_candidates(candidates, top_k=6):
 #        Candidate generation                                                                                                             
 
 def compute_structure_principal_axis(structure_id):
-    """Estimate structure principal axis via PCA in atlas coordinates."""
+    """Return a CCF-XYZ PCA direction and an anterior-positive AP/DV/ML centroid."""
     if atlas_annotation is None:
         return None
 
@@ -11569,10 +11668,6 @@ def compute_structure_principal_axis(structure_id):
         return None
 
     coords_mm = voxel_coords * (VOXEL_SIZE_UM / 1000.0)
-    coords_mm[:, 0] = BREGMA_UM[0] / 1000.0 - coords_mm[:, 0]
-    coords_mm[:, 1] =                           coords_mm[:, 1] - BREGMA_UM[1] / 1000.0
-    coords_mm[:, 2] =                           coords_mm[:, 2] - BREGMA_UM[2] / 1000.0
-
     centroid = coords_mm.mean(axis=0)
     centered = coords_mm - centroid
 
@@ -11589,9 +11684,9 @@ def compute_structure_principal_axis(structure_id):
     return {
         "theta_deg":       round(theta, 2),
         "phi_deg":         round(phi,   2),
-        "centroid_bregma": [round(float(centroid[0]), 3),
-                            round(float(centroid[1]), 3),
-                            round(float(centroid[2]), 3)],
+        "centroid_bregma": [round(float(BREGMA_UM[0] / 1000.0 - centroid[0]), 3),
+                            round(float(centroid[1] - BREGMA_UM[1] / 1000.0), 3),
+                            round(float(centroid[2] - BREGMA_UM[2] / 1000.0), 3)],
         "dv_span_um":      round(dv_span_um, 1),
         "elongation":      round(elongation, 3),
         "principal_axis":  [round(float(x), 6) for x in principal],
@@ -11636,7 +11731,7 @@ def generate_atlas_guided_candidates(target_keys, params, max_angle):
                 if abs(denom) < 1e-6:
                     continue
 
-                ap_mm = (-cent[0] + dir_x * cent[1] / dir_y) / denom
+                ap_mm = (cent[0] + dir_x * cent[1] / dir_y) / denom
                 D_mm  = (cent[1] + ap_mm * tan_t) / dir_y
                 ml_mm = cent[2] - dir_z * D_mm
 
@@ -11675,11 +11770,19 @@ def generate_multi_target_candidates(target_keys, params):
         cb = np.array(REGION_CENTROIDS_UM[sid_b], dtype=float)
 
         direction = cb - ca
+        if direction[1] < 0:
+            ca, cb = cb, ca
+            direction = -direction
         if direction[1] < 50:
             continue
 
         direction_n = direction / np.linalg.norm(direction)
-        t_skull  = (BREGMA_UM[1] - ca[1]) / direction_n[1]
+        # Intersect the line with Y-By = tan(tilt)*(X-Bx), in CCF micrometres.
+        tan_tilt = math.tan(math.radians(skull_tilt))
+        denominator = direction_n[1] - tan_tilt * direction_n[0]
+        if abs(denominator) < 1e-6:
+            continue
+        t_skull = (BREGMA_UM[1] - ca[1] + tan_tilt * (ca[0] - BREGMA_UM[0])) / denominator
         entry_um = ca + t_skull * direction_n
 
         ap_mm = (BREGMA_UM[0] - entry_um[0]) / 1000.0
@@ -12057,7 +12160,8 @@ def generate_candidates_voxel(
         ml_corr = ml_s * corr["ml"] + corr["mlShift"]
         dep_corr = dep * corr["dv"]
         entry, tip, direction, dv_corr = make_trajectory_xyz(
-            ap_corr, ml_corr, theta, phi, dep_corr, skull_tilt
+            ap_corr, ml_corr, theta, phi, dep_corr, skull_tilt,
+            entry_dv_corr_mm=_corrected_entry_dv_mm(ap_s, skull_tilt, corr)
         )
         return (
             float(ap_s), float(ml_s), float(theta), float(phi), float(dep), str(source),
@@ -12067,8 +12171,7 @@ def generate_candidates_voxel(
     def _bounds_ok(ap_corr, dep_corr, direction, dv_corr):
         if constraint_modes.get("brainBounds") != "enforce":
             return True
-        tip_ap = ap_corr + direction[0] * dep_corr / 1000.0
-        tip_dv = dv_corr + direction[1] * dep_corr / 1000.0
+        tip_ap, tip_dv = _tip_ap_dv_mm(ap_corr, dv_corr, direction, dep_corr)
         if ap_corr < ENTRY_AP_MIN_MM or ap_corr > ENTRY_AP_MAX_MM:
             return False
         if tip_ap < TIP_POST_LIMIT_MM or tip_dv > MAX_DV_MM:
@@ -12093,6 +12196,7 @@ def generate_candidates_voxel(
                 dep_corr,
                 skull_tilt_deg=skull_tilt,
                 step_um=coarse_step_um,
+                entry_dv_corr_mm=dv_corr,
             )
             if not path_indices:
                 _bump_coarse_reject("emptyTrajectory", source)
@@ -12418,6 +12522,7 @@ def generate_candidates_voxel(
                 dep_corr,
                 skull_tilt_deg=skull_tilt,
                 step_um=refine_step_um,
+                entry_dv_corr_mm=dv_corr,
             )
             if not path_indices:
                 _bump_refine_reject("emptyTrajectory")
@@ -12507,7 +12612,8 @@ def generate_candidates_voxel(
                 "theta_deg": theta,
                 "phi_deg": phi,
                 "skullTiltDeg": skull_tilt,
-                "entryDvCorr_mm": round(dv_corr, 4),
+                "entryDvCorr_mm": round(_skull_entry_dv_mm(ap_s, skull_tilt), 5),
+                "entryDvCorr_mm_corrected": round(dv_corr, 5),
                 "entry_xyz": [round(x, 1) for x in entry],
                 "tip_xyz": [round(x, 1) for x in tip],
                 "dir": [round(x, 6) for x in direction],
@@ -13987,7 +14093,7 @@ def coverage_boost_voxel(
         if reg is None:
             continue
 
-        ap_target_raw = -float(reg["ap"])
+        ap_target_raw = float(reg["ap"])
         ml_target_raw = float(reg["ml"])
         best_candidate = None
         best_score = (-1, -1.0, -1.0)
@@ -14005,19 +14111,20 @@ def coverage_boost_voxel(
                     continue
 
                 entry, tip, direction, dv_corr = make_trajectory_xyz(
-                    ap_corr, ml_corr, theta, phi, dep_corr, skull_tilt
+                    ap_corr, ml_corr, theta, phi, dep_corr, skull_tilt,
+                    entry_dv_corr_mm=_corrected_entry_dv_mm(ap_raw, skull_tilt, corr)
                 )
 
                 if constraint_modes.get("brainBounds") == "enforce":
-                    tip_ap = ap_corr + direction[0] * dep_corr / 1000.0
-                    tip_dv = dv_corr + direction[1] * dep_corr / 1000.0
+                    tip_ap, tip_dv = _tip_ap_dv_mm(ap_corr, dv_corr, direction, dep_corr)
                     if ap_corr < ENTRY_AP_MIN_MM or ap_corr > ENTRY_AP_MAX_MM:
                         continue
                     if tip_ap < TIP_POST_LIMIT_MM or tip_dv > MAX_DV_MM:
                         continue
 
                 traj_voxels = sample_trajectory_voxels_cached(
-                    ap_corr, ml_corr, theta, phi, dep_corr, skull_tilt, step_um=25.0
+                    ap_corr, ml_corr, theta, phi, dep_corr, skull_tilt, step_um=25.0,
+                    entry_dv_corr_mm=dv_corr
                 )
                 if constraint_modes.get("brainBounds") == "enforce":
                     brain_mask_summary = _brain_mask_path_summary_from_voxels(
@@ -14078,7 +14185,8 @@ def coverage_boost_voxel(
                     "theta_deg": theta,
                     "phi_deg": phi,
                     "skullTiltDeg": skull_tilt,
-                    "entryDvCorr_mm": round(dv_corr, 4),
+                    "entryDvCorr_mm": round(_skull_entry_dv_mm(ap_raw, skull_tilt), 5),
+                    "entryDvCorr_mm_corrected": round(dv_corr, 5),
                     "entry_xyz": [round(x, 1) for x in entry],
                     "tip_xyz": [round(x, 1) for x in tip],
                     "dir": [round(x, 6) for x in direction],
@@ -14594,6 +14702,8 @@ def _payload_for_deterministic_hash(payload):
 
 def _attach_payload_hashes(req_payload, resp_payload):
     if isinstance(resp_payload, dict):
+        if app.config.get("PAPER_RUNTIME_IDENTITY"):
+            resp_payload.setdefault("runtimeIdentity", deepcopy(app.config["PAPER_RUNTIME_IDENTITY"]))
         resp_payload.setdefault("environmentSignature", deepcopy(environment_signature))
         resp_payload.setdefault("environmentSignatureHash", environment_signature.get("signatureHash"))
     req_hash = _hash_payload(req_payload)
@@ -16393,7 +16503,7 @@ def _normalize_optimize_payload(raw_body):
 def _normalize_trajectory(traj, index):
     if not isinstance(traj, dict):
         raise ContractError(f"trajectories[{index}] must be an object")
-    return {
+    normalized = {
         "ap_mm": _require_number(f"trajectories[{index}].ap_mm", traj.get("ap_mm", 0), minimum=-20, maximum=20),
         "ml_mm": _require_number(f"trajectories[{index}].ml_mm", traj.get("ml_mm", 0), minimum=-20, maximum=20),
         "entryDvCorr_mm": _require_number(
@@ -16411,6 +16521,42 @@ def _normalize_trajectory(traj, index):
         ),
         "coveredRegions": traj.get("coveredRegions", []),
     }
+    if "entryDvCorr_mm" not in traj:
+        normalized["entryDvCorr_mm"] = _skull_entry_dv_mm(normalized["ap_mm"], normalized["skullTiltDeg"])
+    for field in ("ap_mm_corrected", "ml_mm_corrected", "entryDvCorr_mm_corrected", "depthUm_corrected"):
+        if field in traj:
+            normalized[field] = _require_number(f"trajectories[{index}].{field}", traj[field],
+                minimum=1e-6 if field == "depthUm_corrected" else -20,
+                maximum=50000 if field == "depthUm_corrected" else 20)
+    return normalized
+
+
+def _normalize_export_trajectory(traj, index):
+    normalized = _normalize_trajectory(traj, index)
+    normalized['spin_deg'] = _require_number(
+        f'trajectories[{index}].spin_deg', traj.get('spin_deg', traj.get('spin', 0)))
+    normalized['probeType'] = _normalize_short_text(f'trajectories[{index}].probeType', traj.get('probeType'))
+    fields = {
+        'shankCount': ('shankCount', 'shanks', 'nShanks'),
+        'shankPitchUm': ('shankPitchUm', 'shankSpacingUm'),
+        'radiusUm': ('radiusUm', 'probeRadiusUm'),
+        'shankWidthUm': ('shankWidthUm',),
+        'shankThicknessUm': ('shankThicknessUm',),
+    }
+    for key, aliases in fields.items():
+        values = [_require_number(f'trajectories[{index}].{alias}', traj[alias], minimum=0)
+                  for alias in aliases if traj.get(alias) is not None]
+        if not values:
+            continue
+        value = values[0]
+        if any(v != value for v in values):
+            raise ContractError(f'Conflicting {key} aliases')
+        if key == 'shankCount':
+            if not value.is_integer() or not 1 <= value <= 64:
+                raise ContractError('shankCount must be an integer in [1, 64]')
+            value = int(value)
+        normalized[key] = value
+    return normalized
 
 
 def _normalize_export_payload(raw_body):
@@ -16418,10 +16564,10 @@ def _normalize_export_payload(raw_body):
     trajs_raw = body.get("trajectories", [])
     if not isinstance(trajs_raw, list) or not trajs_raw:
         raise ContractError("trajectories must be a non-empty array")
-    trajectories = [_normalize_trajectory(t, i) for i, t in enumerate(trajs_raw)]
+    trajectories = [_normalize_export_trajectory(t, i) for i, t in enumerate(trajs_raw)]
     corr, corr_applied = _normalize_correction_factors(body.get("correctionFactors", {}))
     corr_unc = _normalize_correction_uncertainty(body.get("correctionUncertainty"))
-    probe_type = str(body.get("probeType", "np1")).strip() or "np1"
+    probe_type = _normalize_short_text('probeType', body.get('probeType'))
     return {
         "trajectories": trajectories,
         "probeType": probe_type,
@@ -16464,6 +16610,10 @@ def _normalize_contact_probe_payload(raw_probe, index):
         raw_probe.get("entryDvCorr_mm", None),
     )
     skull_tilt_deg = raw_probe.get("skullTiltDeg", 0.0)
+    ap_mm = _require_number(f"probes[{index}].ap_mm", ap_mm, minimum=-20.0, maximum=20.0)
+    skull_tilt_deg = _require_number(f"probes[{index}].skullTiltDeg", skull_tilt_deg, minimum=-30.0, maximum=30.0)
+    if entry_dv_corr_mm is None:
+        entry_dv_corr_mm = _skull_entry_dv_mm(ap_mm, skull_tilt_deg)
     radius_um = raw_probe.get("radiusUm", 35.0)
     shank_count = raw_probe.get("shankCount", raw_probe.get("shanks", raw_probe.get("nShanks", 1)))
     shank_spacing_um = raw_probe.get(
@@ -16473,7 +16623,7 @@ def _normalize_contact_probe_payload(raw_probe, index):
     shank_width_um = raw_probe.get("shankWidthUm", raw_probe.get("shankWidth", None))
 
     return {
-        "ap_mm": _require_number(f"probes[{index}].ap_mm", ap_mm, minimum=-20.0, maximum=20.0),
+        "ap_mm": ap_mm,
         "ml_mm": _require_number(f"probes[{index}].ml_mm", ml_mm, minimum=-20.0, maximum=20.0),
         "theta_deg": _require_number(
             f"probes[{index}].theta_deg", theta_deg, minimum=0.0, maximum=90.0
@@ -16481,21 +16631,17 @@ def _normalize_contact_probe_payload(raw_probe, index):
         "phi_deg": _require_number(
             f"probes[{index}].phi_deg", phi_deg, minimum=-720.0, maximum=720.0
         ),
+        "spin_deg": _probe_spin_deg(raw_probe),
         "depthUm": _require_number(
             f"probes[{index}].depthUm", depth_um, minimum=100.0, maximum=50000.0
         ),
         "entryDvCorr_mm": _require_number(
             f"probes[{index}].entryDvCorr_mm",
-            0.0 if entry_dv_corr_mm is None else entry_dv_corr_mm,
+            entry_dv_corr_mm,
             minimum=-20.0,
             maximum=20.0,
         ),
-        "skullTiltDeg": _require_number(
-            f"probes[{index}].skullTiltDeg",
-            skull_tilt_deg,
-            minimum=-30.0,
-            maximum=30.0,
-        ),
+        "skullTiltDeg": skull_tilt_deg,
         "radiusUm": _require_number(
             f"probes[{index}].radiusUm",
             radius_um,
@@ -16739,6 +16885,7 @@ def _compute_probe_uncertainty_metrics(probe, target_keys, params):
     phi0 = float(probe.get("phi_deg", 0.0))
     depth_mm0 = float(probe.get("depthUm_corrected", probe.get("depthUm", 0.0))) / 1000.0
     skull_tilt = float(probe.get("skullTiltDeg", 0.0))
+    entry_dv0 = _probe_entry_dv_mm(probe)
     max_angle = float(params.get("maxAngle", 15.0))
 
     target_ids = {k: PLANNER_REGIONS[k]["id"] for k in target_keys if k in PLANNER_REGIONS}
@@ -16791,10 +16938,10 @@ def _compute_probe_uncertainty_metrics(probe, target_keys, params):
         depth_um_p = depth_mm_p * 1000.0
 
         entry_um, tip_um, direction, entry_dv_p = make_trajectory_xyz(
-            ap_p, ml_p, theta_p, phi_p, depth_um_p, skull_tilt
+            ap_p, ml_p, theta_p, phi_p, depth_um_p, skull_tilt,
+            entry_dv_corr_mm=entry_dv0 + float(d_dv)
         )
-        tip_ap = ap_p + float(direction[0]) * depth_mm_p
-        tip_dv = entry_dv_p + float(direction[1]) * depth_mm_p
+        tip_ap, tip_dv = _tip_ap_dv_mm(ap_p, entry_dv_p, direction, depth_um_p)
         min_margin = min(
             ap_p - ENTRY_AP_MIN_MM,
             ENTRY_AP_MAX_MM - ap_p,
@@ -16813,7 +16960,8 @@ def _compute_probe_uncertainty_metrics(probe, target_keys, params):
         if bounds_ok and angle_ok and hemi_ok:
             pass_count += 1
 
-        vox = sample_trajectory_voxels_cached(ap_p, ml_p, theta_p, phi_p, depth_um_p, skull_tilt, step_um=25.0)
+        vox = sample_trajectory_voxels_cached(ap_p, ml_p, theta_p, phi_p, depth_um_p, skull_tilt,
+                                             step_um=25.0, entry_dv_corr_mm=entry_dv_p)
         profile = compute_trajectory_profile(vox, list(target_ids.values()), step_um=25.0)
         covered_n = sum(1 for sid in target_ids.values() if profile.get(sid, {}).get("covered"))
         cover_fracs.append(covered_n / max(1, len(target_ids)))
@@ -18081,6 +18229,29 @@ def _candidate_coverage_tokens(candidate, target_keys, targeting_mode):
     return tokens
 
 
+def _candidate_cover_identity(candidate, target_keys, targeting_mode):
+    """Bind pool membership to geometry, hardware and tokens, not rounded UI controls."""
+    segments = _probe_shank_segments_um(candidate)
+    geometry = tuple((tuple(float(v) for v in start), tuple(float(v) for v in end), float(radius))
+                     for start, end, radius, _ in segments)
+    tokens = tuple(sorted(_candidate_coverage_tokens(candidate, target_keys, targeting_mode)))
+    return geometry, tokens
+
+
+def _final_coverage_state(selected, target_keys, targeting_mode):
+    required = _required_coverage_tokens(target_keys, targeting_mode)
+    covered = set().union(*(_candidate_coverage_tokens(p, target_keys, targeting_mode) for p in selected)) if selected else set()
+    covered &= required
+    missing = sorted(required - covered)
+    sides = []
+    if targeting_mode == "bilateral_symmetric":
+        sides = [{"key": token.rsplit(":", 1)[0], "side": token.rsplit(":", 1)[1]} for token in missing]
+        uncovered = sorted({item["key"] for item in sides})
+    else:
+        uncovered = missing
+    return required, covered, uncovered, sides
+
+
 def _bounded_exact_token_cover_selection(
     candidates,
     target_keys,
@@ -18095,10 +18266,12 @@ def _bounded_exact_token_cover_selection(
     required = _required_coverage_tokens(target_keys, targeting_mode)
     token_sets = [_candidate_coverage_tokens(c, target_keys, targeting_mode) for c in candidates]
     indices_by_identity = {id(c): i for i, c in enumerate(candidates)}
-    indices_by_signature = {_candidate_signature(c): i for i, c in enumerate(candidates)}
+    indices_by_signature = {_candidate_cover_identity(c, target_keys, targeting_mode): i for i, c in enumerate(candidates)}
     incumbent_indices = []
     for c in incumbent or []:
-        index = indices_by_identity.get(id(c), indices_by_signature.get(_candidate_signature(c)))
+        index = indices_by_identity.get(id(c))
+        if index is None:
+            index = indices_by_signature.get(_candidate_cover_identity(c, target_keys, targeting_mode))
         if index is None:
             # Recovery candidates outside the supplied pool cannot support a pool certificate.
             if audit is not None:
@@ -19802,6 +19975,7 @@ def _run_optimize_pipeline_once(raw_body, task_id=None):
         cancel=lambda: _check_task_cancelled(task_id, "token_cover_search"),
     )
     result["selected"] = selected_aug
+    token_cover_selection = [_candidate_cover_identity(p, target_keys, targeting_mode) for p in selected_aug]
     _update_task_progress(task_id, "targeting_mode_augmented", 0.88, "Targeting mode augmentation completed")
     _check_task_cancelled(task_id, "targeting_mode_augmented")
     if targeting_mode == "bilateral_symmetric":
@@ -19894,9 +20068,10 @@ def _run_optimize_pipeline_once(raw_body, task_id=None):
         raw_ml = float(probe.get("ml_mm", 0))
         raw_dv = float(probe.get("entryDvCorr_mm", 0))
         corr_ap, corr_ml, corr_dv = _apply_correction(raw_ap, raw_ml, raw_dv, correction_factors)
-        probe["ap_mm_corrected"] = round(corr_ap, 5)
-        probe["ml_mm_corrected"] = round(corr_ml, 5)
-        probe["entryDvCorr_mm_corrected"] = round(corr_dv, 5)
+        probe.setdefault("ap_mm_corrected", round(corr_ap, 5))
+        probe.setdefault("ml_mm_corrected", round(corr_ml, 5))
+        probe.setdefault("entryDvCorr_mm_corrected", round(corr_dv, 5))
+        probe.setdefault("depthUm_corrected", round(float(probe.get("depthUm", 0)) * correction_factors["dv"], 2))
         interval = _build_coordinate_error_interval(raw_ap, raw_ml, raw_dv, correction_unc)
         if interval is not None:
             probe["errorInterval"] = interval
@@ -20035,6 +20210,17 @@ def _run_optimize_pipeline_once(raw_body, task_id=None):
     _check_task_cancelled(task_id, "per_probe_metrics_ready")
     _update_task_progress(task_id, "per_probe_metrics_ready", 0.94, "Per-probe metrics computed")
 
+    required_tokens, covered_tokens, result["uncovered"], uncovered_side_items = _final_coverage_state(
+        selected, target_keys, targeting_mode
+    )
+    token_cover_audit["returnedSelectionUnchanged"] = sorted(token_cover_selection) == sorted(
+        _candidate_cover_identity(p, target_keys, targeting_mode) for p in selected
+    )
+    token_cover_audit["appliesToReturnedSelection"] = bool(
+        token_cover_audit["returnedSelectionUnchanged"]
+        and token_cover_audit.get("status") == "proven_optimal"
+        and required_tokens <= covered_tokens
+    )
     side_coverage = _build_side_coverage_summary(selected, target_keys)
     continuous_risk_policy = _continuous_risk_policy(constraint_modes)
     selective_conformal_summary = _apply_selective_conformal(selected, params)
@@ -20476,15 +20662,23 @@ def api_atlas_mode():
 
     body = _request_json_object(required=False)
     requested_mode = _normalize_atlas_mode(body.get("mode"))
+    paper_identity = app.config.get("PAPER_RUNTIME_IDENTITY") or {}
+    locked_mode = paper_identity.get("atlasMode") if paper_identity.get("profileContractSha256") else None
+    if locked_mode and requested_mode != locked_mode:
+        return _json_error(
+            "This paper runtime is bound to its startup atlas profile; start a separate runtime to change mode.",
+            status=409, code="paper_profile_mode_locked",
+        )
     with atlas_loader_lock:
-        if _atlas_loader_alive():
+        if requested_mode != ACTIVE_ATLAS_MODE and _atlas_loader_alive():
             return _json_error(
                 "Atlas loader is busy, please retry after current load completes.",
                 status=409,
                 code="atlas_loader_busy",
             )
     changed = _apply_active_atlas_mode(requested_mode)
-    _ensure_atlas_loader(force_retry=True)
+    if changed or not atlas_loaded:
+        _ensure_atlas_loader(force_retry=True)
     return jsonify(
         {
             "ok": True,
@@ -20678,7 +20872,7 @@ def api_mri_registration_summary():
     configured = bool(payload.get("registrationSummaryConfigured"))
     summary = _load_mri_hybrid_registration_summary() if configured else {}
     stats = _load_mri_hybrid_stats() if bool(payload.get("statsConfigured")) else {}
-    anatomical_tre_available = bool(
+    legacy_tre_enabled = bool(
         stats.get("anatomicalTreAvailable", summary.get("anatomicalTreAvailable", True))
     )
     # Keep the QC panel tied to the active profile contract.  The registration
@@ -20748,14 +20942,17 @@ def api_mri_registration_summary():
         "jacobianAnomalyRatio": primary_metrics["jacobianAnomalyRatio"],
     }
     metric_evidence = {}
+    metric_records = {}
     for mk in ("dice", "hd95Mm", "treMm", "jacobianAnomalyRatio"):
         if primary_metrics.get(mk) is not None:
             metric_evidence[mk] = primary_label
+            metric_records[mk] = stats if stats_authoritative else summary
         elif stats_authoritative and fallback_metrics.get(mk) is not None:
             metrics[mk] = fallback_metrics[mk]
             metric_evidence[mk] = fallback_label
+            metric_records[mk] = summary
     reg_block = summary.get("registration") if isinstance(summary.get("registration"), dict) else {}
-    if metrics["treMm"] is None and anatomical_tre_available:
+    if metrics["treMm"] is None and legacy_tre_enabled:
         off = reg_block.get("initialCenterOffset")
         if isinstance(off, (list, tuple)) and len(off) >= 3:
             try:
@@ -20785,6 +20982,7 @@ def api_mri_registration_summary():
         if metrics.get(mk) is None and stats_metrics.get(mk) is not None:
             metrics[mk] = stats_metrics[mk]
             metric_evidence[mk] = "stats_json_fallback"
+            metric_records[mk] = stats
     for key, value in list(metrics.items()):
         if value is not None:
             metrics[key] = round(float(value), 6)
@@ -20807,6 +21005,16 @@ def api_mri_registration_summary():
         "deformableMetric": _metric_float(reg_block.get("deformableMetric")),
     }
     quality_snapshot = deepcopy(reconstruction_quality_state) if isinstance(reconstruction_quality_state, dict) else {}
+    verified_hashes = (payload.get("verifiedArtifactHashes") or {}) if consistency.get("passed") is True else {}
+    bound_metric_records = {
+        key: record for key, record in metric_records.items()
+        if verified_hashes.get("stats" if record is stats else "registration_summary")
+    }
+    evidence_assessment = assess_registration_metrics(
+        metrics, metric_evidence, bound_metric_records,
+        verified_hashes=verified_hashes,
+        jacobian=jacobian_summary,
+    )
     return jsonify(
         {
             "ok": True,
@@ -20820,10 +21028,11 @@ def api_mri_registration_summary():
             "pathConsistency": deepcopy(payload.get("pathConsistency") or {}),
             "summary": summary,
             "metrics": metrics,
-            "anatomicalTreAvailable": anatomical_tre_available,
+            **evidence_assessment,
             "controlPointResidual": stats.get("controlPointResidual") or summary.get("controlPointResidual"),
-            "qualityGateStatus": quality_snapshot.get("status"),
-            "qualityGatePassed": quality_snapshot.get("passed"),
+            "qualityGateStatus": "FAIL" if quality_snapshot.get("passed") is False else "PASS" if evidence_assessment["measurementEvidenceComplete"] else "INCOMPLETE_MEASUREMENT_EVIDENCE",
+            "qualityGatePassed": quality_snapshot.get("passed") is True and evidence_assessment["measurementEvidenceComplete"],
+            "technicalChecksPassed": quality_snapshot.get("passed"),
             "qualityGateReasons": quality_snapshot.get("blockingReasons") or quality_snapshot.get("reasons") or [],
             "thresholds": quality_snapshot.get("thresholds") or {},
             "metricCi95": metric_ci,
@@ -20956,7 +21165,8 @@ def _qc_ci(metric_ci, *keys):
 def _qc_check(status, message, evidence=None, required=None):
     return {
         "status": status,
-        "passed": status in ("pass", "assumed"),
+        "passed": True if status == "pass" else False if status == "fail" else None,
+        "assessmentScope": "metadata_consistency_only",
         "message": str(message or ""),
         "evidence": evidence,
         "required": required,
@@ -20984,7 +21194,7 @@ def _build_mri_registration_qc_payload():
     quality_reasons = summary_payload.get("qualityGateReasons")
     if not isinstance(quality_reasons, list):
         quality_reasons = []
-    anatomical_tre_available = summary_payload.get("anatomicalTreAvailable") is not False
+    anatomical_tre_available = summary_payload.get("anatomicalTreAvailable") is True
     control_point_residual = summary_payload.get("controlPointResidual")
 
     reg_block = summary.get("registration") if isinstance(summary.get("registration"), dict) else {}
@@ -21024,7 +21234,7 @@ def _build_mri_registration_qc_payload():
         and ("ambmc" in moving_lower or "mri" in moving_lower or "moving" in moving_lower)
     )
     if ccf_template or ambmc_image:
-        direction_status = "pass" if direction_ok else "warn"
+        direction_status = "recorded" if direction_ok else "warn"
         direction_message = f"fixed={ccf_template or '-'}; moving={ambmc_image or '-'}"
     else:
         direction_status = "unknown"
@@ -21058,12 +21268,12 @@ def _build_mri_registration_qc_payload():
     if isinstance(spacing_mm, (list, tuple)) and len(spacing_mm) >= 3:
         vals = [_metric_float(x) for x in spacing_mm[:3]]
         if all(x is not None for x in vals):
-            spacing_status = "pass" if max(abs(float(x) - 0.025) for x in vals) <= 0.0025 else "warn"
+            spacing_status = "recorded" if max(abs(float(x) - 0.025) for x in vals) <= 0.0025 else "warn"
             if not str(spacing_message or "").startswith("spacingMm inferred"):
                 spacing_message = "spacingMm=" + ",".join(f"{float(x):.6f}" for x in vals)
     elif _metric_float(spacing_mm) is not None:
         val = float(_metric_float(spacing_mm))
-        spacing_status = "pass" if abs(val - 0.025) <= 0.0025 else "warn"
+        spacing_status = "recorded" if abs(val - 0.025) <= 0.0025 else "warn"
         spacing_message = f"spacingMm={val:.6f}"
 
     interpolation_payload = summary.get("interpolationPolicy") if isinstance(summary.get("interpolationPolicy"), dict) else {}
@@ -21071,7 +21281,7 @@ def _build_mri_registration_qc_payload():
         label_policy = str(interpolation_payload.get("label") or interpolation_payload.get("annotation") or "").lower()
         intensity_policy = str(interpolation_payload.get("intensity") or interpolation_payload.get("mri") or "").lower()
         interp_ok = ("nearest" in label_policy) and ("linear" in intensity_policy or "bspline" in intensity_policy)
-        interpolation_status = "pass" if interp_ok else "warn"
+        interpolation_status = "recorded" if interp_ok else "warn"
         interpolation_message = json.dumps(interpolation_payload, ensure_ascii=False)
     else:
         interpolation_status = "assumed"
@@ -21169,11 +21379,41 @@ def _build_mri_registration_qc_payload():
     for reason in list(quality_reasons) + row_failures:
         if reason and reason not in combined_reasons:
             combined_reasons.append(reason)
-    upstream_passed = summary_payload.get("qualityGatePassed")
-    quality_passed = (upstream_passed is not False) and len(combined_reasons) == 0
+    upstream_passed = summary_payload.get("technicalChecksPassed")
+    technical_passed = (upstream_passed is not False) and len(combined_reasons) == 0
+    legacy_metrics = deepcopy(metrics)
+    measurement_metrics = summary_payload.get("measurementMetrics") or {}
+    assessments = summary_payload.get("metricAssessment") or {}
+    evidence_complete = summary_payload.get("measurementEvidenceComplete") is True
+    for key in ("dice", "hd95Mm", "treMm", "jacobianAnomalyRatio"):
+        metrics[key] = measurement_metrics.get(key)
+    metrics["treMeanMm"] = measurement_metrics.get("treMm")
+    # A single stored TRE cannot also establish its median, maximum or axis errors.
+    metrics["treMedianMm"] = None
+    metrics["treMaxMm"] = None
+    metrics["treAxisMm"] = {"AP": None, "ML": None, "DV": None}
+    metrics["treCi95Mm"] = (summary_payload.get("measurementCi95") or {}).get("treMm")
+    if not (assessments.get("jacobianAnomalyRatio") or {}).get("usableAsMeasurement"):
+        for key in ("jacobianMean", "jacobianStd", "jacobianMin", "jacobianMax"):
+            metrics[key] = None
+    row_keys = {"Dice": "dice", "HD95": "hd95Mm", "TRE mean": "treMeanMm",
+                "TRE median": "treMedianMm", "TRE max": "treMaxMm", "Jacobian anomaly ratio": "jacobianAnomalyRatio"}
+    for row in export_rows:
+        key = row_keys.get(row["name"])
+        if key:
+            row["value"] = metrics.get(key)
+            assessment_key = "treMm" if key.startswith("tre") else key
+            row["evidenceStatus"] = (assessments.get(assessment_key) or {}).get("status", "unavailable")
+            if row["value"] is None:
+                row["passed"] = None
+        else:
+            row["evidenceStatus"] = row.get("value")
+    quality_passed = technical_passed and evidence_complete
     quality_gate = {
         "passed": bool(quality_passed),
-        "status": "PASS" if quality_passed and anatomical_tre_available else "INCOMPLETE_ANATOMICAL_TRE" if quality_passed else "FAIL",
+        "status": "PASS" if quality_passed else "INCOMPLETE_MEASUREMENT_EVIDENCE" if technical_passed else "FAIL",
+        "technicalChecksPassed": technical_passed,
+        "scope": "profile_measurements_not_subject_surgical_validation",
         "blockingReasons": combined_reasons,
         "thresholds": thresholds,
         "failureCard": _quality_gate_failure_card(),
@@ -21188,6 +21428,10 @@ def _build_mri_registration_qc_payload():
         "registrationSummaryPath": summary_payload.get("path"),
         "pathConsistency": deepcopy(summary_payload.get("pathConsistency") or overlay_payload.get("pathConsistency") or {}),
         "metrics": metrics,
+        "legacyDiagnostics": legacy_metrics,
+        "metricAssessment": assessments,
+        "measurementMetrics": measurement_metrics,
+        "measurementEvidenceComplete": evidence_complete,
         "anatomicalTreAvailable": anatomical_tre_available,
         "controlPointResidual": control_point_residual,
         "metricEvidence": deepcopy(summary_payload.get("metricEvidence") or {}),
@@ -21225,7 +21469,7 @@ def api_mri_registration_qc_export():
         )
     if fmt == "csv":
         rows = payload.get("exportRows") if isinstance(payload.get("exportRows"), list) else []
-        headers = ["section", "name", "value", "unit", "threshold", "passed"]
+        headers = ["section", "name", "value", "unit", "threshold", "passed", "evidenceStatus"]
         def _csv_cell(value):
             text = "" if value is None else str(value)
             text = text.replace('"', '""')
@@ -21326,9 +21570,51 @@ def _boundary_mask(slice_arr):
     return mask & (arr != 0)
 
 
+_atlas_section_source = None
+_atlas_section_lock = threading.Lock()
+
+
+def _get_atlas_section_source():
+    global _atlas_section_source
+    if ACTIVE_ATLAS_MODE != "mri_ccf_hybrid":
+        raise SectionError("MRI section requires the active MRI/CCF profile")
+    runtime = _mri_runtime_get()
+    path = MRI_CCF_MANIFEST_PATH or runtime.get("manifestPath")
+    if not path:
+        path = _mri_payload().get("manifestPath")
+    if not path:
+        raise SectionError("Bound section manifest unavailable")
+    expected = (app.config.get("PAPER_RUNTIME_IDENTITY") or {}).get("artifactManifestSha256")
+    with _atlas_section_lock:
+        if _atlas_section_source is None or _atlas_section_source.manifest_path != Path(path).resolve():
+            _atlas_section_source = AtlasSectionSource(path, expected_manifest_hash=expected)
+        if expected and _atlas_section_source.manifest_hash != expected:
+            raise SectionError("Bound section manifest hash mismatch")
+        _atlas_section_source.verify_unchanged()
+        return _atlas_section_source
+
+
+@app.route("/api/mri/section", methods=["GET"])
+def api_mri_section():
+    axis = str(request.args.get("axis") or "y").lower()
+    mode = str(request.args.get("mode") or "mri_ccf_overlay").lower()
+    try:
+        coordinate = float(request.args.get("coordinate", "nan"))
+    except ValueError:
+        coordinate = float("nan")
+    if axis not in SECTION_AXES or mode not in {"mri_only", "mri_ccf_overlay", "ccf_only"} or not np.isfinite(coordinate):
+        return _json_error("Invalid section axis, coordinate or mode", status=400, code="invalid_query_param")
+    try:
+        result = _get_atlas_section_source().section(axis, coordinate, mode)
+        response = jsonify(result)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except SectionError as exc:
+        return _json_error(str(exc), status=409, code="section_source_unavailable")
+
+
 @app.route("/api/mri/registration/qc/overlay_image", methods=["GET"])
 def api_mri_registration_qc_overlay_image():
-    payload = _mri_payload()
     mode = str(request.args.get("mode") or "boundary").strip().lower()
     if mode not in {"boundary", "checkerboard", "jacobian"}:
         return _json_error(
@@ -21338,56 +21624,21 @@ def api_mri_registration_qc_overlay_image():
             details=["mode must be boundary, checkerboard, or jacobian."],
         )
     axis_name = str(request.args.get("axis") or "coronal").strip().lower()
-    axis_map = {"coronal": 0, "sagittal": 1, "horizontal": 2, "ap": 0, "ml": 1, "dv": 2}
-    if axis_name not in axis_map:
+    if axis_name not in SECTION_AXES:
         return _json_error(
             "Unsupported registration QC overlay axis",
             status=400,
             code="invalid_query_param",
             details=["axis must be coronal, sagittal, horizontal, ap, ml, or dv."],
         )
-    axis = axis_map[axis_name]
     index_arg = request.args.get("index")
     try:
         index = _parse_int_query_arg("index") if index_arg is not None else None
     except ContractError as exc:
         return _json_contract_error(exc)
 
-    ann = _load_qc_volume(payload.get("annotationPath"))
-    skull = _load_qc_volume(payload.get("skullMaskPath"))
-    outer = _load_qc_volume(payload.get("outerTissueMaskPath"))
-    jac = _load_qc_volume(payload.get("jacobianPath"), preferred_keys=["jacobian", "jacobian_det", "determinant"])
-
-    ann_s = _slice_2d(ann, axis, index)
-    if ann_s is None:
-        return _json_error("MRI registration QC overlay requires annotation volume", status=404, code="qc_overlay_missing_annotation")
-    rgb = _label_color_slice(ann_s)
-
-    if mode == "checkerboard":
-        gray = np.stack([_normalize_u8(ann_s)] * 3, axis=-1)
-        yy, xx = np.indices(ann_s.shape)
-        tile = max(12, min(64, int(min(ann_s.shape) / 8)))
-        check = ((yy // tile + xx // tile) % 2) == 0
-        rgb = np.where(check[..., None], rgb, gray)
-    elif mode == "jacobian":
-        jac_s = _slice_2d(jac, axis, index)
-        if jac_s is not None:
-            heat = _normalize_u8(np.abs(np.asarray(jac_s, dtype=np.float32) - 1.0))
-            rgb = np.stack([heat, np.asarray(80 + heat // 3, dtype=np.uint8), np.asarray(255 - heat // 2, dtype=np.uint8)], axis=-1)
-    else:
-        edge = _boundary_mask(ann_s)
-        rgb[edge] = np.array([0, 212, 255], dtype=np.uint8)
-
-    skull_s = _slice_2d(skull, axis, index)
-    if skull_s is not None:
-        skull_edge = _boundary_mask(np.asarray(skull_s) > 0)
-        rgb[skull_edge] = np.array([255, 220, 90], dtype=np.uint8)
-    outer_s = _slice_2d(outer, axis, index)
-    if outer_s is not None:
-        outer_edge = _boundary_mask(np.asarray(outer_s) > 0)
-        rgb[outer_edge] = np.array([255, 120, 80], dtype=np.uint8)
-
     try:
+        rgb, metadata = _get_atlas_section_source().qc_image(axis_name, index, mode)
         from PIL import Image
         img = Image.fromarray(rgb, mode="RGB")
         max_side = 1100
@@ -21397,7 +21648,14 @@ def api_mri_registration_qc_overlay_image():
         bio = BytesIO()
         img.save(bio, format="PNG")
         bio.seek(0)
-        return send_file(bio, mimetype="image/png", download_name=f"registration_qc_{mode}_{axis_name}.png")
+        response = send_file(bio, mimetype="image/png", download_name=f"registration_qc_{mode}_{axis_name}.png")
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Section-Comparison"] = metadata["comparison"]
+        response.headers["X-Section-Manifest-SHA256"] = metadata["manifestSha256"]
+        response.headers["X-Section-Index"] = str(metadata["index"])
+        return response
+    except SectionError as exc:
+        return _json_error(str(exc), status=409, code="section_source_unavailable")
     except Exception as exc:
         return _json_internal_error(
             exc,
@@ -21579,8 +21837,7 @@ def api_status():
         "off",
     )
     requested_mode = _normalize_atlas_mode(request.args.get("atlasMode", ACTIVE_ATLAS_MODE))
-    if requested_mode != ACTIVE_ATLAS_MODE and not _atlas_loader_alive():
-        _apply_active_atlas_mode(requested_mode)
+    # Status is observational: a second browser must not reset the active atlas.
     retry_requested = str(request.args.get("retry", "")).strip().lower() in (
         "1",
         "true",
@@ -21869,6 +22126,8 @@ def api_status():
         "nativeEngineError": native_engine_error,
         "activeAtlasMode": ACTIVE_ATLAS_MODE,
         "effectiveAtlasMode": "native_engine" if native_engine_ready else ACTIVE_ATLAS_MODE,
+        "requestedAtlasMode": requested_mode,
+        "atlasModeMatchesRequest": requested_mode == ACTIVE_ATLAS_MODE,
         "supportedAtlasModes": list(ATLAS_MODES),
         "activeProfile": active_profile_contract,
         "modeContracts": mode_contracts,
@@ -22007,6 +22266,7 @@ def api_regions():
         result.append({
             "key":         key,
             "structureId": rec.get("structureId"),
+            "structureIdPath": rec.get("structureIdPath", []),
             "ap":          rec.get("ap", 0.0),
             "dv":          rec.get("dv", 0.0),
             "ml":          rec.get("ml", 0.0),
@@ -22062,6 +22322,7 @@ def api_regions_unity():
             {
                 "key": str(key),
                 "structureId": sid,
+                "structureIdPath": rec.get("structureIdPath", []),
                 "ap": float(rec.get("ap", 0.0) or 0.0),
                 "dv": float(rec.get("dv", 0.0) or 0.0),
                 "ml": float(rec.get("ml", 0.0) or 0.0),
@@ -22076,6 +22337,9 @@ def api_regions_unity():
                 "groupNameCn": str(rec.get("groupNameCn", "") or ""),
                 "voxelCount": int(rec.get("voxel_count", 0) or 0),
                 "nSubregions": int(rec.get("n_subregions", 0) or 0),
+                "volumeAvailabilityKnown": bool(atlas_loaded),
+                "presentInVolume": bool(rec.get("presentInVolume", False)),
+                "unavailableReason": str(rec.get("unavailableReason", "") or ""),
             }
         )
     return jsonify(
@@ -22631,13 +22895,14 @@ def api_coverage():
         enriched = []
         for traj in trajs:
             voxels = sample_trajectory_voxels_cached(
-                traj["ap_mm"],
-                traj["ml_mm"],
+                traj.get("ap_mm_corrected", traj["ap_mm"]),
+                traj.get("ml_mm_corrected", traj["ml_mm"]),
                 traj.get("theta_deg", 0),
                 traj.get("phi_deg", 0),
-                traj.get("depthUm", 10000),
+                traj.get("depthUm_corrected", traj.get("depthUm", 10000)),
                 traj.get("skullTiltDeg", 0),
                 25.0,
+                entry_dv_corr_mm=_probe_entry_dv_mm(traj),
             )
 
             cov_dict = voxel_coverage(voxels, list(target_ids.values()))
@@ -22739,6 +23004,34 @@ def api_probe_contact_profile():
         return _json_internal_error(e, context="Probe contact profile request")
 
 
+def _export_plan_provenance(body, trajectories):
+    request_id = body.get("planRequestId")
+    if not request_id:
+        return {"status": "unverified_geometry", "reason": "not_linked_to_saved_planner_result"}
+    if not isinstance(request_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,160}", request_id):
+        raise ContractError("Invalid planRequestId")
+    record = _load_replay_record(request_id)
+    response = record.get("response", {}) if isinstance(record, dict) else {}
+    if not response or response.get("responseHash") != body.get("planResponseHash"):
+        raise ContractError("Source plan missing or response hash mismatch")
+    selected = response.get("selected")
+    if not isinstance(selected, list) or len(selected) != len(trajectories):
+        raise ContractError("Export trajectories do not match the saved plan")
+    if [_normalize_export_trajectory(item, i) for i, item in enumerate(selected)] != trajectories:
+        raise ContractError("Export trajectories do not match the saved plan")
+    saved_corr = response.get("correctionFactors", record.get("request", {}).get("correctionFactors", {}))
+    if _normalize_correction_factors(body.get("correctionFactors", {}))[0] != _normalize_correction_factors(saved_corr)[0]:
+        raise ContractError("Export correction factors do not match the saved plan")
+    return {
+        "status": "linked_to_saved_planner_result",
+        "requestId": request_id,
+        "requestHash": response.get("requestHash"),
+        "responseHash": response.get("responseHash"),
+        "runtimeIdentity": deepcopy(response.get("runtimeIdentity")),
+        "scope": "Saved raw/resolved geometry, correction factors and recorded hardware; no new constraint or anatomical validation",
+    }
+
+
 @app.route("/api/export_pinpoint", methods=["POST"])
 def api_export_pinpoint():
     """Generate Pinpoint-compatible export JSON."""
@@ -22749,6 +23042,7 @@ def api_export_pinpoint():
         probe_type = payload["probeType"]
         corr = payload["correctionFactors"]
         corr_unc = payload["correctionUncertainty"]
+        source_plan = _export_plan_provenance(body, trajs)
 
         probes = []
         for i, t in enumerate(trajs):
@@ -22756,20 +23050,26 @@ def api_export_pinpoint():
             raw_ml = float(t.get("ml_mm", 0))
             raw_dv = float(t.get("entryDvCorr_mm", 0))
             corr_ap, corr_ml, corr_dv = _apply_correction(raw_ap, raw_ml, raw_dv, corr)
-            depth_mm = float(t.get("depthUm", 10000)) / 1000.0
+            corr_ap = float(t.get("ap_mm_corrected", corr_ap))
+            corr_ml = float(t.get("ml_mm_corrected", corr_ml))
+            corr_dv = float(t.get("entryDvCorr_mm_corrected", corr_dv))
+            depth_mm = float(t.get("depthUm_corrected", float(t.get("depthUm", 10000)) * corr["dv"])) / 1000.0
 
             probe = {
                 "id": f"P{i+1}",
-                "ap": round(-corr_ap, 4),
-                "ml": round(corr_ml, 4),
-                "dv": round(corr_dv, 4),
-                "depth": round(depth_mm, 3),
-                "phi": round(float(t.get("phi_deg", 0)), 1),
-                "theta": round(float(t.get("theta_deg", 0)), 1),
-                "spin": 0,
-                "probeType": probe_type,
+                "ap": -corr_ap,
+                "ml": corr_ml,
+                "dv": corr_dv,
+                "depth": depth_mm,
+                "phi": float(t.get("phi_deg", 0)),
+                "theta": float(t.get("theta_deg", 0)),
+                "spin": t['spin_deg'],
+                "probeType": t['probeType'] or probe_type,
                 "coveredRegions": t.get("coveredRegions", []),
             }
+            for key in ('shankCount', 'shankPitchUm', 'radiusUm', 'shankWidthUm', 'shankThicknessUm'):
+                if key in t:
+                    probe[key] = t[key]
             interval = _build_coordinate_error_interval(raw_ap, raw_ml, raw_dv, corr_unc)
             if interval is not None:
                 probe["errorInterval"] = interval
@@ -22781,8 +23081,13 @@ def api_export_pinpoint():
             "_atlas": "CCFv3_25um",
             "_atlasHash": atlas_signature.get("hash"),
             "_engineVersion": ENGINE_VERSION,
+            "_coordinateSystem": "pinpoint_ap_posterior_positive_mm",
+            "_sourcePlan": source_plan,
+            "_exportRuntime": deepcopy(app.config.get("PAPER_RUNTIME_IDENTITY")),
             "_requestId": _request_id(),
-            "_coordinateCorrectionApplied": payload["correctionApplied"],
+            "_coordinateCorrectionApplied": payload["correctionApplied"] or any(
+                t.get(field + "_corrected", t[field]) != t[field]
+                for t in trajs for field in ("ap_mm", "ml_mm", "entryDvCorr_mm", "depthUm")),
             "_correctionFactors": corr,
             "_correctionUncertainty": corr_unc,
             "probes": probes,
