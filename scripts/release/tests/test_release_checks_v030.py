@@ -113,3 +113,20 @@ def test_job_environment_does_not_use_runner_context():
     for job in workflow['jobs'].values():
         for value in job.get('env', {}).values():
             assert 'runner.' not in value, 'Runner context is unavailable in job-level env'
+
+
+def test_ci_uses_pinned_managed_python_and_normalized_report_directory():
+    import yaml
+    path = checks.ROOT / '.github/workflows/paper-release.yml'
+    job = yaml.load(path.read_text(encoding='utf-8'), Loader=yaml.BaseLoader)['jobs']['verify-v030-draft']
+    assert 'GATE_ROOT' not in job['env']
+    initializer = next(s for s in job['steps'] if s.get('name') == 'Initialize absolute release work directory')
+    assert '$env:RUNNER_TEMP' in initializer['run'] and 'GetFullPath' in initializer['run']
+    assert '$env:GITHUB_ENV' in initializer['run']
+    setup = next(s for s in job['steps'] if s.get('uses', '').startswith('astral-sh/setup-uv@'))
+    assert setup['uses'] == 'astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884'
+    assert setup['with']['version'] == '0.13.6'
+    assert setup['with']['checksum'] == 'a2a8820d5eea32f08ef467ef3b7f66883a9b076d5737a2fc2fbb5f458d1bb50f'
+    assert setup['with']['python-version'] == '3.10.20'
+    assert setup['with']['activate-environment'] == 'true' and setup['with']['enable-cache'] == 'false'
+    assert not any(s.get('uses', '').startswith('actions/setup-python@') for s in job['steps'])

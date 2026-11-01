@@ -13,8 +13,8 @@
       "bytes": 9474
     },
     ".github/workflows/paper-release.yml": {
-      "sha256": "5dcc50b8cca7176dca44e1574b0e5c755774dfacec5b2433cd6a589b39ede8a5",
-      "bytes": 8771
+      "sha256": "575502a246d185e77d1f7448e240938cabe9dc507a64eda2a1a58dc719e37e4f",
+      "bytes": 9640
     },
     ".gitignore": {
       "sha256": "a576c0e97d982a50399a51e8de7191cc7270915b144cfd62459ffe40f8e3b94e",
@@ -5125,8 +5125,8 @@
       "bytes": 4106
     },
     "docs/release/v0.3.0-reproduction.md": {
-      "sha256": "a247ebacc3a1c385fcfce5b0d0f54188b02b4ffe69f0afead968a433f2341913",
-      "bytes": 6414
+      "sha256": "4ed24066e44ba89fc3a60645977b6f2e7d5ff08cbaf1db0c6cf9612e330b4e9d",
+      "bytes": 6976
     },
     "docs/releasing.md": {
       "sha256": "0740b10615c968d91a6a13be3ed6fcf039253cc5a640fdd2780ed80db0492c86",
@@ -5329,8 +5329,8 @@
       "bytes": 2652
     },
     "scripts/release/tests/test_release_checks_v030.py": {
-      "sha256": "17cf1eb64b9bd6b90aa6c3117b1097494f43ae416eca4204cd80773fda671cf8",
-      "bytes": 5517
+      "sha256": "b36a4283812123e2bcda09487ad3c7d033883c143fa58afe2ae64b263ce6de9e",
+      "bytes": 6674
     },
     "scripts/release/tests/test_verify_source_v030.py": {
       "sha256": "25d03aff695cd437691d26788afee8869f6d54239e8f52742a2138a959319ef7",
