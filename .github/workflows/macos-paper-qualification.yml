@@ -20,7 +20,7 @@ jobs:
           - runner: macos-15
             architecture: arm64
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 45
+    timeout-minutes: 100
     env:
       PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
       MPLBACKEND: Agg
@@ -52,12 +52,26 @@ jobs:
           python harness/scripts/qualification/qualify_macos.py
           --source frozen --output "${{ runner.temp }}/macos-qualification"
           --architecture "${{ matrix.architecture }}"
+      - name: Load public profile and replay fixed candidate/exact cases
+        run: >-
+          python harness/scripts/qualification/replay_macos.py
+          --source frozen --qualification "${{ runner.temp }}/macos-qualification"
+          --output "${{ runner.temp }}/macos-replay"
+          --data "${{ runner.temp }}/macos-data"
       - name: Retain every outcome including failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: macos-qualification-${{ matrix.architecture }}
           path: ${{ runner.temp }}/macos-qualification
+          retention-days: 30
+          if-no-files-found: error
+      - name: Retain data-startup and replay outcomes including failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: macos-replay-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/macos-replay
           retention-days: 30
           if-no-files-found: error
 
