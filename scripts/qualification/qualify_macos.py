@@ -78,7 +78,7 @@ def run_step(out, source, name, command, timeout):
             record.update(returncode=None, timeout=True)
     record["seconds"] = time.monotonic() - start
     record["log_sha256"] = sha(out / (name + ".log"))
-    write(out / (name + ".json"), record)
+    write(out / (name + ".step.json"), record)
     print("DONE " + name + " returncode=" + str(record["returncode"]), flush=True)
     require(record["returncode"] == 0, "Failed step: " + name)
     return record
