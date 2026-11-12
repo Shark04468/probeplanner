@@ -1,0 +1,46 @@
+name: macos-render-capability-diagnostic
+
+on:
+  push:
+    branches: [evidence/macos-webgl-capability-20261112]
+
+permissions:
+  contents: read
+
+jobs:
+  capability:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 56868d57c23cbbb1207666f5e420bf47019591c6
+          path: frozen
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24.14.0"
+      - name: Install unchanged locked UI dependencies
+        working-directory: frozen/apps/ui
+        run: npm ci --no-audit --no-fund
+      - name: Install pinned Chromium and default headless shell
+        working-directory: frozen/apps/ui
+        run: npx --no-install playwright install chromium
+      - name: Diagnostic contract checks
+        run: node --test harness/scripts/qualification/render_probe/test_contract.cjs
+      - name: Observe both headless modes without application or atlas workloads
+        run: >-
+          node harness/scripts/qualification/render_probe/probe.cjs frozen
+          "${{ runner.temp }}/render-capability"
+      - name: Retain complete diagnostic including failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: macos-render-capability-arm64
+          path: ${{ runner.temp }}/render-capability
+          retention-days: 30
+          if-no-files-found: error
