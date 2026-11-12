@@ -13,6 +13,7 @@ const write = (name, value) => fs.writeFileSync(path.join(out, name), JSON.strin
 const report = { status: 'FAIL', steps: [], requests: [], responses: [], downloads: [],
   networkFailures: [], httpErrors: [], pageErrors: [], browserConsole: [], anatomyAccepted: false,
   fullMacWorkflowAccepted: false, visualReviewRequired: true, externalResubmission: false };
+report.meshTransfers = [];
 report.workflowRole = savedPlanArg ? 'actual_saved_plan_scene_inspection_only' : 'actual_first_request_ui_portability';
 let browser, context, page, traceActive = false;
 async function step(name, action) {
@@ -49,6 +50,17 @@ async function fullscreen() {
   }, null, { timeout: 30000 });
   await page.waitForTimeout(250);
 }
+async function observeRenderer() {
+  return page.frameLocator('iframe[title="Brain Planner Unity"]').locator('canvas').evaluate(canvas => {
+    if (!window.unityInstance) return { available: false, instanceReady: false };
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+    if (!gl) return { available: false, instanceReady: true };
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    return { available: true, width: canvas.width, height: canvas.height,
+      vendor: gl.getParameter(gl.VENDOR), renderer: gl.getParameter(gl.RENDERER), version: gl.getParameter(gl.VERSION),
+      unmaskedRenderer: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : null };
+  }, undefined, { timeout: 10000 });
+}
 async function sceneReady(timeout) {
   await page.waitForFunction(() => {
     const s = window.macUiObserved;
@@ -56,6 +68,8 @@ async function sceneReady(timeout) {
     const surfaces = JSON.parse(v?.dataset.surfaceStates || '{}');
     const section = JSON.parse(v?.dataset.sectionState || '{}');
     const p = s?.progress;
+    if (p?.failed > 0 || surfaces.brain_surface?.status === 'failed' || section.status === 'failed')
+      throw Error('Required scene resource failed: ' + JSON.stringify({ progress: p, brain: surfaces.brain_surface, section }));
     return p?.total > 0 && p.loaded === p.total && !p.failed &&
       ['CA1', 'CA3'].every(k => s.fills[k] === 'fillLoaded') &&
       surfaces.brain_surface?.status === 'loaded' && surfaces.brain_surface.visible &&
@@ -79,6 +93,12 @@ async function main() {
     page.on('pageerror', e => report.pageErrors.push(String(e)));
     page.on('console', m => { if (['error', 'warning'].includes(m.type())) report.browserConsole.push({ type: m.type(), text: m.text() }); });
     page.on('requestfailed', r => report.networkFailures.push({ url: r.url(), method: r.method(), error: r.failure() }));
+    const observeTransfer = (request, outcome) => {
+      if (/\/api\/(allen_mesh|mri_surface_mesh|mri\/overlay|mri\/section)/.test(request.url()))
+        report.meshTransfers.push({ url: request.url(), outcome, observedUtc: new Date().toISOString(), timing: request.timing() });
+    };
+    page.on('requestfinished', r => observeTransfer(r, 'finished'));
+    page.on('requestfailed', r => observeTransfer(r, 'failed'));
     page.on('response', r => { if (r.status() >= 400) report.httpErrors.push({ url: r.url(), status: r.status() }); });
     await page.route('**/api/optimize', async route => {
       const body = route.request().postDataJSON();
@@ -251,6 +271,7 @@ async function main() {
       await page.getByRole('button', { name: 'V Regions', exact: true }).click();
       await page.getByTestId('probeplanner-toggle-3d').click();
       await fullscreen();
+      await disclosure('brain3d-slice-controls', false);
       await disclosure('brain3d-display-controls', true);
       await capture('scene-controls-before-template');
       await page.getByTestId('brain3d-template-mri').waitFor({ state: 'visible', timeout: 10000 });
@@ -277,14 +298,7 @@ async function main() {
       await disclosure('brain3d-slice-controls', false);
       const state = await sceneReady(1800000);
       await capture('desktop-complete', true);
-      report.renderer = await page.frameLocator('iframe[title="Brain Planner Unity"]').locator('canvas').evaluate(canvas => {
-        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-        if (!gl) return { available: false };
-        const ext = gl.getExtension('WEBGL_debug_renderer_info');
-        return { available: true, width: canvas.width, height: canvas.height,
-          vendor: gl.getParameter(gl.VENDOR), renderer: gl.getParameter(gl.RENDERER), version: gl.getParameter(gl.VERSION),
-          unmaskedRenderer: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : null };
-      });
+      report.renderer = await observeRenderer();
       return state;
     });
     await context.tracing.start({ screenshots: true, snapshots: true }); traceActive = true;
@@ -332,6 +346,7 @@ async function main() {
           displayOpen: n.querySelector('[data-testid="brain3d-display-controls"]')?.open,
           sliceOpen: n.querySelector('[data-testid="brain3d-slice-controls"]')?.open,
         })).catch(() => null);
+        if (report.finalViewport) report.rendererAtEnd = await observeRenderer().catch(e => ({ error: String(e) }));
       }
       catch (e) { report.sceneReadError = String(e); }
     }
