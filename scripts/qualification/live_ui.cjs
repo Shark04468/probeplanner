@@ -29,7 +29,22 @@ async function capture(name, canvas = false) {
 }
 async function disclosure(id, open) {
   const node = page.getByTestId(id);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   if (await node.evaluate(n => n.open) !== open) await node.locator('summary').click();
+  await page.waitForFunction(({ id, open }) => document.querySelector(`[data-testid="${id}"]`)?.open === open,
+    { id, open }, { timeout: 10000 });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  requireThat(await node.evaluate(n => n.open) === open, 'Disclosure changed during layout: ' + id);
+}
+async function fullscreen() {
+  await page.getByRole('button', { name: 'Fullscreen', exact: true }).click();
+  await page.waitForFunction(() => {
+    const v = document.querySelector('[data-testid="brain3d-viewport"]');
+    const r = v?.getBoundingClientRect();
+    return document.fullscreenElement === v && r && Math.abs(r.width - innerWidth) < 2 &&
+      Math.abs(r.height - innerHeight) < 2 && v.dataset.compact === String(innerWidth < 900 || innerHeight < 760);
+  }, null, { timeout: 30000 });
+  await page.waitForTimeout(250);
 }
 async function sceneReady(timeout) {
   await page.waitForFunction(() => {
@@ -134,11 +149,12 @@ async function main() {
       for (const format of ['pplan', 'txt']) {
         await page.getByRole('button', { name: format === 'pplan' ? '.pplan (JSON)' : '.txt', exact: true }).click();
         const responsePromise = page.waitForResponse(r => r.url().endsWith('/api/export_pinpoint') && r.request().method() === 'POST');
-        const downloadPromise = page.waitForEvent('download');
+        const downloadPromise = page.waitForEvent('download').catch(error => ({ error: String(error) }));
         await page.getByRole('button', { name: 'Download .' + format, exact: true }).click();
         const response = await responsePromise, received = await response.json();
         requireThat(response.ok() && received.ok, 'Actual export rejected');
         const download = await downloadPromise;
+        requireThat(!download.error, download.error || 'Actual download missing');
         const output = path.join(out, 'actual-plan.' + format); await download.saveAs(output);
         report.downloads.push({ format, path: output, sha256: sha(fs.readFileSync(output)),
           submitted: response.request().postDataJSON(), received });
@@ -169,9 +185,11 @@ async function main() {
       });
       await page.getByRole('button', { name: 'V Regions', exact: true }).click();
       await page.getByTestId('probeplanner-toggle-3d').click();
-      await page.getByRole('button', { name: 'Fullscreen', exact: true }).click();
+      await fullscreen();
       await disclosure('brain3d-display-controls', true);
-      await page.getByTestId('brain3d-template-mri').click({ timeout: 600000 });
+      await capture('scene-controls-before-template');
+      await page.getByTestId('brain3d-template-mri').waitFor({ state: 'visible', timeout: 10000 });
+      await page.getByTestId('brain3d-template-mri').click();
       if (await page.getByTestId('brain3d-clinical-focus').getAttribute('aria-pressed') === 'true')
         await page.getByTestId('brain3d-clinical-focus').click();
       report.unverifiedLabels = {};
@@ -224,8 +242,9 @@ async function main() {
         oldSection, { timeout: 30000 });
       const slice = await sceneReady(300000); await capture('desktop-new-slice', true);
       await page.getByRole('button', { name: 'Exit Fullscreen', exact: true }).click();
+      await page.waitForFunction(() => !document.fullscreenElement);
       await page.setViewportSize({ width: 390, height: 844 });
-      await page.getByRole('button', { name: 'Fullscreen', exact: true }).click();
+      await fullscreen();
       for (const id of ['brain3d-slice-controls', 'brain3d-display-controls']) await disclosure(id, false);
       const mobile = await sceneReady(300000); await page.waitForTimeout(1500);
       await capture('mobile-complete', true);
@@ -239,7 +258,14 @@ async function main() {
     if (page) { try { await capture('failure'); } catch (e) { report.captureError = String(e); } }
   } finally {
     if (page) {
-      try { report.scene = await page.evaluate(() => window.macUiObserved || null); }
+      try {
+        report.scene = await page.evaluate(() => window.macUiObserved || null);
+        report.finalViewport = await page.getByTestId('brain3d-viewport').evaluate(n => ({
+          ...n.dataset, rectangle: n.getBoundingClientRect().toJSON(), fullscreen: document.fullscreenElement === n,
+          displayOpen: n.querySelector('[data-testid="brain3d-display-controls"]')?.open,
+          sliceOpen: n.querySelector('[data-testid="brain3d-slice-controls"]')?.open,
+        })).catch(() => null);
+      }
       catch (e) { report.sceneReadError = String(e); }
     }
     if (context && traceActive) {
