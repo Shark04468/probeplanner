@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { createRequire } = require('node:module');
 const { same, sha, requireThat, validateExports } = require('./ui_contract.cjs');
+const { withinRequestBudget } = require('./request_budget.cjs');
 const [sourceArg, outArg, base] = process.argv.slice(2);
 const source = path.resolve(sourceArg), out = path.resolve(outArg);
 const { chromium } = createRequire(path.join(source, 'apps/ui/package.json'))('playwright');
@@ -105,10 +106,25 @@ async function main() {
       await capture('configuration');
       return { literalSettingsSealed: true, selectedTargets: ['CA1', 'CA3'] };
     });
+    await context.tracing.stop({ path: path.join(out, 'configuration-trace.zip') }); traceActive = false;
+    await context.tracing.start({ screenshots: false, snapshots: false }); traceActive = true;
     await step('first_plan', async () => {
-      const responsePromise = page.waitForResponse(r => r.url().endsWith('/api/optimize') && r.request().method() === 'POST', { timeout: 600000 });
+      const matchesOptimization = r => r.url().endsWith('/api/optimize') && r.method() === 'POST';
+      const sentPromise = page.waitForRequest(matchesOptimization, { timeout: 60000 })
+        .then(request => ({ request, at: performance.now(), observedUtc: new Date().toISOString() }))
+        .catch(error => ({ error: String(error) }));
+      const responsePromise = page.waitForResponse(r => matchesOptimization(r.request()), { timeout: 0 })
+        .then(response => ({ response, at: performance.now(), observedUtc: new Date().toISOString() }))
+        .catch(error => ({ error: String(error) }));
       await page.getByRole('button', { name: 'Run Optimization', exact: true }).click();
-      const response = await responsePromise;
+      const sent = await sentPromise;
+      requireThat(!sent.error, sent.error || 'Actual request missing');
+      const received = await withinRequestBudget(responsePromise, sent.at, 600000);
+      requireThat(!received.error, received.error || 'Missing response');
+      requireThat(received.at - sent.at <= 600000, 'Late response exceeds actual request budget');
+      report.planningRequestClock = { requestObservedUtc: sent.observedUtc, responseObservedUtc: received.observedUtc,
+        elapsedMs: received.at - sent.at, budgetMs: 600000, excludesPreRequestControlWait: true };
+      const response = received.response;
       const body = await response.json();
       report.responses.push({ status: response.status(), body });
       write('optimization-response.json', report.responses[0]);
@@ -130,6 +146,8 @@ async function main() {
       write('runtime.json', report.runtime); write('replay.json', report.replay);
       return { requestId: report.result.requestId, responseHash: report.result.responseHash };
     });
+    await context.tracing.stop({ path: path.join(out, 'planning-action-trace.zip') }); traceActive = false;
+    await context.tracing.start({ screenshots: true, snapshots: true }); traceActive = true;
     await step('inspect_and_export', async () => {
       await page.getByRole('button', { name: /^R\s*Results/ }).click();
       await page.getByText('Feasible plan', { exact: true }).waitFor();
@@ -162,7 +180,7 @@ async function main() {
       }
       return validateExports(report.result, report.runtime, report.replay, report.downloads);
     });
-    await context.tracing.stop({ path: path.join(out, 'configuration-export-trace.zip') }); traceActive = false;
+    await context.tracing.stop({ path: path.join(out, 'inspection-export-trace.zip') }); traceActive = false;
     await step('complete_ccf_mri_scene', async () => {
       // Listener observes only genuine messages from this page's actual renderer frame.
       await page.evaluate(() => {
