@@ -1,0 +1,63 @@
+name: macos-paper-qualification
+
+on:
+  push:
+    branches: [evidence/macos-qualification-20261112]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - runner: macos-15-intel
+            architecture: x86_64
+          - runner: macos-15
+            architecture: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    env:
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+      MPLBACKEND: Agg
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 56868d57c23cbbb1207666f5e420bf47019591c6
+          path: frozen
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
+        env:
+          UV_PYTHON_PREFERENCE: only-managed
+        with:
+          version: "0.13.6"
+          python-version: "3.10.20"
+          activate-environment: true
+          venv-path: ${{ runner.temp }}/probeplanner-python
+          enable-cache: false
+      - name: Qualify unchanged paper environment and backend tests
+        run: >-
+          python harness/scripts/qualification/qualify_macos.py
+          --source frozen --output "${{ runner.temp }}/macos-qualification"
+          --architecture "${{ matrix.architecture }}"
+      - name: Retain every outcome including failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: macos-qualification-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/macos-qualification
+          retention-days: 30
+          if-no-files-found: error
+
