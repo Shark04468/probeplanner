@@ -8130,9 +8130,14 @@ def voxel_overlap_count(traj_voxels, structure_id):
 
 
 def compute_trajectory_profile(traj_voxels, target_structure_ids, step_um=25.0, sample_depths_um=None):
-    """
-    [NEW]            overed / n_voxels / coverage_frac /
-    entry_depth_um / exit_depth_um / channel_span_um / voxel_score
+    """Summarize sampled atlas-label intersections for each requested structure.
+
+    Inputs are in-bounds atlas voxel indices; descendant labels count as hits.
+    Repeated samples are counted, so n_voxels is not a unique-voxel volume or an
+    active-contact count. One hit establishes coverage. ML <= 0 is assigned left.
+    Finite, shape-matched sample depths retain the original path coordinates;
+    otherwise depths use sample index times step_um. Entry/exit depths span the
+    first/last hits, not necessarily one contiguous target interval.
     """
     if atlas_annotation is None or not traj_voxels:
         return {sid: {"covered": False, "n_voxels": 0, "coverage_frac": 0.0,
@@ -11862,8 +11867,15 @@ def generate_candidates_voxel(
     cancel_cb=None,
     candidate_sink=None,
 ):
-    """
-                   + PCA    +        ?                 ?+ diversity_reduce    
+    """Construct and refine a finite pool from atlas-based trajectory proposals.
+
+    Combine global and per-target local grids, principal-axis and target-pair
+    proposals, with endpoint-aware depth variants and conditional reference
+    proposals. Deduplicate specifications before coarse screening, diversity
+    reduction and fine sampling. Forced seeds preserve eligible proposal
+    families; they do not bypass downstream constraints. Later selection and
+    strict audits remain separate from proposal generation. This sampled pool
+    is not an exhaustive continuous-space search.
     """
     grid_mm    = params.get("gridSpacing", 600) / 1000.0
     angle_step = int(max(1, round(float(params.get("angleStep", 5)))))

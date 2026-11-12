@@ -1,11 +1,23 @@
 # Reproducibility
 
-## Locked release
+## Current paper route
 
-The current manuscript software version is tag `v0.2.1-paper`. The previous
-`v0.2.0-paper` tag remains immutable. The current tag, GitHub Release, Zenodo
-software version, and release provenance report must resolve to the same source
-commit.
+The revised paper uses `v0.3.0-paper`, commit
+`56868d57c23cbbb1207666f5e420bf47019591c6`. Use the
+[version-specific reproduction route](release/v0.3.0-reproduction.md) for its
+Python environment, public profile, launcher, evidence and candidate replay.
+Use the [UI walkthrough](PAPER_UI_WALKTHROUGH.md) to configure and inspect a plan.
+
+This later documentation correction does not move the published tag or replace
+its archived source. The older commands below are retained only for reproducing
+the older release; they are not current startup instructions.
+
+## Historical locked release: v0.2.1-paper
+
+The preceding manuscript software version is tag `v0.2.1-paper`.
+Both `v0.2.1-paper` and `v0.2.0-paper` remain immutable. When reproducing a historical
+release, its tag, GitHub Release, Zenodo version and provenance must resolve to
+the same historical source commit.
 
 Runtime versions are locked by:
 
