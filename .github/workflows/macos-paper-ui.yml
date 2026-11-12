@@ -1,0 +1,79 @@
+name: macos-paper-ui
+
+on:
+  push:
+    branches: [evidence/macos-ui-20261112]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actual-ui:
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - runner: macos-15-intel
+            architecture: x86_64
+          - runner: macos-15
+            architecture: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    env:
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+      MPLBACKEND: Agg
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 56868d57c23cbbb1207666f5e420bf47019591c6
+          path: frozen
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
+        env:
+          UV_PYTHON_PREFERENCE: only-managed
+        with:
+          version: "0.13.6"
+          python-version: "3.10.20"
+          activate-environment: true
+          venv-path: ${{ runner.temp }}/probeplanner-python
+          enable-cache: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24.14.0"
+      - name: Qualify unchanged paper source on the fresh host
+        run: >-
+          python harness/scripts/qualification/qualify_macos.py
+          --source frozen --output "${{ runner.temp }}/macos-ui-prerequisites"
+          --architecture "${{ matrix.architecture }}"
+      - name: Execute actual configuration, plan, scene and exports
+        run: >-
+          python harness/scripts/qualification/run_macos_ui.py
+          --source frozen --qualification "${{ runner.temp }}/macos-ui-prerequisites"
+          --output "${{ runner.temp }}/macos-ui"
+          --data "${{ runner.temp }}/macos-ui-data"
+      - name: Retain prerequisites including failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: macos-ui-prerequisites-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/macos-ui-prerequisites
+          retention-days: 30
+          if-no-files-found: error
+      - name: Retain actual browser evidence including failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: macos-ui-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/macos-ui
+          retention-days: 30
+          if-no-files-found: error
