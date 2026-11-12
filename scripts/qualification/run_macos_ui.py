@@ -49,6 +49,7 @@ def main():
     p.add_argument('--qualification', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--data', type=Path, required=True)
+    p.add_argument('--saved-plan-origin', type=Path)
     a = p.parse_args()
     source, qualified, out, data = (x.resolve() for x in (a.source, a.qualification, a.output, a.data))
     roots = [source, qualified, out, data]
@@ -70,13 +71,28 @@ def main():
         require(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source, text=True).strip() == SOURCE_COMMIT, 'Source differs')
         require(not subprocess.check_output(['git', 'status', '--porcelain'], cwd=source, text=True).strip(), 'Source dirty')
         require(subprocess.check_output(['node', '--version'], text=True).strip() == 'v24.14.0', 'Node version differs')
-        write(out / 'RUN_CONTRACT.json', dict(role='actual_first_request_ui_portability',
+        saved_origin = None
+        if a.saved_plan_origin:
+            saved_origin = json.loads(a.saved_plan_origin.read_text(encoding='utf-8'))
+            require(saved_origin['role'] == 'actual_saved_plan_scene_inspection_only', 'Saved-plan role differs')
+            require(saved_origin['source_commit'] == SOURCE_COMMIT, 'Saved source differs')
+            require(saved_origin['filename'] == 'actual-plan.pplan', 'Saved filename differs')
+            saved = a.saved_plan_origin.parent / saved_origin['filename']
+            require(sha(saved) == saved_origin['sha256'], 'Saved bytes differ')
+            retained = out / 'saved_input'
+            retained.mkdir()
+            shutil.copyfile(saved, retained / saved_origin['filename'])
+            shutil.copyfile(a.saved_plan_origin, retained / 'ORIGIN.json')
+        role = 'actual_saved_plan_scene_inspection_only' if saved_origin else 'actual_first_request_ui_portability'
+        report['workflow_role'] = role
+        write(out / 'RUN_CONTRACT.json', dict(role=role,
             source_commit=SOURCE_COMMIT, harness_commit=os.environ.get('GITHUB_SHA'),
             host=platform.platform(), architecture=platform.machine(),
             qualification_sha256=sha(qualified / 'RESULTS.json'),
             source_locks={f: sha(source / f) for f in ['package-lock.json', 'apps/ui/package-lock.json']},
             scripts={f.name: sha(f) for f in Path(__file__).parent.glob('*') if f.is_file()},
             expected_profile_sha256=PROFILE_SHA, bundle_sha256=BUNDLE_SHA,
+            saved_plan_origin=saved_origin, allowed_optimization_requests=0 if saved_origin else 1,
             visual_review_required=True, screenshot_anatomy_validation=False,
             budgets_seconds=dict(startup=600, planning=600, complete_scene=1800, driver=4800),
             browser_library='frozen Playwright 1.58.2 standalone driver, not a new spec'))
@@ -91,7 +107,8 @@ def main():
         step('build_ui', ['npm', 'run', 'build'], 600, source / 'apps/ui')
         step('install_browser', ['node', 'node_modules/playwright/cli.js', 'install', 'chromium'], 600, source / 'apps/ui')
         script = Path(__file__).resolve().parent
-        step('seal_request', ['node', str(script / 'ui_contract.cjs'), str(source), str(out / 'REQUEST_CONTRACT.json')], 60)
+        if not saved_origin:
+            step('seal_request', ['node', str(script / 'ui_contract.cjs'), str(source), str(out / 'REQUEST_CONTRACT.json')], 60)
         data.mkdir(parents=True, exist_ok=False)
         step('fetch_profile', [sys.executable, 'scripts/release/fetch_public_profile.py', '--base-url', BASE_URL,
             '--manifest-sha256', BUNDLE_SHA, '--downloads', str(data / 'downloads'),
@@ -120,11 +137,16 @@ def main():
         require(runtime['optimizerSha256'] == '5439589a385d161a457cc4899e89cdc999712798c8dd4d8440a1c4657144a0f9', 'Optimizer differs')
         require(all(runtime[k] is True for k in ['manifestEnforced', 'pathConsistencyPassed', 'cacheInitiallyEmpty']), 'Runtime gate failed')
         write(out / 'COLD_RUNTIME.json', runtime)
-        step('actual_ui', ['node', str(script / 'live_ui.cjs'), str(source), str(out), base], 4800)
+        browser_command = ['node', str(script / 'live_ui.cjs'), str(source), str(out), base]
+        if saved_origin:
+            browser_command.append(str(out / 'saved_input/ORIGIN.json'))
+        step('actual_ui', browser_command, 4800)
         report['pixels'] = pixel_audit(out)
         write(out / 'PIXEL_AUDIT.json', report['pixels'])
         browser = json.loads((out / 'BROWSER_RESULT.json').read_text())
-        require(browser['status'] == 'PASS_AUTOMATED_UI_PENDING_PIXEL_AND_VISUAL_REVIEW', 'Browser stage failed')
+        expected_status = ('PASS_AUTOMATED_SAVED_PLAN_SCENE_PENDING_PIXEL_AND_VISUAL_REVIEW' if saved_origin else
+                           'PASS_AUTOMATED_UI_PENDING_PIXEL_AND_VISUAL_REVIEW')
+        require(browser['status'] == expected_status, 'Browser stage failed')
         # Separate contexts: fixture tests do not contribute to the real-plan evidence above.
         os.environ['REACT_APP_FLASK_BASE'] = base
         os.environ['PLAYWRIGHT_JUNIT_OUTPUT_FILE'] = str(out / 'BROWSER_REGRESSIONS.xml')
@@ -138,7 +160,8 @@ def main():
             require(sha(data / 'profile' / name) == expected, 'Postflight profile member differs: ' + name)
         report['profile_members_reverified'] = len(profile_contract['files'])
         require(not subprocess.check_output(['git', 'status', '--porcelain'], cwd=source, text=True).strip(), 'Frozen source changed')
-        report['status'] = 'PASS_AUTOMATED_MAC_UI_PENDING_INDEPENDENT_ARTIFACT_REVIEW'
+        report['status'] = ('PASS_AUTOMATED_SAVED_PLAN_SCENE_PENDING_INDEPENDENT_ARTIFACT_REVIEW' if saved_origin else
+                            'PASS_AUTOMATED_MAC_UI_PENDING_INDEPENDENT_ARTIFACT_REVIEW')
     except Exception as e:
         report['error'] = type(e).__name__ + ': ' + str(e)
         report['traceback'] = traceback.format_exc()

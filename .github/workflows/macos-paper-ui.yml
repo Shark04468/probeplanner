@@ -1,4 +1,4 @@
-name: macos-paper-ui-arm-followup
+name: macos-paper-saved-plan-scene
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
       matrix:
         include:
           # Intel remains blocked by the retained first-run teardown error.
-          # This follow-up repairs only the Vitest report parser, not frozen tests.
+          # This separate imported-plan scene check cannot close first-request acceptance.
           - runner: macos-15
             architecture: arm64
     runs-on: ${{ matrix.runner }}
@@ -55,12 +55,13 @@ jobs:
           python harness/scripts/qualification/qualify_macos.py
           --source frozen --output "${{ runner.temp }}/macos-ui-prerequisites"
           --architecture "${{ matrix.architecture }}"
-      - name: Execute actual configuration, plan, scene and exports
+      - name: Inspect actual saved plan through frozen import UI
         run: >-
           python harness/scripts/qualification/run_macos_ui.py
           --source frozen --qualification "${{ runner.temp }}/macos-ui-prerequisites"
           --output "${{ runner.temp }}/macos-ui"
           --data "${{ runner.temp }}/macos-ui-data"
+          --saved-plan-origin harness/scripts/qualification/saved_plan_input/ORIGIN.json
       - name: Retain prerequisites including failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

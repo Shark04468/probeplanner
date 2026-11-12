@@ -4,14 +4,16 @@ const path = require('node:path');
 const { createRequire } = require('node:module');
 const { same, sha, requireThat, validateExports } = require('./ui_contract.cjs');
 const { withinRequestBudget } = require('./request_budget.cjs');
-const [sourceArg, outArg, base] = process.argv.slice(2);
+const { validateSavedInput, validateImportedExport } = require('./saved_plan_contract.cjs');
+const [sourceArg, outArg, base, savedPlanArg] = process.argv.slice(2);
 const source = path.resolve(sourceArg), out = path.resolve(outArg);
 const { chromium } = createRequire(path.join(source, 'apps/ui/package.json'))('playwright');
-const contract = JSON.parse(fs.readFileSync(path.join(out, 'REQUEST_CONTRACT.json')));
+const contract = savedPlanArg ? null : JSON.parse(fs.readFileSync(path.join(out, 'REQUEST_CONTRACT.json')));
 const write = (name, value) => fs.writeFileSync(path.join(out, name), JSON.stringify(value, null, 2) + '\n', { flag: 'wx' });
 const report = { status: 'FAIL', steps: [], requests: [], responses: [], downloads: [],
   networkFailures: [], httpErrors: [], pageErrors: [], browserConsole: [], anatomyAccepted: false,
   fullMacWorkflowAccepted: false, visualReviewRequired: true, externalResubmission: false };
+report.workflowRole = savedPlanArg ? 'actual_saved_plan_scene_inspection_only' : 'actual_first_request_ui_portability';
 let browser, context, page, traceActive = false;
 async function step(name, action) {
   console.log('START ' + name);
@@ -81,7 +83,7 @@ async function main() {
     await page.route('**/api/optimize', async route => {
       const body = route.request().postDataJSON();
       const { taskId, ...settings } = body;
-      const matches = Boolean(taskId) && same(settings, contract.expectedRequest);
+      const matches = !savedPlanArg && Boolean(taskId) && same(settings, contract.expectedRequest);
       report.requests.push({ body, matches, observedUtc: new Date().toISOString() });
       write('planning-request-' + report.requests.length + '.json', report.requests.at(-1));
       if (!matches || report.requests.length !== 1) await route.abort('blockedbyclient');
@@ -104,9 +106,53 @@ async function main() {
       await page.getByRole('button', { name: 'Reference stability: On', exact: true }).click();
       await page.getByRole('button', { name: 'Reference stability: Off', exact: true }).waitFor();
       await capture('configuration');
-      return { literalSettingsSealed: true, selectedTargets: ['CA1', 'CA3'] };
+      return { literalSettingsSealed: !savedPlanArg, selectedTargets: ['CA1', 'CA3'] };
     });
     await context.tracing.stop({ path: path.join(out, 'configuration-trace.zip') }); traceActive = false;
+    if (savedPlanArg) {
+      await context.tracing.start({ screenshots: true, snapshots: true }); traceActive = true;
+      await step('import_actual_saved_plan', async () => {
+        const origin = JSON.parse(fs.readFileSync(savedPlanArg, 'utf8'));
+        requireThat(origin.filename === 'actual-plan.pplan', 'Unexpected saved filename');
+        const file = path.join(path.dirname(savedPlanArg), origin.filename);
+        const bytes = fs.readFileSync(file);
+        report.runtime = await (await page.request.get(base + '/api/paper/runtime')).json();
+        const original = validateSavedInput(bytes, origin, report.runtime);
+        report.savedPlanOrigin = origin;
+        write('runtime.json', report.runtime);
+        await page.getByRole('button', { name: 'I I/O', exact: true }).click();
+        await page.getByRole('button', { name: 'Import', exact: true }).click();
+        const chooserPromise = page.waitForEvent('filechooser').catch(error => ({ error: String(error) }));
+        await page.getByRole('button', { name: 'Select .pplan/.txt', exact: true }).click();
+        const chooser = await chooserPromise;
+        requireThat(!chooser.error, chooser.error || 'File chooser missing');
+        await chooser.setFiles(file);
+        await page.waitForFunction(expected => document.querySelector('textarea')?.value === expected, bytes.toString('utf8'));
+        await capture('original-file-selected');
+        await page.getByRole('button', { name: 'Import probes', exact: true }).click();
+        await page.getByText('Imported 1 probes', { exact: true }).waitFor();
+        await page.getByRole('button', { name: /^R\s*Results/ }).click();
+        await page.getByText('Imported geometry: not revalidated', { exact: true }).waitFor();
+        await capture('imported-unverified-results');
+        await page.getByRole('button', { name: 'I I/O', exact: true }).click();
+        await page.getByRole('button', { name: 'Export', exact: true }).click();
+        await page.getByRole('button', { name: '.pplan (JSON)', exact: true }).click();
+        const responsePromise = page.waitForResponse(r => r.url().endsWith('/api/export_pinpoint') && r.request().method() === 'POST');
+        const downloadPromise = page.waitForEvent('download').catch(error => ({ error: String(error) }));
+        await page.getByRole('button', { name: 'Download .pplan', exact: true }).click();
+        const response = await responsePromise, received = await response.json();
+        requireThat(response.ok() && received.ok, 'Imported export rejected');
+        const download = await downloadPromise;
+        requireThat(!download.error, download.error || 'Imported download missing');
+        const output = path.join(out, 'imported-roundtrip.pplan'); await download.saveAs(output);
+        report.downloads.push({ format: 'pplan', path: output, sha256: sha(fs.readFileSync(output)),
+          submitted: response.request().postDataJSON(), received });
+        const audit = validateImportedExport(original, received, JSON.parse(fs.readFileSync(output, 'utf8')));
+        await capture('imported-roundtrip-export');
+        return audit;
+      });
+      await context.tracing.stop({ path: path.join(out, 'saved-plan-import-trace.zip') }); traceActive = false;
+    } else {
     await context.tracing.start({ screenshots: false, snapshots: false }); traceActive = true;
     await step('first_plan', async () => {
       const matchesOptimization = r => r.url().endsWith('/api/optimize') && r.method() === 'POST';
@@ -181,6 +227,7 @@ async function main() {
       return validateExports(report.result, report.runtime, report.replay, report.downloads);
     });
     await context.tracing.stop({ path: path.join(out, 'inspection-export-trace.zip') }); traceActive = false;
+    }
     await step('complete_ccf_mri_scene', async () => {
       // Listener observes only genuine messages from this page's actual renderer frame.
       await page.evaluate(() => {
@@ -268,9 +315,11 @@ async function main() {
       await capture('mobile-complete', true);
       return { before, after, slice, mobile, resizedViewportNotPhysicalMobileDevice: true };
     });
-    requireThat(report.requests.length === 1 && report.requests[0].matches, 'External request count differs');
+    requireThat(savedPlanArg ? report.requests.length === 0 :
+      report.requests.length === 1 && report.requests[0].matches, 'External request count differs');
     requireThat(!report.pageErrors.length, 'Uncaught browser errors');
-    report.status = 'PASS_AUTOMATED_UI_PENDING_PIXEL_AND_VISUAL_REVIEW';
+    report.status = savedPlanArg ? 'PASS_AUTOMATED_SAVED_PLAN_SCENE_PENDING_PIXEL_AND_VISUAL_REVIEW' :
+      'PASS_AUTOMATED_UI_PENDING_PIXEL_AND_VISUAL_REVIEW';
   } catch (error) {
     report.error = String(error); report.stack = error.stack;
     if (page) { try { await capture('failure'); } catch (e) { report.captureError = String(e); } }
