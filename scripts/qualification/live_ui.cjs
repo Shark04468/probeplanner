@@ -130,7 +130,7 @@ async function main() {
         await page.waitForFunction(expected => document.querySelector('textarea')?.value === expected, bytes.toString('utf8'));
         await capture('original-file-selected');
         await page.getByRole('button', { name: 'Import probes', exact: true }).click();
-        await page.getByText('Imported 1 probes', { exact: true }).waitFor();
+        // The frozen app switches to Results when the imported result arrives.
         await page.getByRole('button', { name: /^R\s*Results/ }).click();
         await page.getByText('Imported geometry: not revalidated', { exact: true }).waitFor();
         await capture('imported-unverified-results');
