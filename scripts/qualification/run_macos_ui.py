@@ -15,6 +15,7 @@ import urllib.request
 
 from qualify_macos import SOURCE_COMMIT, junit_summary, require, run_step, sha, write
 from replay_macos import BASE_URL, BUNDLE_SHA, PROFILE_SHA
+from frontend_junit import frontend_summary
 
 
 def pixel_audit(out):
@@ -86,10 +87,7 @@ def main():
         step('npm_ui', ['npm', 'ci', '--no-audit', '--no-fund'], 600, source / 'apps/ui')
         step('frontend_tests', ['npm', 'run', 'test:frontend', '--', '--reporter=junit',
              '--outputFile=' + str(out / 'FRONTEND_TESTS.xml')], 600, source / 'apps/ui')
-        import xml.etree.ElementTree as ET
-        frontend_count = len(list(ET.parse(out / 'FRONTEND_TESTS.xml').getroot().iter('testcase')))
-        require(frontend_count > 0, 'No frontend tests')
-        report['frontend_tests'] = junit_summary(out / 'FRONTEND_TESTS.xml', frontend_count)
+        report['frontend_tests'] = frontend_summary(out / 'FRONTEND_TESTS.xml')
         step('build_ui', ['npm', 'run', 'build'], 600, source / 'apps/ui')
         step('install_browser', ['node', 'node_modules/playwright/cli.js', 'install', 'chromium'], 600, source / 'apps/ui')
         script = Path(__file__).resolve().parent

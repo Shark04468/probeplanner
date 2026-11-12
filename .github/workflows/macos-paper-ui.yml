@@ -1,8 +1,8 @@
-name: macos-paper-ui
+name: macos-paper-ui-arm-followup
 
 on:
   push:
-    branches: [evidence/macos-ui-20261112]
+    branches: [evidence/macos-ui-arm-followup-20261112]
   workflow_dispatch:
 
 permissions:
@@ -15,8 +15,8 @@ jobs:
       max-parallel: 1
       matrix:
         include:
-          - runner: macos-15-intel
-            architecture: x86_64
+          # Intel remains blocked by the retained first-run teardown error.
+          # This follow-up repairs only the Vitest report parser, not frozen tests.
           - runner: macos-15
             architecture: arm64
     runs-on: ${{ matrix.runner }}
@@ -69,6 +69,7 @@ jobs:
           path: ${{ runner.temp }}/macos-ui-prerequisites
           retention-days: 30
           if-no-files-found: error
+          include-hidden-files: true
       - name: Retain actual browser evidence including failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -77,3 +78,4 @@ jobs:
           path: ${{ runner.temp }}/macos-ui
           retention-days: 30
           if-no-files-found: error
+          include-hidden-files: true
