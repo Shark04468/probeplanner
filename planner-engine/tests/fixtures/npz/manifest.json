@@ -1,0 +1,42 @@
+{
+  "generator": "NumPy and Python standard-library zipfile, not the Rust ZIP reader",
+  "numpyVersion": "1.23.5",
+  "expectedBrainShape": [
+    2,
+    2,
+    2
+  ],
+  "expectedBrainValues": [
+    0.0,
+    0.25,
+    -0.5,
+    1.0,
+    2.0,
+    3.5,
+    10.0,
+    20.0
+  ],
+  "expectedAuxiliaryShape": [
+    2,
+    1,
+    3
+  ],
+  "expectedAuxiliaryValues": [
+    100.0,
+    101.0,
+    102.0,
+    103.0,
+    104.0,
+    105.0
+  ],
+  "files": {
+    "deflated.npz": "a9a1dfa37ec70eeb6729067748bd88c0ddc4536b1749d48f408b9fc443969045",
+    "float64.npz": "821d3c392411dd6214d83882c7d5ba0f3dbd84fb720d2c55d1292d6c71af1b3d",
+    "fortran.npz": "491935d371415cc6317204c5c1868393bcf2b187502d512880d8d9cde1e0ed52",
+    "invalid_archive.npz": "c5890f367678a84ca964472751f7a3802b7f966a5abf0b1365dce66dfed0a925",
+    "invalid_npy.npz": "aebabd2ec1cb1749eec9eb7f596b5178606ac124065c062a3539c8d60f9a2aba",
+    "stored.npz": "c2ee19fe5704c36f59a4d394f56e074ca200e833634eef418b8a9956767311f5",
+    "truncated_npy.npz": "a47b6837c2b41af6a85e7f20e92c84dcfad32e3d73b743efff4f77fff8834b69",
+    "two_dimensional.npz": "58f2fa691281c73da75beea88f747efdee1312dd27d50b77a209369f430a8d73"
+  }
+}

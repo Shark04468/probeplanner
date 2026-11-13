@@ -51,6 +51,14 @@ Prerequisites:
 - Rust stable toolchain only for independent native-engine tooling
 - PowerShell for the Windows examples and optional legacy tooling
 
+For the separate maintained runtime/test environment, use Python 3.11 or later
+and `apps/backend-compat/requirements.txt`. Update its installer first with
+`python -m pip install --upgrade pip==26.2`; its Pillow 13 dependency does not
+support Python 3.10. The historical paper lock below remains unchanged for
+offline reproduction and is not the maintained network-service environment.
+The maintained Rust dependency set requires Rust 1.88 or later (ZIP 9).
+These maintenance dependencies do not revalidate the frozen paper experiments.
+
 Install JavaScript dependencies:
 
 ```powershell
