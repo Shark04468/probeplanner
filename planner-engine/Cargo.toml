@@ -16,7 +16,7 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 axum = "0.7"
 memmap2 = "0.9"
 uuid = { version = "1", features = ["v4"] }
-zip = { version = "2", default-features = false, features = ["deflate"] }
+zip = { version = "9", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 approx = "0.5"
