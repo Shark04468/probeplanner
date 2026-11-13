@@ -63,6 +63,8 @@ jobs:
           Write-Warning "Falling back to cached RustSec advisory DB"
           cargo audit --no-fetch --stale
           exit $LASTEXITCODE
+      - name: Update Python installer
+        run: python -m pip install --upgrade pip==26.2
       - name: Install backend compatibility test dependencies
         run: python -m pip install -r apps/backend-compat/requirements.txt pip-audit
       - run: python -m pip_audit -r apps/backend-compat/requirements.txt
