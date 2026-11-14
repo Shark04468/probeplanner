@@ -1,0 +1,71 @@
+name: macos-graphics-diagnostic
+on:
+  push:
+    branches: [evidence/macos-graphics-20261114]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-arm-diagnostic:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+      MPLBACKEND: Agg
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 56868d57c23cbbb1207666f5e420bf47019591c6
+          path: frozen
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
+        env:
+          UV_PYTHON_PREFERENCE: only-managed
+        with:
+          version: "0.13.6"
+          python-version: "3.10.20"
+          activate-environment: true
+          venv-path: ${{ runner.temp }}/probeplanner-python
+          enable-cache: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24.14.0"
+      - name: Test diagnostic receiver
+        run: python -m unittest discover -s harness/scripts/qualification -p test_warm_assets.py -v
+      - name: Qualify frozen paper source
+        run: >-
+          python harness/scripts/qualification/qualify_macos.py --source frozen
+          --output "${{ runner.temp }}/graphics-prerequisites" --architecture arm64
+      - name: Collect actual program diagnostic
+        run: >-
+          python harness/scripts/qualification/run_graphics_diagnostic.py --source frozen
+          --qualification "${{ runner.temp }}/graphics-prerequisites"
+          --output "${{ runner.temp }}/graphics-diagnostic" --data "${{ runner.temp }}/graphics-data"
+          --saved-plan-origin harness/scripts/qualification/saved_plan_input/ORIGIN.json
+          --warm-response-contract harness/scripts/qualification/warm_response_contract.json
+      - name: Retain prerequisite results and failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graphics-prerequisites-arm64
+          path: ${{ runner.temp }}/graphics-prerequisites
+          retention-days: 30
+          if-no-files-found: error
+          include-hidden-files: true
+      - name: Retain diagnostic results and failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: graphics-diagnostic-arm64
+          path: ${{ runner.temp }}/graphics-diagnostic
+          retention-days: 30
+          if-no-files-found: error
+          include-hidden-files: true
