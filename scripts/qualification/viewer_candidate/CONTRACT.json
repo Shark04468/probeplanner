@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "probeplanner.viewer_candidate.v1",
+  "baseFrozenCommit": "56868d57c23cbbb1207666f5e420bf47019591c6",
+  "candidateCommit": "5ca4a3b8874af4c03527da91aaf995adc8be4861",
+  "wrapperSha256": "8fbe9c17f5b88eed6ac1e5d3c2dc88b1d083f2f65d9f502326ee3689662ebea6",
+  "files": {
+    "Build/WebGL-Build.data.unityweb": {
+      "sha256": "0937f7a78603ff490cb901c1f9a2b5637b1c0a249907ba0701ac7654ee36cc22",
+      "bytes": 3221814
+    },
+    "Build/WebGL-Build.framework.js.unityweb": {
+      "sha256": "94881bff799af29bd7671aa80ea27063b95c847c8afce205f2f7922034dd93e6",
+      "bytes": 67261
+    },
+    "Build/WebGL-Build.loader.js": {
+      "sha256": "fb1ab98a2f019b3611c56246ac8d5d098c703dd06ee8bb6f4da2816d38c597a0",
+      "bytes": 114478
+    },
+    "Build/WebGL-Build.wasm.unityweb": {
+      "sha256": "b0cdf7b18d79dc4edbc498e3713087546a755ef773c638962cc483cf0c3c096b",
+      "bytes": 4366160
+    },
+    "BUILD_PROVENANCE.json": {
+      "sha256": "e96584835c178e29faea1c5c4a1daff1e5c17eedb110aaec2814ccd5e4bc98c5",
+      "bytes": 23034
+    }
+  },
+  "runtime_delta": "Two owner-lifetime checks and one comment in RegionManager.AttachOfflineLods",
+  "original_editor_checks": 122,
+  "repaired_lifetime_cases": 20,
+  "uiAccepted": false,
+  "anatomyAccepted": false
+}
