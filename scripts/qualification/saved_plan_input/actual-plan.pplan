@@ -1,0 +1,96 @@
+{
+  "_atlas": "CCFv3_25um",
+  "_atlasHash": "99b3be24624141750f4376efb7627932e2d240bae35fb25cdec91a93be5d6708",
+  "_coordinateCorrectionApplied": false,
+  "_coordinateSystem": "pinpoint_ap_posterior_positive_mm",
+  "_correctionFactors": {
+    "ap": 1,
+    "apShift": 0,
+    "dv": 1,
+    "dvShift": 0,
+    "ml": 1,
+    "mlShift": 0
+  },
+  "_correctionUncertainty": null,
+  "_engineVersion": "ccfv3-single-source-2026.03",
+  "_exportRuntime": {
+    "artifactManifestSha256": "c0029ef7a8e84b20aad0da530b886b64134551895e7817dbaa47325d94f4d542",
+    "atlasMode": "mri_ccf_hybrid",
+    "backend": "paper_python",
+    "cacheInitiallyEmpty": true,
+    "discardedInheritedConfigurationKeys": [],
+    "launcherSha256": "385efd67cc65659b1134884ed439b55224205f81ca6d06110febd188146068ff",
+    "manifestEnforced": true,
+    "ontologyInitializerSha256": "c76acab468bf036cf7255337beb20fa5ec1708e13da69a4d3e931774d196ed8c",
+    "ontologySha256": "0b176d98eea8853ba5ba0b779dd9124c325d73cfda49fe74c2649857c98fe579",
+    "ontologyTargetCount": 839,
+    "optimizerSha256": "5439589a385d161a457cc4899e89cdc999712798c8dd4d8440a1c4657144a0f9",
+    "packages": {
+      "Flask": "3.1.3",
+      "allensdk": "2.16.2",
+      "nibabel": "4.0.2",
+      "numpy": "1.23.5",
+      "scipy": "1.10.1"
+    },
+    "pathConsistencyPassed": true,
+    "profileContractSha256": "3580f40eb42b475319ea62796ef8c7b8789b1d1110a9ca4638f8e2168b09c677",
+    "python": "3.10.20",
+    "scope": "Population-template demonstration and finite-pool software validation; not native surgical safety",
+    "workers": 1
+  },
+  "_requestId": "8a7e494f4ab044a1b3b2b5aea7893018",
+  "_software": "ProbeplannerGUI / optimizer_server",
+  "_sourcePlan": {
+    "requestHash": "564dc9339f8b2426344980a79d69ef9c1ca497c336c3479638ea4b2c7f3085ae",
+    "requestId": "d5eed313accf4d0d8134258f53d4b035",
+    "responseHash": "985b76648a75d8984d3cb0921b787b1be42c424daeb8bd90dca4f36cd87098f9",
+    "runtimeIdentity": {
+      "artifactManifestSha256": "c0029ef7a8e84b20aad0da530b886b64134551895e7817dbaa47325d94f4d542",
+      "atlasMode": "mri_ccf_hybrid",
+      "backend": "paper_python",
+      "cacheInitiallyEmpty": true,
+      "discardedInheritedConfigurationKeys": [],
+      "launcherSha256": "385efd67cc65659b1134884ed439b55224205f81ca6d06110febd188146068ff",
+      "manifestEnforced": true,
+      "ontologyInitializerSha256": "c76acab468bf036cf7255337beb20fa5ec1708e13da69a4d3e931774d196ed8c",
+      "ontologySha256": "0b176d98eea8853ba5ba0b779dd9124c325d73cfda49fe74c2649857c98fe579",
+      "ontologyTargetCount": 839,
+      "optimizerSha256": "5439589a385d161a457cc4899e89cdc999712798c8dd4d8440a1c4657144a0f9",
+      "packages": {
+        "Flask": "3.1.3",
+        "allensdk": "2.16.2",
+        "nibabel": "4.0.2",
+        "numpy": "1.23.5",
+        "scipy": "1.10.1"
+      },
+      "pathConsistencyPassed": true,
+      "profileContractSha256": "3580f40eb42b475319ea62796ef8c7b8789b1d1110a9ca4638f8e2168b09c677",
+      "python": "3.10.20",
+      "scope": "Population-template demonstration and finite-pool software validation; not native surgical safety",
+      "workers": 1
+    },
+    "scope": "Saved raw/resolved geometry, correction factors and recorded hardware; no new constraint or anatomical validation",
+    "status": "linked_to_saved_planner_result"
+  },
+  "_version": "1.0",
+  "probes": [
+    {
+      "ap": 2.381,
+      "coveredRegions": [
+        "CA1",
+        "CA3"
+      ],
+      "depth": 5.5,
+      "dv": 0,
+      "id": "P1",
+      "ml": -2.06,
+      "phi": 300,
+      "probeType": "NP2.0-1sh",
+      "radiusUm": 35,
+      "shankCount": 1,
+      "shankPitchUm": 0,
+      "spin": 0,
+      "theta": 15
+    }
+  ]
+}

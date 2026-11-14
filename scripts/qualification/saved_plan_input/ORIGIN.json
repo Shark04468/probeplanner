@@ -1,0 +1,24 @@
+{
+  "role": "actual_saved_plan_scene_inspection_only",
+  "filename": "actual-plan.pplan",
+  "sha256": "398c54e037332c35e480b3c92b0afc9c2ba41dbc4f6a26f2a4a6e9db85a41e41",
+  "origin_run": 43184759271,
+  "origin_run_url": "https://github.com/Shark04468/probeplanner/actions/runs/43184759271",
+  "origin_run_conclusion": "failure",
+  "origin_scene_accepted": false,
+  "origin_archive_sha256": "c4c5ab8e51de022768bd105ab8d696d8b690ac8fa6b11c3d3b828b61d71ce51f",
+  "origin_collection_sha256": "76b6b35ab6b0824bef248f7fb7500c207cb7b80facd14c0d63701541d816c0d3",
+  "independent_export_audit_sha256": "2e7dd8b5043c8502c6626a0a9020f3d5ee50b8665775d3e1392aad3e0b74372f",
+  "source_commit": "56868d57c23cbbb1207666f5e420bf47019591c6",
+  "optimizer_sha256": "5439589a385d161a457cc4899e89cdc999712798c8dd4d8440a1c4657144a0f9",
+  "profile_sha256": "3580f40eb42b475319ea62796ef8c7b8789b1d1110a9ca4638f8e2168b09c677",
+  "source_plan": {
+    "requestId": "d5eed313accf4d0d8134258f53d4b035",
+    "requestHash": "564dc9339f8b2426344980a79d69ef9c1ca497c336c3479638ea4b2c7f3085ae",
+    "responseHash": "985b76648a75d8984d3cb0921b787b1be42c424daeb8bd90dca4f36cd87098f9"
+  },
+  "allowed_optimization_requests": 0,
+  "full_first_request_workflow_accepted": false,
+  "new_untouched_evidence": false,
+  "anatomy_accepted": false
+}
