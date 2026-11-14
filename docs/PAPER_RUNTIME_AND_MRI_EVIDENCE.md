@@ -1,9 +1,14 @@
 # Paper runtime and MRI evidence contract
 
-The paper validation uses the Python implementation, not the Rust service. In this
-unreleased revision, `paper:start` and `backend:start` explicitly select this Python
+The `v0.3.0-paper` validation uses the Python implementation, not the Rust service.
+In that release, `paper:start` and `backend:start` explicitly select this Python
 implementation. A desktop launcher starting successfully does not establish version
 or algorithm equivalence. Existing published tags are unchanged.
+
+Use the [version-specific reproduction route](release/v0.3.0-reproduction.md)
+for environment/data setup and the [UI walkthrough](PAPER_UI_WALKTHROUGH.md)
+for target selection, plan inspection and export. This documentation addendum
+does not republish the frozen source or improve its anatomical evidence.
 
 ## Explicit local launch
 

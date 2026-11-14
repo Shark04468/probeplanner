@@ -83,6 +83,12 @@ npm run rust:check
 
 ## Supported paper startup
 
+For target selection, inspection and export after startup, follow the
+[paper UI walkthrough](docs/PAPER_UI_WALKTHROUGH.md). This documentation addendum
+describes the unchanged `v0.3.0-paper` interface; it is not a new algorithm release.
+Run the published tag for release reproduction. This addendum branch, including
+its docstring corrections, is not a substitute for the frozen source-hash checks.
+
 For the prepared public profile, candidate/exact replay and version-specific
 release checks, see the [v0.3.0 reproduction route](docs/release/v0.3.0-reproduction.md).
 Its data and evidence have separate hashes and licenses. Obtain assets only from
