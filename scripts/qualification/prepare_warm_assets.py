@@ -1,6 +1,7 @@
 """Materialize only hash-matched live frozen-backend mesh responses."""
 import argparse
 import concurrent.futures
+from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -10,6 +11,7 @@ import threading
 import time
 import urllib.parse
 import urllib.request
+import urllib.error
 
 from qualify_macos import SOURCE_COMMIT, require, sha, write
 
@@ -52,9 +54,38 @@ def validate_headers(row, headers, status):
     return headers
 
 
+def open_with_bounded_recovery(opener, request, deadline, attempts):
+    require(request.get_method() == 'GET', 'Recovery only permits GET')
+    for attempt in range(1, 3):
+        remaining = deadline - time.monotonic()
+        require(remaining > 0, 'Response deadline exceeded before GET')
+        record = {'attempt': attempt, 'started_utc': datetime.now(timezone.utc).isoformat()}
+        attempts.append(record)
+        try:
+            response = opener.open(request, timeout=min(30, remaining))
+            record['http_status'] = response.status
+            return response
+        except urllib.error.HTTPError as error:
+            record.update(http_status=error.code, headers=dict(error.headers or {}), error=str(error))
+            try:
+                prefix = error.read(8193)
+                record.update(body_prefix_utf8=prefix[:8192].decode('utf-8', errors='replace'),
+                              body_prefix_sha256=hashlib.sha256(prefix[:8192]).hexdigest(),
+                              body_truncated=len(prefix) > 8192)
+            finally:
+                error.close()
+            retry_after = {k.lower(): v for k, v in (error.headers or {}).items()}.get('retry-after')
+            if attempt >= 2 or error.code not in (500, 502, 503, 504) or retry_after is not None:
+                raise
+            require(time.monotonic() + 1 < deadline, 'No response budget for recovery')
+            record['recovery_wait_seconds'] = 1
+            time.sleep(1)
+    raise RuntimeError('Unreachable recovery state')
+
+
 def receive(opener, base, row, bodies, deadline, lock):
     start = time.monotonic()
-    result = dict(row, status='FAIL', body='bodies/'+row['sha256']+'.obj')
+    result = dict(row, status='FAIL', body='bodies/'+row['sha256']+'.obj', attempts=[])
     try:
         require(start < deadline, 'Preparation deadline exceeded')
         with lock:
@@ -63,7 +94,7 @@ def receive(opener, base, row, bodies, deadline, lock):
             if target.exists():
                 require(target.stat().st_size == row['bytes'] and sha(target) == row['sha256'], 'Stored response changed')
             request = urllib.request.Request(base+row['url'], headers={'Accept-Encoding': 'identity'})
-            with opener.open(request, timeout=30) as response:
+            with open_with_bounded_recovery(opener, request, min(start+90, deadline), result['attempts']) as response:
                 result['headers'] = validate_headers(row, response.headers, response.status)
                 digest, count = hashlib.sha256(), 0
                 sink = partial.open('xb') if not target.exists() else None
@@ -113,7 +144,11 @@ def main():
     rows = []
     result = {'status': 'FAIL', 'contract_sha256': sha(a.contract), 'rows': rows,
               'anatomy_accepted': False, 'cold_resource_latency': False,
-              'backend_cache_seeded': False, 'source_commit': SOURCE_COMMIT}
+              'backend_cache_seeded': False, 'source_commit': SOURCE_COMMIT,
+              'recovery_policy': {'max_get_open_attempts': 2, 'delay_seconds': 1,
+                                  'status_codes': [500, 502, 503, 504],
+                                  'retry_after_header_stops_recovery': True,
+                                  'identity_or_body_errors_retried': False}}
     try:
         require(shutil.disk_usage(out).free >= 6_000_000_000, 'Disk reserve insufficient')
         opener = urllib.request.build_opener(NoRedirect())
@@ -184,6 +219,8 @@ def main():
         result['error'] = type(error).__name__+': '+str(error)
     finally:
         result['seconds'] = time.monotonic()-start
+        result['responses_requiring_recovery'] = sum(len(r.get('attempts', [])) > 1 for r in rows)
+        result['failed_http_open_attempts'] = sum('error' in a for r in rows for a in r.get('attempts', []))
         write(out/'RESULTS.json', result)
         print(json.dumps({k:v for k,v in result.items() if k not in ('rows','runtime')}), flush=True)
     return 0 if result['status'].startswith('PASS_') else 1
