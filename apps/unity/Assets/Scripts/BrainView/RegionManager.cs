@@ -1021,10 +1021,13 @@ namespace BrainPlanner.BrainView
             for (int reqLod = 1; reqLod <= max; reqLod++)
             {
                 if (reqLod < startLod) continue;
+                if (root == null || group == null || mat == null) yield break;
                 bool done = false;
                 MeshLoader.MeshLodResult result = default;
                 _loader.LoadMeshLod(structureId, reqLod, r => { result = r; done = true; }, _ => { done = true; });
                 yield return new WaitUntil(() => done);
+                // Visibility changes may destroy this owner while its mesh request is pending.
+                if (root == null || group == null || mat == null) yield break;
                 if (result.mesh == null) continue;
                 if (ContainsMesh(lodRenderers, result.mesh)) continue;
                 var r1 = CreateLodLevel(root, $"LOD{result.resolvedLod}", result.mesh, mat, layerName, regionKey, false);

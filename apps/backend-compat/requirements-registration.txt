@@ -1,0 +1,3 @@
+# Maintained registration tooling and full backend tests, Python >=3.11.
+-r requirements.txt
+SimpleITK==2.5.3
