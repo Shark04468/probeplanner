@@ -42,7 +42,9 @@ def verify_profile(profile):
     return contract, sha256(manifest_path)
 
 
-def load_paper_backend(profile, run_dir, static_dir=None):
+def load_paper_backend(profile, run_dir, static_dir=None, *, risk_query_workers=1):
+    if type(risk_query_workers) is not int or not 1 <= risk_query_workers <= 8:
+        raise ValueError("risk_query_workers must be an integer between 1 and 8")
     profile, run_dir = Path(profile).resolve(), Path(run_dir).resolve()
     run_dir.mkdir(parents=True, exist_ok=False)
     save(run_dir / "startup.json", {"state": "verifying_profile", "executable": sys.executable})
@@ -59,6 +61,7 @@ def load_paper_backend(profile, run_dir, static_dir=None):
         "PROBEPLANNER_MRI_CCF_MANIFEST_PATH": str(profile / "artifact_manifest.json"),
         "PROBEPLANNER_STATE_DIR": str(run_dir / "state"),
         "PROBEPLANNER_HOST": "127.0.0.1",
+        "PROBEPLANNER_RISK_QUERY_WORKERS": str(risk_query_workers),
     })
     for field in ("SDF", "REGION_INDEX", "MESH"):
         os.environ[f"PROBEPLANNER_{field}_CACHE_DIR"] = str(run_dir / "cache" / field.lower())
@@ -95,6 +98,8 @@ def load_paper_backend(profile, run_dir, static_dir=None):
         "ontologyTargetCount": len(ontology["updatedTargets"]),
         "manifestEnforced": True, "pathConsistencyPassed": True,
         "workers": 1, "cacheInitiallyEmpty": True,
+        "riskQueryPolicy": server.risk_query_execution.configuration(),
+        "riskQueryPolicySha256": sha256(server.risk_query_policy.__file__),
         "packages": {name: importlib.metadata.version(name) for name in ("numpy", "scipy", "Flask", "allensdk", "nibabel")},
         "discardedInheritedConfigurationKeys": sorted(removed),
         "scope": contract["scope"],
@@ -131,13 +136,16 @@ def main():
     parser.add_argument("--static-dir", type=Path)
     parser.add_argument("--port", type=int, default=5039)
     parser.add_argument("--check-only", action="store_true")
+    parser.add_argument("--risk-query-workers", type=int, choices=range(1, 9), default=1,
+                        help="Exact surface-query workers; capped by CPU and runtime budget")
     args = parser.parse_args()
     try:
         preflight(args)
     except ValueError as error:
         parser.error(str(error))
     try:
-        server, runtime = load_paper_backend(args.profile, args.run_dir, args.static_dir)
+        server, runtime = load_paper_backend(args.profile, args.run_dir, args.static_dir,
+                                            risk_query_workers=args.risk_query_workers)
         if args.check_only:
             with server.app.test_request_context():
                 save(args.run_dir / "registration_summary.json", server.api_mri_registration_summary().get_json())
