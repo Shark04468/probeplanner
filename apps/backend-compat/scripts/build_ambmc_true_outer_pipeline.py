@@ -17,6 +17,7 @@ Outputs:
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import subprocess
 import sys
@@ -96,7 +97,63 @@ def _binary_close_fill(mask: sitk.Image, radius: int = 2) -> sitk.Image:
 @dataclass
 class RegistrationResult:
     transform: sitk.Transform
-    summary: Dict[str, float]
+    summary: Dict[str, object]
+
+
+class RegistrationDomainError(ValueError):
+    """The nonlinear transform does not cover the requested output grid."""
+
+
+def _check_bspline_output_domain(reference: sitk.Image, transform: sitk.Transform) -> Dict[str, object]:
+    if reference.GetDimension() != 3 or any(n == 0 for n in reference.GetSize()):
+        raise RegistrationDomainError("Expected a nonempty 3D output reference")
+    # Execute(inPlace=False) may wrap its single optimized B-spline in a composite.
+    transform = transform.Downcast()
+    while transform.GetName() == "CompositeTransform":
+        composite = sitk.CompositeTransform(transform)
+        if composite.GetNumberOfTransforms() != 1:
+            raise RegistrationDomainError("Expected one optimized B-spline, not a transform chain")
+        transform = composite.GetNthTransform(0)
+    if transform.GetName() != "BSplineTransform" or transform.GetDimension() != 3:
+        raise RegistrationDomainError("Expected a 3D B-spline for output-domain verification")
+    bspline = sitk.BSplineTransform(transform)
+    corners = np.asarray([
+        reference.TransformContinuousIndexToPhysicalPoint(tuple(float(v) for v in index))
+        for index in itertools.product(*[(0, n - 1) for n in reference.GetSize()])
+    ])
+    direction = np.asarray(bspline.GetTransformDomainDirection()).reshape(3, 3)
+    origin = np.asarray(bspline.GetTransformDomainOrigin())
+    dimensions = np.asarray(bspline.GetTransformDomainPhysicalDimensions())
+    if not (np.isfinite(direction).all() and np.isfinite(origin).all()
+            and np.isfinite(dimensions).all() and np.all(dimensions > 0)):
+        raise RegistrationDomainError("Invalid B-spline domain geometry")
+    try:
+        local = np.linalg.solve(direction, (corners - origin).T).T
+    except np.linalg.LinAlgError as ex:
+        raise RegistrationDomainError("Singular B-spline domain direction") from ex
+    margins = np.minimum(local, dimensions - local)
+    if not np.isfinite(margins).all() or np.any(margins < 0):
+        raise RegistrationDomainError("B-spline domain does not cover every output-grid voxel center")
+    # The domain is convex, so covering all corners covers all grid centers.
+    return {
+        "coversOutputVoxelCenters": True,
+        "checkedCorners": len(corners),
+        "outputSize": list(reference.GetSize()),
+        "outputSpacingMm": list(reference.GetSpacing()),
+        "outputOriginMm": list(reference.GetOrigin()),
+        "outputDirection": list(reference.GetDirection()),
+        "domainOriginMm": origin.tolist(),
+        "domainDirection": direction.reshape(-1).tolist(),
+        "domainPhysicalDimensionsMm": dimensions.tolist(),
+        "minimumCornerMarginMm": float(margins.min()),
+        "scope": "output_domain_coverage_only_not_anatomical_validation",
+    }
+
+
+def _initialize_output_bspline(reference: sitk.Image, mesh: List[int]) -> sitk.BSplineTransform:
+    bspline = sitk.BSplineTransformInitializer(reference, mesh, order=3)
+    _check_bspline_output_domain(reference, bspline)
+    return bspline
 
 
 def _register_ambmc_to_ccf(
@@ -150,6 +207,8 @@ def _register_ambmc_to_ccf(
                 "affineError": None,
                 "affineMetric": None,
                 "deformableMetric": None,
+                "deformableError": None,
+                "deformableDomain": None,
                 "usedDeformable": False,
             },
         )
@@ -257,11 +316,14 @@ def _register_ambmc_to_ccf(
     final_tx: sitk.Transform = aff_tx
     bspline_metric = None
     used_deformable = False
+    deformable_error = None
+    deformable_domain = None
 
     if not skip_deformable:
         try:
             mesh = [int(x) for x in deformable_mesh]
-            bspline = sitk.BSplineTransformInitializer(image1=fixed_small, transformDomainMeshSize=mesh, order=3)
+            # Coarse-grid endpoints may not cover the full output's last planes.
+            bspline = _initialize_output_bspline(fixed_full, mesh)
             reg_def = sitk.ImageRegistrationMethod()
             reg_def.SetMetricAsANTSNeighborhoodCorrelation(4)
             reg_def.SetMetricSamplingStrategy(reg_def.RANDOM)
@@ -280,15 +342,20 @@ def _register_ambmc_to_ccf(
             reg_def.SetMovingInitialTransform(aff_tx)
             reg_def.SetInitialTransform(bspline, inPlace=False)
             bspline_tx = reg_def.Execute(fixed_small, moving_small)
+            deformable_domain = _check_bspline_output_domain(fixed_full, bspline_tx)
             bspline_metric = float(reg_def.GetMetricValue())
             comp = sitk.CompositeTransform(3)
             comp.AddTransform(aff_tx)
             comp.AddTransform(bspline_tx)
             final_tx = comp
             used_deformable = True
-        except Exception:
+        except RegistrationDomainError:
+            raise
+        except Exception as ex:
             # Keep affine-only if deformable registration fails.
             used_deformable = False
+            deformable_domain = None
+            deformable_error = str(ex)
 
     summary = {
         "initialCenterOffset": list(base_offset),
@@ -301,6 +368,8 @@ def _register_ambmc_to_ccf(
         "affineMetric": aff_metric,
         "deformableMetric": bspline_metric,
         "usedDeformable": used_deformable,
+        "deformableError": deformable_error,
+        "deformableDomain": deformable_domain,
         "deformableMesh": [int(x) for x in deformable_mesh],
         "deformableLearningRate": float(deformable_learning_rate),
         "deformableIterations": int(deformable_iterations),

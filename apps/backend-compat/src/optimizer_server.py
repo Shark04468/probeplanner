@@ -69,6 +69,8 @@ from backend.api import (
 from backend.candidate import summarize_candidate_pool
 from backend.token_cover import bounded_token_cover
 from backend.planning_policy import run_density_policy
+from backend import risk_query as risk_query_policy
+from backend.risk_volume import publish_class_volume, snapshot_class_volume
 from backend.registration_evidence import assess_registration_metrics
 from backend.atlas_sections import AtlasSectionSource, SectionError, AXES as SECTION_AXES
 from backend.contract import validate_optimize_schema, sanitize_risk_thresholds
@@ -2262,6 +2264,10 @@ SDF_GPU_ENABLED_DEFAULT = str(
     os.getenv("PROBEPLANNER_SDF_GPU_ENABLED", "false")
 ).strip().lower() in ("1", "true", "yes", "on")
 # Keep math libraries in a stable thread budget to reduce oversubscription jitter.
+risk_query_execution = risk_query_policy.ExactRiskQueryPolicy(
+    os.getenv("PROBEPLANNER_RISK_QUERY_WORKERS", "1"),
+    runtime_budget=RUNTIME_NUM_THREADS_DEFAULT,
+)
 os.environ.setdefault("OMP_NUM_THREADS", str(RUNTIME_NUM_THREADS_DEFAULT))
 os.environ.setdefault("MKL_NUM_THREADS", str(RUNTIME_NUM_THREADS_DEFAULT))
 os.environ.setdefault("OPENBLAS_NUM_THREADS", str(RUNTIME_NUM_THREADS_DEFAULT))
@@ -3979,6 +3985,7 @@ def _initialize_risk_model(
     )
     missing_structured_classes = _missing_structured_risk_classes(risk_layer_completeness)
 
+    class_volume = publish_class_volume(class_volume)
     with risk_model_lock:
         risk_surface_tree = merged_tree_obj
         risk_surface_points_um = merged_points_um if merged_tree_obj is None else None
@@ -4090,7 +4097,7 @@ def _query_min_distance_um(points_um, tree_obj=None, reference_points_um=None):
     if points_um is None or len(points_um) == 0:
         return None, None, None, None
     if tree_obj is not None:
-        dist_um, nearest_idx = tree_obj.query(points_um, k=1)
+        dist_um, nearest_idx = risk_query_execution.query(tree_obj, points_um)
         if np.isscalar(dist_um):
             dist_arr = np.array([float(dist_um)], dtype=np.float64)
             idx_arr = np.array([int(nearest_idx)], dtype=np.int32)
@@ -4445,7 +4452,7 @@ def _risk_distance_diagnostics_from_voxels(
         source_points = dict(risk_surface_source_points_um)
         class_trees = dict(risk_surface_class_trees)
         class_points = dict(risk_surface_class_points_um)
-        class_volume = risk_class_volume.copy() if isinstance(risk_class_volume, np.ndarray) else None
+        class_volume = snapshot_class_volume(risk_class_volume)
         signed_sdf = risk_signed_sdf_mm if isinstance(risk_signed_sdf_mm, np.ndarray) else None
         layered_sdf_channels = dict(risk_layered_sdf_channels_mm) if isinstance(risk_layered_sdf_channels_mm, dict) else {}
         summary = deepcopy(risk_model_summary)
@@ -20456,6 +20463,7 @@ def _run_optimize_pipeline_once(raw_body, task_id=None):
         },
         "computeProfile": {
             "computeWorkersRequested": int(params.get("computeWorkers", COMPUTE_WORKERS_DEFAULT)),
+            "riskQueryPolicy": risk_query_execution.configuration(),
             "prefilterWorkersRequested": int(params.get("prefilterWorkers", COMPUTE_PREFILTER_WORKERS_DEFAULT)),
             "candidateGenWorkersRequested": int(params.get("candidateGenWorkers", CANDIDATE_GEN_WORKERS_DEFAULT)),
             "streamingPipelineEnabled": bool(params.get("streamingPipelineEnabled", STREAMING_PIPELINE_ENABLED_DEFAULT)),

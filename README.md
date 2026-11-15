@@ -59,6 +59,12 @@ offline reproduction and is not the maintained network-service environment.
 The maintained Rust dependency set requires Rust 1.88 or later (ZIP 9).
 These maintenance dependencies do not revalidate the frozen paper experiments.
 
+For the maintained full backend test suite, including the registration-domain
+checks, install `apps/backend-compat/requirements-registration.txt` instead. It
+includes the maintained runtime requirements and pins SimpleITK 2.5.3. Runtime-
+only installs do not include this imaging dependency. The historical Python 3.10
+paper lock and its 112-test verification remain a separate reproduction route.
+
 Install JavaScript dependencies:
 
 ```powershell
