@@ -4,6 +4,12 @@ export function measurementValue(report, key) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+export function measurementJacobianSummary(report) {
+  if (measurementValue(report, 'jacobianAnomalyRatio') === null) return {};
+  const summary = report?.jacobianSummary;
+  return summary && typeof summary === 'object' && !Array.isArray(summary) ? summary : {};
+}
+
 export function measurementView(report) {
   const result = {};
   for (const key of ['dice', 'hd95Mm', 'treMm', 'jacobianAnomalyRatio']) {

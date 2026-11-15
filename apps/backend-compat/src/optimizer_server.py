@@ -5213,18 +5213,18 @@ def _build_degradation_notices(
             _push(
                 "mri_jacobian_placeholder",
                 "warning",
-                "Jacobian evidence is constant",
-                "Jacobian 证据为恒定占位",
-                "Jacobian determinant is constant; local deformation QC is not yet backed by a real ANTs/SyN warp.",
-                "Jacobian determinant 为恒定值；局部形变 QC 尚未由真实 ANTs/SyN 形变场支撑。",
-                action_en="Generate Jacobian determinant from the deformable warp and rebuild stats.",
-                action_cn="请从 deformable warp 生成真实 Jacobian determinant，并重建 stats。",
-                reason_en="Constant Jacobian usually means identity/placeholder deformation evidence.",
-                reason_cn="恒定 Jacobian 通常表示 identity/占位形变证据。",
-                impact_en="Jacobian anomaly ratio cannot identify local over-warping; registration QC is incomplete.",
-                impact_cn="Jacobian 异常比例无法识别局部过度形变；配准 QC 不完整。",
-                recovery_en="Run scripts/build_real_jacobian_from_warp.py --warp-image <warp.nii.gz> --output-jacobian <jacobian.npy>.",
-                recovery_cn="运行 scripts/build_real_jacobian_from_warp.py --warp-image <warp.nii.gz> --output-jacobian <jacobian.npy>。",
+                "Constant Jacobian determinant observed",
+                "观察到恒定 Jacobian 行列式",
+                "A constant determinant can arise from an identity or affine map; inspect its generating transform.",
+                "恒定行列式可以来自恒等或仿射变换；需要核对生成它的变换。",
+                action_en="Verify the generating transform and bind the determinant to the active MRI run.",
+                action_cn="核对生成变换，并将行列式绑定到当前 MRI 运行。",
+                reason_en="Constancy alone establishes neither provenance nor anatomical accuracy.",
+                reason_cn="仅凭恒定性不能确认来源或解剖准确性。",
+                impact_en="A diagnostic array is not automatically measurement evidence for the active registration.",
+                impact_cn="诊断数组不能自动作为当前配准的测量证据。",
+                recovery_en="Record the full transform, input/output image hashes and determinant sampling scope.",
+                recovery_cn="记录完整变换、输入和输出图像哈希及行列式采样范围。",
             )
 
     if atlas_error_snapshot:
@@ -5833,6 +5833,10 @@ def _compute_jacobian_summary_from_file(path_text=None, max_samples=1000000):
             "jacobianValueType": "determinant_not_log",
             "sampleCount": int(j.size),
             "totalVoxels": int(flat.size),
+            "sampleStride": step,
+            "nonfiniteSampleCount": int(sample.size - j.size),
+            "sampling": "strided_whole_volume",
+            "anomalyBounds": [0.2, 5.0],
             "mean": j_mean,
             "std": j_std,
             "min": j_min,
@@ -5842,8 +5846,8 @@ def _compute_jacobian_summary_from_file(path_text=None, max_samples=1000000):
             "fractionGt5": float(np.mean(j > 5.0)),
             "anomalyRatio": float(np.mean(bad)),
             "realJacobianEvidence": real,
-            "evidence": "sampled_volume" if real else "constant_or_placeholder",
-            "warning": None if real else "Jacobian determinant is constant; likely identity placeholder, not real ANTs/SyN deformation evidence.",
+            "evidence": "sampled_volume" if real else "sampled_constant_volume",
+            "warning": None if real else "Constant determinant; constancy alone establishes neither transform provenance nor anatomical validity.",
         }
     except Exception as exc:
         log.warning(f"Failed to compute Jacobian anomaly ratio: {exc}")

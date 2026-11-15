@@ -9,6 +9,7 @@ ROLES = {
     "dice": ("moving_mask", "transformed_moving_mask", "fixed_mask", "forward_transform"),
     "hd95Mm": ("moving_mask", "transformed_moving_mask", "fixed_mask", "forward_transform"),
     "treMm": ("moving_landmarks", "transformed_moving_landmarks", "fixed_landmarks", "forward_transform"),
+    "jacobianAnomalyRatio": ("jacobian", "displacement_field", "fixed_image", "moving_image", "warped_mri"),
 }
 
 
@@ -31,6 +32,57 @@ def same_reported_value(left, right):
     return left is not None and right is not None and round(left, 6) == round(right, 6)
 
 
+def artifacts_bound(declaration, roles, verified_hashes):
+    bindings = mapping(declaration.get("artifacts"))
+    return all(
+        isinstance(bindings.get(role), dict)
+        and isinstance(bindings[role].get("key"), str)
+        and isinstance(bindings[role].get("sha256"), str)
+        and bindings[role].get("sha256")
+        and verified_hashes.get(bindings[role].get("key")) == bindings[role]["sha256"]
+        for role in roles
+    )
+
+
+def jacobian_derivation_bound(record, declaration, verified_hashes, summary, value):
+    """Check declared derivation, not numerical replay or anatomical accuracy."""
+    summary = mapping(summary)
+    run_id = record.get("registrationRunId")
+    if not isinstance(run_id, str) or not run_id.strip() or declaration.get("runId") != run_id:
+        return False
+    required = {
+        "method": "displacement_field_jacobian_determinant",
+        "jacobianValueType": "determinant_not_log",
+        "transformDirection": "fixed_to_moving",
+        "transformComponents": "full_composite",
+        "derivativeCoordinates": "physical",
+    }
+    if any(declaration.get(key) != expected for key, expected in required.items()):
+        return False
+    if not artifacts_bound(declaration, ROLES["jacobianAnomalyRatio"], verified_hashes):
+        return False
+    bindings = declaration["artifacts"]
+    # These roles must identify the files the active profile actually displays/reads.
+    if any(bindings[role].get("key") != role for role in ("jacobian", "warped_mri")):
+        return False
+    if len({bindings[role]["key"] for role in ROLES["jacobianAnomalyRatio"]}) != 5:
+        return False
+    if (summary.get("jacobianValueType") != "determinant_not_log"
+            or summary.get("sampling") != "strided_whole_volume"
+            or summary.get("anomalyBounds") != [0.2, 5.0]
+            or summary.get("nonfiniteSampleCount") != 0):
+        return False
+    sampling = mapping(declaration.get("sampling"))
+    for key in ("sampleCount", "totalVoxels", "sampleStride"):
+        observed = summary.get(key)
+        if type(observed) is not int or observed <= 0 or type(sampling.get(key)) is not int or sampling[key] != observed:
+            return False
+    if summary["sampleCount"] != (summary["totalVoxels"] - 1) // summary["sampleStride"] + 1:
+        return False
+    return (same_reported_value(declaration.get("value"), value)
+            and same_reported_value(summary.get("anomalyRatio"), value))
+
+
 def assess_registration_metrics(metrics, sources, records, verified_hashes=None, jacobian=None):
     """Only callers that actually verified required artifacts may supply hashes.
 
@@ -50,19 +102,9 @@ def assess_registration_metrics(metrics, sources, records, verified_hashes=None,
         declaration = mapping(mapping(record.get("metricValidation")).get(key))
         usable = False
         if key == "jacobianAnomalyRatio":
-            usable = bool(
-                jacobian and jacobian.get("realJacobianEvidence") is True
-                and verified_hashes.get("jacobian")
-                and same_reported_value(jacobian.get("anomalyRatio"), value)
-            )
+            usable = jacobian_derivation_bound(record, declaration, verified_hashes, jacobian, value)
         elif declaration and not proxy:
-            bindings = mapping(declaration.get("artifacts"))
-            roles_bound = all(
-                isinstance(bindings.get(role), dict)
-                and bindings[role].get("sha256")
-                and verified_hashes.get(bindings[role].get("key")) == bindings[role]["sha256"]
-                for role in ROLES[key]
-            )
+            roles_bound = artifacts_bound(declaration, ROLES[key], verified_hashes)
             usable = roles_bound and same_reported_value(declaration.get("value"), value)
             if key == "treMm":
                 usable = bool(usable and record.get("anatomicalTreAvailable") is True

@@ -1,7 +1,7 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { THEME } from '../constants/theme';
 import { t } from '../constants/i18n';
-import { measurementView, registrationGateState } from './registrationEvidence';
+import { measurementJacobianSummary, measurementView, registrationGateState } from './registrationEvidence';
 
 const STATUS_META = {
   idle: { color: '#94a3b8', dot: 'o', labelKey: 'backendIdle' },
@@ -207,7 +207,7 @@ function getMriRegistrationSummary(cap) {
     metricCi95: metrics.treMm !== null ? row.measurementCi95 || {} : {},
     treAxisMm: row.treAxisMm && typeof row.treAxisMm === 'object' ? row.treAxisMm : {},
     transform: row.transform && typeof row.transform === 'object' ? row.transform : {},
-    jacobianSummary: row.jacobianSummary && typeof row.jacobianSummary === 'object' ? row.jacobianSummary : {},
+    jacobianSummary: measurementJacobianSummary(row),
     quickMode: summary.quickMode ?? null,
     skipDeformable: summary.skipDeformable ?? null,
     usedRigid: registration.usedRigid ?? null,
@@ -645,11 +645,11 @@ function AdvancedSettings({ capabilities, tr }) {
           />
           <AdvRow
             label={tr('mriJacobianStdLabel')}
-            value={Number.isFinite(Number(mriReg?.jacobianSummary?.std)) ? Number(mriReg.jacobianSummary.std).toFixed(6) : '-'}
+            value={Number.isFinite(mriReg?.jacobianSummary?.std) ? mriReg.jacobianSummary.std.toFixed(6) : '-'}
           />
           <AdvRow
             label={tr('mriJacobianEvidenceLabel')}
-            value={mriReg?.jacobianSummary?.realJacobianEvidence === false ? tr('mriJacobianPlaceholder') : (mriReg?.jacobianSummary?.evidence || '-')}
+            value={mriReg?.jacobianSummary?.evidence || '-'}
           />
           <AdvRow
             label={tr('mriRegistrationTransformTypeLabel')}
