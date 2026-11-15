@@ -1,0 +1,70 @@
+name: macos-fresh-candidate
+on:
+  push:
+    branches: [evidence/macos-fresh-candidate-20261115]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-arm-fresh-candidate:
+    runs-on: macos-15
+    timeout-minutes: 100
+    env:
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+      MPLBACKEND: Agg
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 5bd7b4bdd5a222f06b6ccbdcb608489bb4c3abcc
+          path: candidate
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
+        env:
+          UV_PYTHON_PREFERENCE: only-managed
+        with:
+          version: "0.13.6"
+          python-version: "3.10.20"
+          activate-environment: true
+          venv-path: ${{ runner.temp }}/probeplanner-python
+          enable-cache: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24.14.0"
+      - name: Test all original and new qualification contracts
+        run: python -m unittest discover -s harness/scripts/qualification -p 'test_*.py' -v
+      - name: Qualify independently identified backend candidate
+        run: >-
+          python harness/scripts/qualification/qualify_fresh_candidate.py --source candidate
+          --output "${{ runner.temp }}/fresh-prerequisites"
+      - name: Execute actual fresh request and complete candidate viewer
+        run: >-
+          python harness/scripts/qualification/run_fresh_candidate.py --source candidate
+          --qualification "${{ runner.temp }}/fresh-prerequisites"
+          --output "${{ runner.temp }}/fresh-ui" --data "${{ runner.temp }}/fresh-data"
+          --warm-response-contract harness/scripts/qualification/warm_response_contract.json
+      - name: Retain prerequisites including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fresh-prerequisites-arm64
+          path: ${{ runner.temp }}/fresh-prerequisites
+          retention-days: 30
+          if-no-files-found: error
+          include-hidden-files: true
+      - name: Retain UI evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fresh-ui-arm64
+          path: ${{ runner.temp }}/fresh-ui
+          retention-days: 30
+          if-no-files-found: error
+          include-hidden-files: true
