@@ -43,3 +43,9 @@ The 112/329/152/6 suites permit no skips. This is not a claim that the original
 Windows release gate itself is now portable. A 180-minute job budget reserves
 time for the previously declared stages and artifact upload; it does not change
 the separate frozen Mac UI timeout.
+
+Run 44120535644 exposed a path-type error in the newly added external driver's
+contract serialization, before the full test stages. Its results are retained.
+The driver now passes a Path to the frozen hash helper; a new contract-stage
+test exercises this integration. This does not change any frozen application
+file, original test, result or numerical threshold.

@@ -1,10 +1,14 @@
 """Fail-closed contract tests for the external portability report, not the planner."""
 from pathlib import Path
 import tempfile
+import json
+import sys
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
-from portable_checks import packaging_counts
+from portable_checks import packaging_counts, main
 
 
 class PackagingPolicyTests(unittest.TestCase):
@@ -52,6 +56,43 @@ class PackagingPolicyTests(unittest.TestCase):
         self.assertTrue(result["countGatePassed"])
         self.assertEqual(result["passed"], 202)
         self.assertEqual(result["notApplicableCount"], 0)
+
+    def test_contract_serialization_uses_path_objects(self):
+        def strict_sha(path):
+            self.assertIsInstance(path, Path)
+            return "bound"
+
+        def execute(*args):
+            raise RuntimeError("first_stage_reached")
+
+        def require(condition, message):
+            if not condition:
+                raise ValueError(message)
+
+        original = SimpleNamespace(__file__=__file__, sha=strict_sha,
+            inventory=lambda *a: {}, verify_package=lambda *a: {}, verify_git=lambda *a: {},
+            verify_environment=lambda *a: {}, inspect_profile=lambda *a: {},
+            verify_replay=lambda *a: {}, PUBLIC_PROFILE_SHA256="bound",
+            OLD_ARCHIVE_SHA256="bound", OLD_MANIFEST_SHA256="bound", require=require, execute=execute)
+        writer = SimpleNamespace(serialize=lambda value: json.dumps(value).encode(),
+                                 write_bytes=lambda path, value: path.write_bytes(value))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            source.mkdir()
+            output = root / "output"
+            argv = ["driver", "--source", str(source), "--evidence-dir", str(root / "evidence"),
+                    "--profile", str(root / "profile"), "--replay-dir", str(root / "replay"), "--output", str(output)]
+            old_path = list(sys.path)
+            try:
+                with patch.object(sys, "argv", argv), patch.dict(sys.modules,
+                      {"run_release_checks_v030": original, "prepare_public_profile": writer}):
+                    self.assertEqual(main(), 1)
+            finally:
+                sys.path[:] = old_path
+            result = json.loads((output / "SUMMARY.json").read_text())
+            self.assertEqual(result["error"], "RuntimeError: first_stage_reached")
+            self.assertTrue((output / "RUN_CONTRACT.json").is_file())
 
 
 if __name__ == "__main__":

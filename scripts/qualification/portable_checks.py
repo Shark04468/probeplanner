@@ -67,7 +67,7 @@ def main():
         write_bytes(out / "SOURCE_PACKAGE_CHECK.json", serialize(package))
         write_bytes(out / "PORTABLE_REPLAY_CHECK.json", serialize(replay))
         write_bytes(out / "RUN_CONTRACT.json", serialize(dict(git=git, sourceFiles=before,
-            driverSha256=original.sha(__file__), originalReleaseDriverSha256=original.sha(Path(original.__file__)),
+            driverSha256=original.sha(Path(__file__)), originalReleaseDriverSha256=original.sha(Path(original.__file__)),
             originalTestsUnmodified=True, platform=sys.platform, packagingTotal=203,
             policy="Only the declared Windows-junction test is not applicable on non-Windows. The original Windows symlink-privilege policy remains. No skipped test is counted as passed.")))
         env = {k: v for k, v in os.environ.items() if not k.startswith("PROBEPLANNER_")}
