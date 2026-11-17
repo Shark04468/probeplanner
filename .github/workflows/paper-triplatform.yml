@@ -12,7 +12,7 @@ jobs:
       matrix:
         os: [windows-2022, ubuntu-22.04, macos-15]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 120
+    timeout-minutes: 180
     env:
       PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
       PYTHONDONTWRITEBYTECODE: "1"
@@ -46,7 +46,9 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "24.14.0"
-      - name: Run unchanged paper software and evidence gates
+      - name: Verify external packaging applicability policy
+        run: python -m unittest discover -s harness/scripts/qualification -p 'test_portable_checks.py' -v
+      - name: Run unchanged paper tests and scientific checks
         run: >-
           python harness/scripts/qualification/qualify_triplatform.py
           --source frozen --output "${{ runner.temp }}/paper-platform-evidence"

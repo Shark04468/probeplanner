@@ -27,4 +27,19 @@ timeout remains evidence and is not overwritten or reclassified by this matrix.
 The 3600-second offline replay budget is the pre-existing replay budget, not a
 replacement for the separate interactive-request deadline.
 
-Initial status: not run. Only successful recorded runs may be described as passed.
+## External harness correction
+
+Initial run 44119161805 was cancelled after read-only review found that the
+original Windows release gate rejects the original Windows-junction test's
+explicit skip on non-Windows hosts. Cancellation is not a pass. The original
+application, tests and historical gate remain unchanged. The replacement external
+portable orchestrator calls the same source, environment, profile, replay and
+exact-verification functions and executes the same full test sets. Packaging
+must collect exactly 203 tests. On non-Windows, only the exact Windows-junction
+test with reason `Windows reparse-point test` is not applicable; it is reported
+separately, never counted as passed. The original Windows symlink-privilege
+allowance remains. Every other skip, failure, error or changed count fails.
+The 112/329/152/6 suites permit no skips. This is not a claim that the original
+Windows release gate itself is now portable. A 180-minute job budget reserves
+time for the previously declared stages and artifact upload; it does not change
+the separate frozen Mac UI timeout.

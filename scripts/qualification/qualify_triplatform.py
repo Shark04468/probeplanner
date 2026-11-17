@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import signal
 import shutil
 import subprocess
 import sys
@@ -70,10 +71,17 @@ def main():
         record = dict(name=name, command=command, timeout_seconds=timeout)
         with (out / (name + ".log")).open("x", encoding="utf-8") as log:
             try:
-                result = subprocess.run(command, cwd=source, stdout=log,
-                                        stderr=subprocess.STDOUT, timeout=timeout)
-                record["returncode"] = result.returncode
+                process = subprocess.Popen(command, cwd=source, stdout=log,
+                    stderr=subprocess.STDOUT, start_new_session=os.name != "nt",
+                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0)
+                record["returncode"] = process.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
+                if os.name == "nt":
+                    subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                                   stdout=log, stderr=subprocess.STDOUT, check=True, timeout=60)
+                else:
+                    os.killpg(process.pid, signal.SIGKILL)
+                process.wait(timeout=60)
                 record.update(returncode=None, timed_out=True)
         record.update(seconds=time.monotonic() - start, log_sha256=sha(out / (name + ".log")))
         write(out / (name + ".step.json"), record)
@@ -89,6 +97,8 @@ def main():
         require(sha(source / "apps/backend-compat/src/optimizer_server.py") == OPTIMIZER,
                 "Optimizer byte identity mismatch")
         require(sys.version_info[:3] == (3, 10, 20), "Python version differs")
+        require(shutil.disk_usage(data).free >= 10 * 1024 ** 3, "At least 10 GiB disk headroom is required")
+        require(shutil.which("pwsh") or shutil.which("powershell"), "PowerShell is required for unchanged packaging tests")
         npm = shutil.which("npm.cmd" if os.name == "nt" else "npm")
         require(npm, "npm unavailable")
         require(subprocess.check_output(["node", "--version"], text=True).strip() == "v24.14.0",
@@ -130,12 +140,12 @@ def main():
         for case in CASES:
             command.extend(["--case", case])
         step("candidate_exact_replay", command, 3600)
-        step("unchanged_release_gates", [sys.executable, "scripts/release/run_release_checks_v030.py",
+        step("portable_software_gates", [sys.executable, str(Path(__file__).with_name("portable_checks.py")),
+             "--source", str(source),
              "--evidence-dir", str(evidence), "--profile", str(data / "profile"), "--replay-dir",
-             str(out / "replay"), "--surface-python", sys.executable,
-             "--output", str(out / "checks"), "--require-clean"], 3600)
+             str(out / "replay"), "--output", str(out / "checks")], 3600)
         summary = json.loads((out / "checks/SUMMARY.json").read_text(encoding="utf-8"))
-        require(summary.get("localReleaseValidationPassed") is True
+        require(summary.get("portableSoftwareVerificationPassed") is True
                 and summary.get("sourceAndInputsUnchanged") is True, "Final gate failure")
         report.update(status="PASS_FROZEN_SOFTWARE_AND_EXACT_REPLAY", checks_summary=summary)
     except Exception as exc:
