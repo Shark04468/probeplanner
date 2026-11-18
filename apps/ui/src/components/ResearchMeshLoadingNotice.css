@@ -1,0 +1,49 @@
+.pp-memory-notice {
+  box-sizing: border-box;
+  width: min(440px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  border: 1px solid #35526d;
+  border-radius: 8px;
+  padding: 18px 20px;
+  background: #0a1828;
+  color: #d8eefa;
+}
+
+.pp-memory-notice::backdrop {
+  background: rgba(2, 10, 22, 0.66);
+}
+
+.pp-memory-notice h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.pp-memory-notice p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.pp-memory-notice footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.pp-memory-notice button {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid #386578;
+  border-radius: 6px;
+  background: #153045;
+  color: #d8eefa;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pp-memory-notice button:focus-visible {
+  outline: 2px solid #6edcf1;
+  outline-offset: 2px;
+}

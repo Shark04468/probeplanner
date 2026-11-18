@@ -280,6 +280,7 @@ export default function BackendPanel({
   onConnect,
   onDisconnect,
   onModeChange,
+  boundSession = false,
   lang = 'cn',
 }) {
   const {
@@ -331,7 +332,7 @@ export default function BackendPanel({
           style={{ ...styles.urlInput, opacity: isConnected || isBusy ? 0.5 : 1 }}
           value={urlInput}
           onChange={(e) => setUrlInput(e.target.value)}
-          disabled={isConnected || isBusy}
+          disabled={boundSession || isConnected || isBusy}
           placeholder="http://localhost:5000"
           spellCheck={false}
         />
@@ -359,7 +360,7 @@ export default function BackendPanel({
             setModeInput(next);
             onModeChange?.(next);
           }}
-          disabled={isConnected || isBusy}
+          disabled={boundSession || isConnected || isBusy}
         >
           {availableModes.map((mode) => {
             return (
@@ -372,6 +373,18 @@ export default function BackendPanel({
       </div>
 
       <CapabilityBanner status={status} capabilities={capabilities} tr={tr} />
+      {capabilities?.appSession && (
+        <dl style={{ margin: 0, fontSize: 11, overflowWrap: 'anywhere' }} data-testid="app-session-identity">
+          <dt>{tr('appSessionProfile')}</dt>
+          <dd style={{ marginLeft: 0 }}><code>{capabilities.appSession.profileSha256}</code></dd>
+          <dt>{tr('appSessionOptimizer')}</dt>
+          <dd style={{ marginLeft: 0 }}><code>{capabilities.appSession.optimizerSha256}</code></dd>
+          {capabilities.appSession.displaySha256 && <>
+            <dt>{tr('appSessionDisplay')}</dt>
+            <dd style={{ marginLeft: 0 }}><code>{capabilities.appSession.displaySha256}</code></dd>
+          </>}
+        </dl>
+      )}
 
       {loadProgress && loadProgress.state !== 'ready' && (
         <AtlasLoadProgress load={loadProgress} tr={tr} />

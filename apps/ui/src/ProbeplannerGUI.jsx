@@ -16,7 +16,7 @@ import { GLOBAL_CSS }        from './constants/theme';
 import { t, LANGS }          from './constants/i18n';
 import { sanitizeConstraintModes } from './constants/constraintSchema';
 
-import { useBackend, flaskFetch }        from './hooks/useBackend';
+import { useBackend, flaskFetch, readAppSessionId } from './hooks/useBackend';
 import { useOptimizer }      from './hooks/useOptimizer';
 
 import ResizableSidebar      from './components/ResizableSidebar';
@@ -28,6 +28,7 @@ import BackendPanel          from './components/BackendPanel';
 import BrainTopView          from './components/BrainTopView';
 import BrainSideView         from './components/BrainSideView';
 import Brain3DView           from './components/Brain3DView';
+import ResearchMeshLoadingNotice from './components/ResearchMeshLoadingNotice';
 import { formatProbeModels } from './components/probeModelLabels';
 import ResultsPanel          from './components/ResultsPanel';
 import HistoryPanel          from './components/HistoryPanel';
@@ -516,6 +517,9 @@ export default function ProbeplannerGUI() {
     atlasMode,
     setAtlasMode,
   } = useBackend();
+  const boundSession = Boolean(readAppSessionId());
+  const sessionMode = atlasInfo?.appSession?.mode;
+  const viewerOnline = !boundSession || backendStatus === 'online';
   const optimizer = useOptimizer();
 
   const setConstraint = useCallback((key, mode) =>
@@ -537,6 +541,7 @@ export default function ProbeplannerGUI() {
   }, []);
 
   const handleAtlasModeQuickSwitch = useCallback((nextModeRaw) => {
+    if (boundSession) return;
     const nextMode = String(nextModeRaw || '').trim().toLowerCase();
     if (!nextMode || nextMode === atlasMode) return;
     setAtlasMode(nextMode);
@@ -546,7 +551,7 @@ export default function ProbeplannerGUI() {
       token: authToken || undefined,
       atlasMode: nextMode,
     });
-  }, [atlasMode, setAtlasMode, backendStatus, connect, baseUrl, authToken]);
+  }, [boundSession, atlasMode, setAtlasMode, backendStatus, connect, baseUrl, authToken]);
 
   const handleToggleRegion = useCallback((key) => {
     if (key === '__clear__') { setSelectedRegions(new Set()); setFocusedRegionKey(null); return; }
@@ -569,6 +574,7 @@ export default function ProbeplannerGUI() {
   }, []);
 
   const runOptimization = useCallback((override = null) => {
+    if (atlasInfo?.registrationPreview?.researchOnly) return;
     if (!selectedRegions.size) return;
     const patch = override && typeof override === 'object' ? override : {};
     const mergedParams = { ...params, ...(patch.params || {}) };
@@ -638,13 +644,15 @@ export default function ProbeplannerGUI() {
   }, [backendStatus, atlasLoaded, activeAtlasMode, fullBrainCount, atlasInfo]);
   const runBlockedReason = useMemo(() => {
     if (backendStatus !== 'online') return null;
+    if (atlasInfo?.registrationPreview?.researchOnly) return tr('researchPreviewNotAccepted');
     if (!atlasLoaded) return tr('runBlockedAtlasNotReady');
     if (activeAtlasMode === 'allen_sdk' && !fullBrainReady) {
       return `${tr('runBlockedFullBrainNotReady')} (${fullBrainCount})`;
     }
     return null;
-  }, [backendStatus, atlasLoaded, activeAtlasMode, fullBrainReady, fullBrainCount, tr]);
-  const canRun = selectedRegions.size > 0 && !isRunning && backendStatus === 'online' && fullBrainReady;
+  }, [backendStatus, atlasInfo?.registrationPreview?.researchOnly, atlasLoaded, activeAtlasMode, fullBrainReady, fullBrainCount, tr]);
+  const canRun = selectedRegions.size > 0 && !isRunning && backendStatus === 'online'
+    && fullBrainReady && !atlasInfo?.registrationPreview?.researchOnly;
   const backendNotices = useMemo(
     () => dedupeNotices(atlasInfo?.degradationNotices || []),
     [atlasInfo]
@@ -914,7 +922,10 @@ export default function ProbeplannerGUI() {
       detail: planningFlow.detail,
       level: runError ? 'error' : workflowLevel(planningFlow.status),
     },
-  ]), [
+  ].map((stage) => atlasInfo?.registrationPreview?.researchOnly && stage.key !== 'atlas'
+    ? { ...stage, pct: 0, level: 'idle', detail: tr('researchPreviewNotAccepted') }
+    : stage)), [
+    atlasInfo?.registrationPreview?.researchOnly,
     atlasInfo?.atlasLoad?.stage,
     atlasLoaded,
     atlasProgress,
@@ -946,9 +957,9 @@ export default function ProbeplannerGUI() {
       {
         key: 'risk',
         label: tr('preflightRisk'),
-        ok: Boolean(atlasLoaded),
+        ok: Boolean(atlasLoaded) && !atlasInfo?.registrationPreview?.researchOnly,
         warn: riskModel?.enabled === false,
-        detail: riskDetailLabel,
+        detail: atlasInfo?.registrationPreview?.researchOnly ? tr('researchPreviewNotAccepted') : riskDetailLabel,
       },
       {
         key: 'target',
@@ -965,8 +976,8 @@ export default function ProbeplannerGUI() {
     ];
   }, [atlasInfo, atlasLoaded, backendStatus, fullBrainCount, riskDetailLabel, riskModel?.enabled, selectedRegions.size, tr]);
   const preflightReady = useMemo(
-    () => preflightItems.every((item) => item.ok || item.warn),
-    [preflightItems]
+    () => !atlasInfo?.registrationPreview?.researchOnly && preflightItems.every((item) => item.ok || item.warn),
+    [atlasInfo?.registrationPreview?.researchOnly, preflightItems]
   );
   const mriRepairBundle = useMemo(() => {
     const mri = atlasInfo?.mriCcfHybrid || {};
@@ -1322,6 +1333,7 @@ export default function ProbeplannerGUI() {
     <>
       <style>{GLOBAL_CSS + EXTRA_CSS}</style>
       <div style={S.root} className="pp-root">
+        <ResearchMeshLoadingNotice policy={atlasInfo?.researchMeshLoading} tr={tr} />
 
         {/* Top bar */}
         <header style={S.topbar} className="pp-topbar">
@@ -1372,7 +1384,7 @@ export default function ProbeplannerGUI() {
                 style={{ ...S.modeQuickSelect, opacity: backendStatus === 'connecting' ? 0.65 : 1 }}
                 value={atlasMode}
                 onChange={(e) => handleAtlasModeQuickSwitch(e.target.value)}
-                disabled={backendStatus === 'connecting'}
+                disabled={boundSession || backendStatus === 'connecting'}
               >
                 {availableAtlasModes.map((mode) => {
                   return (
@@ -1385,6 +1397,11 @@ export default function ProbeplannerGUI() {
             </div>
 
             <StatusBadge status={backendStatus} tr={tr} />
+            {sessionMode && (
+              <span data-testid="app-session-mode" style={S.smallTag}>
+                {tr(sessionMode === 'research' ? 'appSessionResearch' : 'appSessionPlanning')}
+              </span>
+            )}
 
             {/* Timing display */}
             {lastRunMs !== null && !isRunning && (
@@ -1567,7 +1584,7 @@ export default function ProbeplannerGUI() {
                   value={atlasMode}
                   onChange={(e) => handleAtlasModeQuickSwitch(e.target.value)}
                   style={S.leftModeSelect}
-                  disabled={backendStatus === 'connecting'}
+                  disabled={boundSession || backendStatus === 'connecting'}
                 >
                   {availableAtlasModes.map((mode) => {
                     return (
@@ -1680,7 +1697,7 @@ export default function ProbeplannerGUI() {
                       {show3D ? tr('hideLabel') : `${tr('showLabel')} · ${tr('zoomHint')}`}
                     </span>
                   </button>
-                  {show3D && (
+                {show3D && viewerOnline && (
                     <div style={S.d3Body}>
                       <Brain3DView
                         probes={probesFor3D}
@@ -1721,6 +1738,7 @@ export default function ProbeplannerGUI() {
                       onHighlight={setHighlightIdx}
                       lang={lang}
                       onApplyFailureRepair={handleApplyFailureRepair}
+                      allowReplayExport={sessionMode === 'planning' && backendStatus === 'online'}
                     />
                 }
               </div>
@@ -1876,6 +1894,7 @@ export default function ProbeplannerGUI() {
                   onConnect={connect}
                   onDisconnect={disconnect}
                   onModeChange={setAtlasMode}
+                  boundSession={boundSession}
                   lang={lang}
                 />
               </ACard>

@@ -4,11 +4,12 @@
 
 ProbePlanner is an auditable planning workflow for mouse electrophysiology probe trajectories. It combines an Allen CCF/MRI-derived artifact profile, a React planning interface, a Flask compatibility API, a Rust native planning engine, replay/performance tooling, and paper-facing evidence exports.
 
-This source targets the **`v0.3.0-paper` paper release**. Its supported paper
-runtime is the Python optimizer, explicitly initialized from a verified
-deployment profile. Publication status, the fixed commit, validation reports
-and Version DOI are recorded on the release page; a candidate branch or package
-version string alone is not a published release.
+**`v0.4.0`** is the maintained application release. See its
+[release notes](docs/release/v0.4.0.md) and [startup guide](docs/APP_STARTUP.md).
+The **`v0.3.0-paper` paper release** remains the reference for paper results.
+Its paper runtime is the Python optimizer with a verified deployment profile.
+Version 0.4.0 has a separate, opt-in CCF + MRI research viewer. The viewer was
+not part of the frozen paper planning evaluation.
 
 The preceding `v0.2.1-paper` release froze the corrected source that produced
 the historical v5 validation. Neither that tag nor `v0.2.0-paper` is replaced.
@@ -41,6 +42,13 @@ records and old frozen v5 confirmation remain unchanged.
 - `docs`: architecture and artifact packaging notes.
 
 Large MRI/CCF artifacts are not stored in git. The default native delivery profile is `ambmc_true_outer_full`; public releases should archive redistributable artifacts separately when source dataset licenses allow it.
+
+## Maintained application
+
+For the current application, use the [maintained startup and audit guide](docs/APP_STARTUP.md).
+The launcher serves the UI and API on the same local address, and the application
+shows whether it is running ordinary planning or read-only MRI inspection.
+This does not replace the tagged paper workflow below.
 
 ## Installation
 
@@ -83,7 +91,6 @@ npm run typecheck
 npm test
 npm run backend:test
 npm run ui:build
-npm run backend:smoke
 npm run rust:check
 ```
 
@@ -125,6 +132,15 @@ classification is unresolved; it has not been restored or whitelisted. The old
 missing and now fail before process-stop/start operations. Their old PowerShell
 flags are not arguments to the paper CLI. Independent native commands below are
 not substitutes for version-matched paper validation.
+
+## CCF + MRI research viewer
+
+Use the [research viewer startup guide](docs/RESEARCH_CCF_MRI_PREVIEW.md) to
+open a prepared original-CCF MRI reconstruction in the built browser UI.
+This mode is selected at launch with `--research-display`. It uses the same
+application but a separate session that cannot run or export a probe plan.
+The MRI package is supplied separately; installing the software does not
+download it or silently switch existing planning profiles.
 
 ## Legacy native artifact setup
 

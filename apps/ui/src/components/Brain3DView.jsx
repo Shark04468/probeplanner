@@ -1055,14 +1055,17 @@ export default function Brain3DView({
     [activeAtlasMode],
   );
   const mriAppearanceEnabled = Boolean(isMriHybridMode && useMriAppearance);
+  const researchMriPreview = Boolean(mriLayerStatus?.researchOnly);
   const mriAppearancePayload = useMemo(
     () => buildMriAppearancePayload(
       mriAppearanceEnabled,
-      mriAppearanceLayers,
+      researchMriPreview
+        ? { ...mriAppearanceLayers, brainSurface: false, outerBoundary: false, skull: false }
+        : mriAppearanceLayers,
       activeAtlasMode,
       isMriHybridMode,
     ),
-    [activeAtlasMode, isMriHybridMode, mriAppearanceEnabled, mriAppearanceLayers],
+    [activeAtlasMode, isMriHybridMode, mriAppearanceEnabled, mriAppearanceLayers, researchMriPreview],
   );
   const atlasEnvelopeSuppressed = Boolean(mriAppearancePayload.showBrainSurface);
   const atlasEnvelopeVisible = Boolean(showShell && !atlasEnvelopeSuppressed);
@@ -5343,16 +5346,16 @@ export default function Brain3DView({
           <span
             style={{
               fontSize: 10,
-              color: '#9ff7cf',
-              background: '#043625aa',
-              border: '1px solid #138a61',
+              color: researchMriPreview ? '#d1d5db' : '#9ff7cf',
+              background: researchMriPreview ? '#27313daa' : '#043625aa',
+              border: researchMriPreview ? '1px solid #65717d' : '1px solid #138a61',
               borderRadius: 999,
               padding: '2px 8px',
               fontFamily: 'monospace',
             }}
             title={tr('brain3dUseMriAppearanceHint')}
           >
-            {tr('brain3dMriProfileActive')}
+            {tr(researchMriPreview ? 'brain3dMriResearchPreview' : 'brain3dMriProfileActive')}
           </span>
         )}
         {isMriHybridMode && mriLayerExplain && (

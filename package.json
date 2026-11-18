@@ -1,6 +1,6 @@
 {
   "name": "probeplanner-native-upgrade",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": false,
   "license": "MIT",
   "repository": {
@@ -9,6 +9,8 @@
   },
   "type": "module",
   "scripts": {
+    "app:build": "npm --prefix apps/ui ci && npm run ui:build",
+    "app:start": "python apps/backend-compat/scripts/start_paper_backend.py --static-dir apps/ui/build",
     "ui:install": "npm --prefix apps/ui install",
     "ui:start": "npm --prefix apps/ui start",
     "ui:build": "npm --prefix apps/ui run build",
@@ -61,7 +63,7 @@
     "release:reproduce": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release/verify_clean_reproduction.ps1",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "quality": "npm run typecheck && npm test && npm run ui:test && npm --prefix apps/ui run quality && npm run ui:build && npm run backend:smoke"
+    "quality": "npm run typecheck && npm test && npm --prefix apps/ui run quality && npm run ui:build && npm run backend:test"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

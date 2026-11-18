@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { THEME } from '../constants/theme';
 import { PROBE_COLORS } from '../constants/brainRegions';
 import { t } from '../constants/i18n';
+import ReplayRecordDownload from './ReplayRecordDownload';
 
 const fmt = (n, d = 2) => (typeof n === 'number' && Number.isFinite(n) ? n.toFixed(d) : '--');
 const hasFiniteValue = (value) => (
@@ -73,6 +74,7 @@ export default function ResultsPanel({
   onHighlight,
   lang = 'cn',
   onApplyFailureRepair = null,
+  allowReplayExport = false,
 }) {
   const tr = useCallback((k) => t(k, lang), [lang]);
   const [expandedIdx, setExpandedIdx] = useState(null);
@@ -166,7 +168,7 @@ export default function ResultsPanel({
         {(results.rankingMode || results.paretoEnabled) && (
           <ExplainSummary results={results} tr={tr} />
         )}
-        <ReproSummary results={results} tr={tr} />
+        <ReproSummary results={results} tr={tr} allowReplayExport={allowReplayExport} />
         <ParetoScatter probes={probes} onHighlight={onHighlight} tr={tr} />
       </AdvancedResultsDisclosure>
     </div>
@@ -1029,7 +1031,7 @@ function FailureCards({ cards, tr, onApplyRepair }) {
   );
 }
 
-function ReproSummary({ results, tr }) {
+function ReproSummary({ results, tr, allowReplayExport }) {
   const requestHash = results?.requestHash;
   const responseHash = results?.responseHash;
   const deterministicResponseHash = results?.deterministicResponseHash;
@@ -1051,6 +1053,7 @@ function ReproSummary({ results, tr }) {
       {deterministicResponseHash && (
         <div style={styles.summaryLine}>deterministicResponseHash: {deterministicResponseHash}</div>
       )}
+      {allowReplayExport && <ReplayRecordDownload key={requestId} results={results} tr={tr} />}
     </div>
   );
 }

@@ -11,6 +11,56 @@ import sys
 import traceback
 
 
+RESEARCH_PARALLEL_MIN_BYTES = 3 * 1024**3
+
+
+def available_memory_headroom():
+    """Return an estimate of available memory, or None if it cannot be measured."""
+    try:
+        if os.name == "nt":
+            import ctypes
+            from ctypes import wintypes
+
+            class MemoryStatus(ctypes.Structure):
+                _fields_ = [("length", wintypes.DWORD), ("load", wintypes.DWORD)] + [
+                    (name, ctypes.c_ulonglong) for name in (
+                        "total_physical", "available_physical", "commit_limit", "available_commit",
+                        "total_virtual", "available_virtual", "available_extended_virtual",
+                    )
+                ]
+
+            status = MemoryStatus()
+            status.length = ctypes.sizeof(status)
+            if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+                return min(status.available_physical, status.available_commit)
+            return None
+        if sys.platform.startswith("linux"):
+            with Path("/proc/meminfo").open(encoding="ascii") as stream:
+                for line in stream:
+                    key, _, value = line.partition(":")
+                    if key == "MemAvailable":
+                        amount, unit = value.split()
+                        if unit == "kB":
+                            return int(amount) * 1024
+        pages = os.sysconf("SC_AVPHYS_PAGES")
+        page_size = os.sysconf("SC_PAGE_SIZE")
+        return pages * page_size if pages >= 0 and page_size > 0 else None
+    except (AttributeError, OSError, ValueError):
+        return None
+
+
+def research_mesh_loading_policy():
+    available = available_memory_headroom()
+    if available is None:
+        mode, reason = "serial", "memory_unavailable"
+    elif available < RESEARCH_PARALLEL_MIN_BYTES:
+        mode, reason = "serial", "low_memory"
+    else:
+        mode, reason = "parallel", "memory_sufficient"
+    return dict(mode=mode, reason=reason, availableBytes=available,
+                parallelMinimumBytes=RESEARCH_PARALLEL_MIN_BYTES)
+
+
 def sha256(path):
     digest = hashlib.sha256()
     with Path(path).open("rb") as stream:
@@ -55,7 +105,7 @@ def runtime_package_versions():
     return versions
 
 
-def load_paper_backend(profile, run_dir, static_dir=None, *, risk_query_workers=1):
+def load_paper_backend(profile, run_dir, static_dir=None, *, risk_query_workers=1, research_display=None):
     if type(risk_query_workers) is not int or not 1 <= risk_query_workers <= 8:
         raise ValueError("risk_query_workers must be an integer between 1 and 8")
     profile, run_dir = Path(profile).resolve(), Path(run_dir).resolve()
@@ -69,6 +119,9 @@ def load_paper_backend(profile, run_dir, static_dir=None, *, risk_query_workers=
             del os.environ[key]
     import audit_registration_perturbation_sensitivity as atlas
     atlas.configure_backend_environment(profile, workers=1)
+    if research_display is not None:
+        # Inspection must neither allocate nor use the old MRI-derived risk fields.
+        os.environ['PROBEPLANNER_DISABLE_MRI_STRUCTURED_RISK'] = 'true'
     os.environ.update({
         "PROBEPLANNER_MRI_CCF_REQUIRE_MANIFEST": "true",
         "PROBEPLANNER_MRI_CCF_MANIFEST_PATH": str(profile / "artifact_manifest.json"),
@@ -84,6 +137,13 @@ def load_paper_backend(profile, run_dir, static_dir=None, *, risk_query_workers=
     expected = Path(__file__).resolve().parents[1] / "src" / "optimizer_server.py"
     if Path(server.__file__).resolve() != expected:
         raise RuntimeError("Imported optimizer is outside this source tree")
+    if static_dir is not None:
+        from backend.app_session import install_app_session
+        install_app_session(server.app, Path(static_dir) / "index.html", server.REPLAY_DIR)
+    if research_display is not None:
+        from backend.research_preview import install_research_preview
+        preview = install_research_preview(server.app, research_display, sha256(profile / 'annotation.npy'))
+        save(run_dir / 'research_preview.json', preview.identity())
     payload = server._mri_payload()
     if not payload.get("manifestValid") or payload.get("pathConsistency", {}).get("passed") is not True:
         save(run_dir / "profile_failure.json", payload)
@@ -101,7 +161,7 @@ def load_paper_backend(profile, run_dir, static_dir=None, *, risk_query_workers=
     save(run_dir / "ontology.json", ontology)
     save(run_dir / "planner_regions.json", server.PLANNER_REGIONS)
     runtime = {
-        "backend": "paper_python", "python": sys.version.split()[0],
+        "backend": "research_inspection_python" if research_display is not None else "paper_python", "python": sys.version.split()[0],
         "atlasMode": server.ACTIVE_ATLAS_MODE,
         "optimizerSha256": sha256(expected), "launcherSha256": sha256(__file__),
         "ontologyInitializerSha256": sha256(atlas.__file__),
@@ -115,8 +175,14 @@ def load_paper_backend(profile, run_dir, static_dir=None, *, risk_query_workers=
         "riskQueryPolicySha256": sha256(server.risk_query_policy.__file__),
         "packages": runtime_package_versions(),
         "discardedInheritedConfigurationKeys": sorted(removed),
-        "scope": contract["scope"],
+        "scope": "Research-only original-CCF MRI inspection; planning and export disabled" if research_display is not None else contract["scope"],
     }
+    if research_display is not None:
+        runtime['researchDisplayManifestSha256'] = preview.source.manifest_hash
+        runtime['legacyMriRiskFieldsLoaded'] = False
+        # Measure after atlas allocation, before accepting any streaming requests.
+        runtime['researchMeshLoading'] = research_mesh_loading_policy()
+        preview.configure_mesh_loading(server.app, runtime['researchMeshLoading'])
     save(run_dir / "runtime.json", runtime)
     server.app.config["PAPER_RUNTIME_IDENTITY"] = runtime
     server.app.add_url_rule("/api/paper/runtime", "paper_runtime", lambda: server.jsonify(runtime))
@@ -149,6 +215,8 @@ def main():
     parser.add_argument("--static-dir", type=Path)
     parser.add_argument("--port", type=int, default=5039)
     parser.add_argument("--check-only", action="store_true")
+    parser.add_argument("--research-display", type=Path,
+                        help="Opt-in pinned original-CCF MRI preview; disables planning and export")
     parser.add_argument("--risk-query-workers", type=int, choices=range(1, 9), default=1,
                         help="Exact surface-query workers; capped by CPU and runtime budget")
     args = parser.parse_args()
@@ -157,16 +225,27 @@ def main():
     except ValueError as error:
         parser.error(str(error))
     try:
-        server, runtime = load_paper_backend(args.profile, args.run_dir, args.static_dir,
-                                            risk_query_workers=args.risk_query_workers)
+        options = dict(risk_query_workers=args.risk_query_workers)
+        if args.research_display is not None:
+            options['research_display'] = args.research_display
+        server, runtime = load_paper_backend(args.profile, args.run_dir, args.static_dir, **options)
         if args.check_only:
-            with server.app.test_request_context():
-                save(args.run_dir / "registration_summary.json", server.api_mri_registration_summary().get_json())
-                save(args.run_dir / "registration_qc.json", server._build_mri_registration_qc_payload())
+            if args.research_display is not None:
+                with server.app.test_client() as client:
+                    save(args.run_dir / "registration_summary.json", client.get('/api/mri/registration/summary').get_json())
+                    save(args.run_dir / "registration_qc.json", client.get('/api/mri/registration/qc').get_json())
+            else:
+                with server.app.test_request_context():
+                    save(args.run_dir / "registration_summary.json", server.api_mri_registration_summary().get_json())
+                    save(args.run_dir / "registration_qc.json", server._build_mri_registration_qc_payload())
             print(json.dumps(runtime), flush=True)
         else:
-            print(f"Paper Python backend: http://127.0.0.1:{args.port}", flush=True)
-            server.app.run(host="127.0.0.1", port=args.port, debug=False, use_reloader=False, threaded=True)
+            name = 'Research-only inspection' if args.research_display is not None else 'Paper Python backend'
+            print(f"{name}: http://127.0.0.1:{args.port}", flush=True)
+            policy = runtime.get('researchMeshLoading')
+            if policy is not None and policy['mode'] == 'serial':
+                print(f"Research mesh requests: serial ({policy['reason']})", flush=True)
+            server.app.run(host="127.0.0.1", port=args.port, debug=False, use_reloader=False)
     except Exception:
         if args.run_dir.exists():
             save(args.run_dir / "STARTUP_FAILURE.json", {"error": traceback.format_exc()})

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import socket
 import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -116,3 +117,40 @@ def test_main_rejects_occupied_port_before_expensive_loader(tmp_path, monkeypatc
         assert error.value.code == 2
         assert 'port' in capsys.readouterr().err
         assert not config.run_dir.exists()
+
+
+@pytest.mark.parametrize(('memory_bytes', 'mode', 'reason'), [
+    (None, 'serial', 'memory_unavailable'),
+    (0, 'serial', 'low_memory'),
+    (launcher.RESEARCH_PARALLEL_MIN_BYTES - 1, 'serial', 'low_memory'),
+    (launcher.RESEARCH_PARALLEL_MIN_BYTES, 'parallel', 'memory_sufficient'),
+])
+def test_research_mesh_loading_policy(monkeypatch, memory_bytes, mode, reason):
+    monkeypatch.setattr(launcher, 'available_memory_headroom', lambda: memory_bytes)
+    assert launcher.research_mesh_loading_policy() == dict(
+        mode=mode, reason=reason, availableBytes=memory_bytes,
+        parallelMinimumBytes=launcher.RESEARCH_PARALLEL_MIN_BYTES)
+
+
+@pytest.mark.parametrize('policy', [
+    None,
+    {'mode': 'parallel', 'reason': 'memory_sufficient'},
+    {'mode': 'serial', 'reason': 'low_memory'},
+    {'mode': 'serial', 'reason': 'memory_unavailable'},
+])
+def test_launcher_keeps_ui_and_status_off_the_serial_queue(tmp_path, monkeypatch, capsys, policy):
+    calls = []
+    app = SimpleNamespace(run=lambda **options: calls.append(options))
+    monkeypatch.setattr(launcher, 'preflight', lambda config: None)
+    runtime = {} if policy is None else {'researchMeshLoading': policy}
+    monkeypatch.setattr(launcher, 'load_paper_backend', lambda *args, **kwargs: (SimpleNamespace(app=app), runtime))
+    argv = ['start_paper_backend.py', '--profile', str(tmp_path / 'profile'),
+            '--run-dir', str(tmp_path / 'run'), '--port', '5048']
+    if policy is not None:
+        argv += ['--research-display', str(tmp_path / 'display.json')]
+    monkeypatch.setattr(sys, 'argv', argv)
+    launcher.main()
+    assert calls == [{'host': '127.0.0.1', 'port': 5048, 'debug': False,
+                      'use_reloader': False}]
+    assert ('Research mesh requests: serial' in capsys.readouterr().out) == (
+        policy is not None and policy['mode'] == 'serial')

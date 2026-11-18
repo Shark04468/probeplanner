@@ -1,8 +1,45 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { buildBaseCandidates, resolveBase, useBackend } from './useBackend';
+import { buildBaseCandidates, flaskFetch, resolveBase, useBackend } from './useBackend';
 
-afterEach(() => { vi.unstubAllGlobals(); localStorage.clear(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+  localStorage.clear();
+  document.querySelector('meta[name="probeplanner-session"]')?.remove();
+});
+
+function pinSession() {
+  const meta = document.createElement('meta');
+  meta.name = 'probeplanner-session';
+  meta.content = '1'.repeat(32);
+  document.head.append(meta);
+  return meta.content;
+}
+
+it('pins a launcher-served page to its origin even with an older saved backend', async () => {
+  const id = pinSession();
+  localStorage.setItem('probePlannerBackendBase', 'http://127.0.0.1:5000');
+  const fetch = vi.fn(async () => ({ ok: true, headers: new Headers({ 'X-ProbePlanner-Session': id }),
+    json: async () => ({ atlasLoaded: true, activeAtlasMode: 'mri_ccf_hybrid', appSession: { id, mode: 'research' } }) }));
+  vi.stubGlobal('fetch', fetch);
+  const { result, unmount } = renderHook(() => useBackend());
+  await waitFor(() => expect(result.current.status).toBe('online'));
+  await act(async () => result.current.connect({ url: 'http://127.0.0.1:5000', atlasMode: 'allen_sdk' }));
+  expect(result.current.atlasInfo.appSession.mode).toBe('research');
+  expect(fetch.mock.calls.every(([url, opts]) => url.startsWith(window.location.origin + '/')
+    && opts.method === 'GET' && opts.headers['X-ProbePlanner-Session'] === id)).toBe(true);
+  expect(localStorage.getItem('probePlannerBackendBase')).toBe('http://127.0.0.1:5000');
+  unmount();
+});
+
+it('refuses data from a replacement service and does not try a fallback', async () => {
+  pinSession();
+  const fetch = vi.fn(async () => ({ ok: true, headers: new Headers(), json: async () => ({ ok: true }) }));
+  vi.stubGlobal('fetch', fetch);
+  await expect(flaskFetch('/api/status')).rejects.toHaveProperty('code', 'app_session_changed');
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(buildBaseCandidates(window.location.origin)).toEqual([window.location.origin]);
+});
 
 it('discovers the configured atlas on first connection without mutating the server', async () => {
   localStorage.clear();

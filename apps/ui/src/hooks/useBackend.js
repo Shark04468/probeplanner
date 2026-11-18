@@ -12,6 +12,13 @@ const BASE_STORAGE_KEY = "probePlannerBackendBase";
 const ATLAS_MODE_STORAGE_KEY = "probePlannerAtlasMode";
 const DEFAULT_ATLAS_MODE = "allen_sdk";
 const ALLOWED_ATLAS_MODES = new Set(["allen_sdk", "qiu2018", "mri_ccf_hybrid"]);
+const SESSION_HEADER = 'X-ProbePlanner-Session';
+
+export function readAppSessionId() {
+  if (typeof document === 'undefined') return null;
+  const value = document.querySelector('meta[name="probeplanner-session"]')?.content;
+  return /^[0-9a-f]{32}$/.test(value || '') ? value : null;
+}
 
 // baseUrlRef is module-level so flaskFetch can always read the current value
 // without needing to be recreated every time the URL changes.
@@ -43,6 +50,7 @@ function resolveToken(next = null) {
 
 export function resolveBase(next = null) {
   const normalize = (v) => String(v || "").trim().replace(/\/+$/, "");
+  if (readAppSessionId()) return window.location.origin;
   if (typeof next === "string" && normalize(next)) return normalize(next);
   if (typeof window !== "undefined") {
     const fromStorage = safeStorageGet(BASE_STORAGE_KEY);
@@ -60,6 +68,7 @@ export function resolveBase(next = null) {
 
 export function buildBaseCandidates(base) {
   const primary = resolveBase(base);
+  if (readAppSessionId()) return [primary];
   const out = [];
   const push = (v) => {
     const clean = resolveBase(v);
@@ -291,7 +300,8 @@ export async function flaskFetch(
   baseOverride = null,
   requestOptions = null
 ) {
-  const base = baseOverride || _currentBase;
+  const session = readAppSessionId();
+  const base = session ? window.location.origin : baseOverride || _currentBase;
   const token = _currentToken || resolveToken();
   const timeoutMsRaw = requestOptions?.timeoutMs;
   const timeoutMs = Number.isFinite(Number(timeoutMsRaw))
@@ -306,9 +316,18 @@ export async function flaskFetch(
   if (token) {
     opts.headers.Authorization = `Bearer ${token}`;
   }
+  if (session) {
+    opts.headers[SESSION_HEADER] = session;
+    opts.redirect = 'error';
+  }
   if (body) opts.body = JSON.stringify(body);
   try {
     const res = await fetch(base + path, opts);
+    if (session && res.headers.get(SESSION_HEADER) !== session) {
+      const error = new Error('The application session changed. Reload this page.');
+      error.code = 'app_session_changed';
+      throw error;
+    }
     if (!res.ok) {
       const raw = await res.text();
       let parsed = null;
@@ -331,7 +350,7 @@ export async function flaskFetch(
       err.status = res.status;
       throw err;
     }
-    return res.json();
+    return requestOptions?.responseType === 'text' ? res.text() : res.json();
   } finally {
     timeoutBundle.cancel();
   }
@@ -359,7 +378,7 @@ export function useBackend() {
     baseRef.current = clean;
     _currentBase    = clean;
     setBaseUrl(clean);
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !readAppSessionId()) {
       safeStorageSet(BASE_STORAGE_KEY, clean);
     }
   };
@@ -373,7 +392,7 @@ export function useBackend() {
     const clean = resolveAtlasMode(mode);
     atlasModeRef.current = clean;
     setAtlasModeState(clean);
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !readAppSessionId()) {
       safeStorageSet(ATLAS_MODE_STORAGE_KEY, clean);
     }
   };
@@ -411,13 +430,14 @@ export function useBackend() {
     detailRefreshSeqRef.current += 1;
     const url = typeof urlOrConfig === "string" ? urlOrConfig : urlOrConfig?.url;
     const token = typeof urlOrConfig === "string" ? null : urlOrConfig?.token;
-    const mode = typeof urlOrConfig === "string" ? null : urlOrConfig?.atlasMode;
+    const mode = readAppSessionId() || typeof urlOrConfig === "string" ? null : urlOrConfig?.atlasMode;
     const requestedBase = resolveBase(url || baseRef.current);
     const candidateBases = buildBaseCandidates(requestedBase);
     updateBase(requestedBase);
     if (token != null) updateToken(token);
     let activeMode = resolveAtlasMode(mode ?? atlasModeRef.current);
     setStatus("connecting");
+    setAtlasInfo(null);
     setError(null);
     clearInterval(pollRef.current);
     let lastError = null;
@@ -547,6 +567,28 @@ export function useBackend() {
   }, [connect]);
 
   useEffect(() => () => clearInterval(pollRef.current), []);
+
+  useEffect(() => {
+    if (status !== 'online' || !readAppSessionId()) return undefined;
+    let stopped = false;
+    let misses = 0;
+    const timer = setInterval(async () => {
+      try {
+        await flaskFetch('/api/app/session', 'GET', null, null, { timeoutMs: 4000 });
+        misses = 0;
+      } catch (error) {
+        if (stopped || (error.code !== 'app_session_changed' && ++misses < 2)) return;
+        detailRefreshSeqRef.current += 1;
+        setAtlasInfo(null);
+        setStatus('offline');
+        setError(error.message);
+      }
+    }, 12000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [status]);
 
   return {
     status,

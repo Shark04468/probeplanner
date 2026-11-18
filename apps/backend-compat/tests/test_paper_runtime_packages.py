@@ -43,6 +43,9 @@ def test_profile_startup_without_optional_allensdk(tmp_path, monkeypatch, loaded
     assert runtime["packages"]["allensdk"] is None
     assert runtime["packages"]["numpy"] == actual_version("numpy")
     assert loaded_profile.app.config["PAPER_RUNTIME_IDENTITY"] == runtime
+    assert runtime["backend"] == "paper_python"
+    assert "researchDisplayManifestSha256" not in runtime
+    assert "RESEARCH_PREVIEW" not in loaded_profile.app.config
 
 
 def test_installed_package_versions_are_retained(monkeypatch):
